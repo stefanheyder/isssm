@@ -1,0 +1,9 @@
+project:
+  output-dir: _docs
+
+website:
+  title: "isssm"
+  site-url: "https://stefanheyder.github.io/isssm"
+  description: "Importance Sampling for State Space Models (in jax)"
+  repo-branch: main
+  repo-url: "https://github.com/stefanheyder/isssm"
