@@ -2,7 +2,7 @@
 
 # %% auto 0
 __all__ = ['State', 'StateCov', 'StateTransition', 'simulate_glssm', 'predict', 'filter', 'kalman', 'gnll', 'smooth', 'smoother',
-           'sqrt_predict', 'sqrt_filter', 'sqrt_smooth_step', 'sqrt_smoother']
+           'sqrt_predict', 'sqrt_filter', 'sqrt_kalman', 'sqrt_smooth_step', 'sqrt_smoother']
 
 # %% ../nbs/10_kalman_filter_smoother.ipynb 3
 import jax.numpy as jnp
@@ -217,6 +217,39 @@ def sqrt_filter(x_pred, cu_Xi_pred, cu_Omega, B, y):
 
     return x_filt, cu_Xi_filt
 
+
+# %% ../nbs/10_kalman_filter_smoother.ipynb 26
+def sqrt_kalman(
+    y: Float[Array, "n+1 p"],
+    x0: Float[Array, "m"],
+    cu_Sigma: Float[Array, "n+1 m m"],
+    cu_Omega: Float[Array, "n+1 p p"],
+    A: Float[Array, "n m m"],
+    B: Float[Array, "n+1 p m"],
+):
+    def step(carry, inputs):
+        x_filt, cu_Xi_filt = carry
+        y, cu_Sigma, cu_Omega, A, B = inputs
+
+        x_pred, cu_Xi_pred, G, cu_H = sqrt_predict(x_filt, cu_Xi_filt, A, cu_Sigma)
+        x_filt_next, cu_Xi_filt_next = sqrt_filter(x_pred, cu_Xi_pred, cu_Omega, B, y)
+
+        return (x_filt_next, cu_Xi_filt_next), (x_filt_next, cu_Xi_filt_next, x_pred, cu_Xi_pred, G, cu_H)
+
+    # artificial state X_{-1} with mean x_0
+    # covariance zero, transition identity
+    # will lead to X_0 having correct predictive distribution
+    # this avoids having to compute a separate filtering step beforehand
+    m, = x0.shape
+    A_ext = jnp.concatenate(
+        (jnp.eye(m)[jnp.newaxis], A)
+    )
+
+    _, (x_filt, cu_Xi_filt, x_pred, cu_Xi_pred, G, cu_H) = scan(
+        step, (x0, jnp.zeros((m,m))), (y, cu_Sigma, cu_Omega, A_ext, B)
+    )
+
+    return x_filt, cu_Xi_filt, x_pred, cu_Xi_pred, G, cu_H
 
 # %% ../nbs/10_kalman_filter_smoother.ipynb 29
 def sqrt_smooth_step(

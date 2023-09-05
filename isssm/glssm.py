@@ -10,6 +10,7 @@ from jax import vmap
 from jax.lax import scan
 from tensorflow_probability.substrates.jax.distributions import MultivariateNormalFullCovariance as MVN
 
+# %% ../nbs/00_glssm.ipynb 4
 vmatmul = vmap(jnp.matmul, (None, 0))
 
 def simulate_glssm(x0, A, B, Sigma, Omega, N, key):
@@ -46,9 +47,7 @@ def simulate_glssm(x0, A, B, Sigma, Omega, N, key):
 
     return X, Y
 
-# %% ../nbs/00_glssm.ipynb 7
-import nbdev; nbdev.nbdev_export()
-
+# %% ../nbs/00_glssm.ipynb 8
 def simulate_smoothed(x_filt, Xi_filt, Xi_pred, A, N, key):
     
     key, subkey = jrn.split(key)

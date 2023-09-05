@@ -2,4 +2,5 @@ website:
   sidebar:
     contents:
       - index.ipynb
-      - 00_core.ipynb
+      - 00_glssm.ipynb
+      - 10_kalman_filter_smoother.ipynb

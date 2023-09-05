@@ -15,6 +15,7 @@ d = { 'settings': { 'branch': 'main',
                               'isssm.kalman.smooth': ('kalman_filter_smoother.html#smooth', 'isssm/kalman.py'),
                               'isssm.kalman.smoother': ('kalman_filter_smoother.html#smoother', 'isssm/kalman.py'),
                               'isssm.kalman.sqrt_filter': ('kalman_filter_smoother.html#sqrt_filter', 'isssm/kalman.py'),
+                              'isssm.kalman.sqrt_kalman': ('kalman_filter_smoother.html#sqrt_kalman', 'isssm/kalman.py'),
                               'isssm.kalman.sqrt_predict': ('kalman_filter_smoother.html#sqrt_predict', 'isssm/kalman.py'),
                               'isssm.kalman.sqrt_smooth_step': ('kalman_filter_smoother.html#sqrt_smooth_step', 'isssm/kalman.py'),
                               'isssm.kalman.sqrt_smoother': ('kalman_filter_smoother.html#sqrt_smoother', 'isssm/kalman.py')}}}
