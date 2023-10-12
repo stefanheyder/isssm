@@ -13,7 +13,7 @@ import jax.random as jrn
 
 from .lcssm import nb_lcssm, simulate_lcssm, v_time
 from jax.lax import scan
-from .kalman import smoother
+from .kalman import smoother, kalman
 from .lcssm import v_time
 from jax import grad, jacfwd, jacrev, jit
 
