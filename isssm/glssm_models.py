@@ -3,9 +3,30 @@
 # %% auto 0
 __all__ = ['lcm', 'common_factor_lcm']
 
-# %% ../nbs/01_example_models.ipynb 3
+# %% ../nbs/01_example_models.ipynb 4
 import jax.numpy as jnp
-def lcm(n, x0, s2_x0, s2_eps, s2_eta):
+from jaxtyping import Float, Array
+def lcm(n: int, x0: Float, s2_x0: Float, s2_eps: Float, s2_eta: Float):
+    """Univariate locally constant model
+
+    Parameters
+    ----------
+    n : int
+        number of observations
+    x0 : Float
+        initial mean
+    s2_x0 : Float
+        initial variance
+    s2_eps : Float
+        variance of innovations
+    s2_eta : Float
+        variance of disturbances
+
+    Returns
+    -------
+    model
+        a GLSSM
+    """
     A = jnp.ones((n, 1, 1))
     B = jnp.ones((n + 1, 1, 1))
 
@@ -16,8 +37,8 @@ def lcm(n, x0, s2_x0, s2_eps, s2_eta):
 
     return x0, A, B, Sigma, Omega
 
-# %% ../nbs/01_example_models.ipynb 6
-def common_factor_lcm(n, x0, Sigma0, s2_eps, s2_eta):
+# %% ../nbs/01_example_models.ipynb 7
+def common_factor_lcm(n: int, x0: Float[Array, "3"], Sigma0: Float[Array, "3 3"], s2_eps: Float, s2_eta: Float):
 
     if x0.shape != (3,):
         raise ValueError(f"x0 does not have the correct shape, expected (3,) but got {x0.shape}")

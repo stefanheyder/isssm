@@ -9,20 +9,37 @@ import jax.random as jrn
 from jax import vmap
 
 # %% ../nbs/60_maximum_likelihood_estimation.ipynb 5
-vmm = vmap(jnp.matmul, (0,0))
+from jaxtyping import Float, Array
 
-def gnll(y, x_pred, Xi_pred, B, Omega):
+vmm = vmap(jnp.matmul, (0, 0))
+
+
+def gnll(
+    y: Float[Array, "n+1 p"],  # observations $y_t$
+    x_pred: Float[Array, "n+1 m"],  # predicted states $\hat X_{t+1\bar t}$
+    Xi_pred: Float[Array, "n+1 m m"],  # predicted state covariances $\Xi_{t+1\bar t}$
+    B: Float[Array, "n+1 p m"],  # state observation matrices $B_{t}$
+    Omega: Float[Array, "n+1 p p"],  # observation covariances $\Omega_{t}$
+) -> Float:  # gaussian negative log-likelihood
+    """Gaussian negative log-likelihood"""
     y_pred = vmm(B, x_pred)
     Psi_pred = vmm(vmm(B, Xi_pred), jnp.transpose(B, (0, 2, 1))) + Omega
-    
-    return - tfd.MultivariateNormalFullCovariance(y_pred, Psi_pred).log_prob(y).sum()
+
+    return -tfd.MultivariateNormalFullCovariance(y_pred, Psi_pred).log_prob(y).sum()
 
 # %% ../nbs/60_maximum_likelihood_estimation.ipynb 8
-from jax.scipy.optimize import minimize
-def mle_glssm(y, model, theta0, aux):
-    def f(theta):
+from jax.scipy.optimize import minimize, OptimizeResults
+
+def mle_glssm(
+    y: Float[Array, "n+1 p"],  # observations $y_t$
+    model,  # parameterize GLSSM
+    theta0: Float[Array, "k"],  # initial parameter guess
+    aux,  # auxiliary data for the model
+) -> OptimizeResults:  # result of MLE optimization
+    """Maximum likelihood estimation for GLSSM"""
+    def f(theta: Float[Array, "k"]) -> Float:
         x0, A, B, Sigma, Omega = model(theta, aux)
         _, _, x_pred, Xi_pred = kalman(y, x0, Sigma, Omega, A, B)
         return gnll(y, x_pred, Xi_pred, B, Omega)
 
-    return minimize(f, theta0, method='BFGS')
+    return minimize(f, theta0, method="BFGS")

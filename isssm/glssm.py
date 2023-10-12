@@ -21,7 +21,7 @@ def simulate_states(
     Sigma: Float[Array, "n+1 m m"],
     N: int,
     key: jrn.KeyArray,
-):
+) -> Float[Array, "N n+1 m"]: 
     """Simulate states of a GLSSM
 
     Parameters
@@ -36,6 +36,11 @@ def simulate_states(
         number of samples to draw
     key : jrn.KeyArray
         the random state
+
+    Returns
+    -------
+    X
+        an array of N samples from the state distribution 
     """
 
     def sim_next_states(carry, inputs):
@@ -62,12 +67,12 @@ def simulate_states(
 def simulate_glssm(
     x0: Float[Array, "m"],
     A: Float[Array, "n m m"],
-    B: Float[Array, "n+1 m m"],
+    B: Float[Array, "n+1 p m"],
     Sigma: Float[Array, "n+1 m m"],
-    Omega: Float[Array, "n+1 m m"],
+    Omega: Float[Array, "n+1 p p"],
     N: int,
     key: jrn.KeyArray,
-):
+) -> (Float[Array, "N n+1 m"], Float[Array, "N n+1 p"]):
     r"""Simulate states and observations of a GLSSM
 
     Parameters
@@ -78,14 +83,19 @@ def simulate_glssm(
         transition matrices $A_t$, $t = 0, \dots, n - 1$
     B : 
         observation matrices $B_t$, $t = 0, \dots, n$
-    Sigma : (n+1,m,m)
+    Sigma : 
         covariance matrices of innovations $\Sigma_t$, $t = 0, \dots, n$
-    Omega : (n+1,m,m)
+    Omega : 
         covariance matrices of errors $\Omega_t$, $t=0, \dots, n$
     N : int
         number of sample paths
     key : jrn.KeyArray
         the random state
+
+    Returns
+    -------
+    X, Y : 
+        a tuple of two arrays each with of N samples from the state/observation distribution
     """
     key, subkey = jrn.split(key)
     X = simulate_states(x0, A, Sigma, N, subkey).transpose((1, 0, 2))
@@ -111,8 +121,8 @@ def simulate_smoothed_FW1994(
     A: Float[Array, "n m m"],
     N: int,
     key: jrn.KeyArray,
-):
-    r"""Simulate from smoothing distribution $p(X_0, \\dots, X_n|Y_0, \dots, Y_n)$
+) -> Float[Array, "N n+1 m"]:
+    r"""Simulate from smoothing distribution $p(X_0, \dots, X_n|Y_0, \dots, Y_n)$
 
     Parameters
     ----------
@@ -128,6 +138,11 @@ def simulate_smoothed_FW1994(
         number of samples
     key :
         the random states
+
+    Returns
+    -------
+    X :
+        an array of N samples from the smoothing distribution
     """
 
     key, subkey = jrn.split(key)
@@ -168,7 +183,7 @@ def FFBS(
     B: Float[Array, "n+1 p m"],
     N: int,
     key: jrn.KeyArray,
-):
+) -> Float[Array, "N n+1 m"]:
     r"""The Forward-Filter Backwards-Sampling Algorithm
 
     From [@Fruhwirth-Schnatter1994Data].
@@ -178,7 +193,7 @@ def FFBS(
     y :
         Observations $y$
     x0 :
-        initial mean $\E X_0$
+        initial mean $\mathbf E X_0$
     Sigma :
         innovation covariances $\Sigma_t$
     Omega :
@@ -191,6 +206,11 @@ def FFBS(
         number of samples
     key : jrn.KeyArray
         random state
+
+    Returns
+    -------
+    X :
+        an array of N samples from the smoothing distribution
     """
     x_filt, Xi_filt, _, Xi_pred = kalman(y, x0, Sigma, Omega, A, B)
 
