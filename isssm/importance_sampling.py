@@ -28,7 +28,7 @@ def log_weights(s,y, xi_fun, dist, z, Omega):
     
     return p_ys - g_zs
 
-# %% ../nbs/40_importance_sampling.ipynb 6
+# %% ../nbs/40_importance_sampling.ipynb 7
 def normalize_weights(log_weights):
     max_weight = jnp.max(log_weights)
 
@@ -37,5 +37,3 @@ def normalize_weights(log_weights):
     weights = jnp.exp(log_weights_corrected)
 
     return weights / weights.sum()
-
-

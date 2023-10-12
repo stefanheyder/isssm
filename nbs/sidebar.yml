@@ -7,6 +7,8 @@ website:
       - 10_kalman_filter_smoother.ipynb
       - 20_lcssm.ipynb
       - 30_mode_estimation.ipynb
+      - 40_importance_sampling.ipynb
+      - 60_maximum_likelihood_estimation.ipynb
       - section: Testing
         contents:
           - Testing/11_analytical_verification.ipynb
