@@ -1,0 +1,2 @@
+prepare:
+    nbdev_prepare
