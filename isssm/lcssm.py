@@ -57,7 +57,7 @@ def simulate_lcssm(x0, A, Sigma, B, xi_fun, dist, N, key):
 
     return X, Y
 
-# %% ../nbs/20_lcssm.ipynb 4
+# %% ../nbs/20_lcssm.ipynb 5
 from tensorflow_probability.substrates.jax.distributions import NegativeBinomial as NBinom
 def nb_lcssm(x0, A, Sigma, B, r):
     """Create a negative binomial common factor model

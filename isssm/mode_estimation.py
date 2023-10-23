@@ -20,36 +20,51 @@ from jax import grad, jacfwd, jacrev, jit
 vmm = jit(vmap(jnp.matmul))
 vdiag = jit(vmap(jnp.diag))
 
-def mode_estimation(y, x0, A, Sigma, B, xi_fun, dist, s_init, n_iter):
 
+def mode_estimation(
+    y: Float[Array, "n+1 p"], # observations
+    x0: Float[Array, "m"], # initial state mean
+    A: Float[Array, "n m m"], # state transition matrices
+    Sigma: Float[Array, "n+1 m m"], # state covariance matrices
+    B: Float[Array, "n+1 p m"], # observation matrices
+    xi_fun, # function mapping time and signal to parameters
+    dist, # distribution of observations
+    s_init: Float[Array, "n+1 p"], # initial signal
+    n_iter: int, # number of iterations
+    log_lik=None, # log likelihood function
+    d_log_lik=None, # derivative of log likelihood function
+    dd_log_lik=None, # second derivative of log likelihood function
+):
     np1, _ = y.shape
     n = np1 - 1
 
-    def log_lik(t, s):
+    def default_log_lik(t, s):
         params = xi_fun(t, s)
         return dist(params).log_prob(y[t]).sum()
 
-    d_log_lik = jacfwd(log_lik, argnums=1)
-    dd_log_lik = jacrev(d_log_lik, argnums=1)
+    if log_lik is None:
+        log_lik = default_log_lik
+
+    if d_log_lik is None:
+        d_log_lik = jacfwd(log_lik, argnums=1)
+    if dd_log_lik is None:
+        dd_log_lik = jacrev(d_log_lik, argnums=1)
 
     vd_log_lik = v_time(d_log_lik)
     vdd_log_lik = v_time(dd_log_lik)
 
-
     vB = jit(partial(vmm, B))
 
     def iteration(carry, input):
-        signal, = carry
+        (signal,) = carry
 
         grad = vd_log_lik(jnp.arange(n + 1), signal)
         Gamma = -vdd_log_lik(jnp.arange(n + 1), signal)
         # assume hessian is diagonal
-        Omega = vdiag(1. / vdiag(Gamma))
+        Omega = vdiag(1.0 / vdiag(Gamma))
 
         z = signal + vmm(Omega, grad)
-        x_filt, Xi_filt, x_pred, Xi_pred = kalman(
-            z, x0, Sigma, Omega, A, B
-        )
+        x_filt, Xi_filt, x_pred, Xi_pred = kalman(z, x0, Sigma, Omega, A, B)
 
         x_smooth, Xi_smooth = smoother(x_filt, Xi_filt, x_pred, Xi_pred, A)
 
