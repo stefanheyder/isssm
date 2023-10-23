@@ -65,7 +65,7 @@ def mle_glssm_ad(
 
     return minimize_jax(f, theta0, method="BFGS", options=options)
 
-# %% ../nbs/60_maximum_likelihood_estimation.ipynb 14
+# %% ../nbs/60_maximum_likelihood_estimation.ipynb 15
 from jax.scipy.special import logsumexp
 from .importance_sampling import lcssm_importance_sampling
 from .kalman import kalman
@@ -107,7 +107,7 @@ def lcnll(
 
     return _lcnll(gnll(y, x_pred, Xi_pred, B, Omega), log_weights)
 
-# %% ../nbs/60_maximum_likelihood_estimation.ipynb 17
+# %% ../nbs/60_maximum_likelihood_estimation.ipynb 18
 from scipy.optimize import minimize as minimize_scipy
 from .mode_estimation import mode_estimation
 from .importance_sampling import normalize_weights
