@@ -3,13 +3,15 @@
 # %% auto 0
 __all__ = ['vmm', 'vdiag', 'mode_estimation']
 
-# %% ../nbs/30_mode_estimation.ipynb 6
+# %% ../nbs/30_mode_estimation.ipynb 7
 from .kalman import predict
 from jaxtyping import Array, Float
 from jax import grad, vmap, jacfwd, jacrev
 from functools import partial
 import jax.numpy as jnp
 import jax.random as jrn
+
+from .typing import InitialState
 
 from .lcssm import nb_lcssm, simulate_lcssm, v_time
 from jax.lax import scan
@@ -20,10 +22,9 @@ from jax import grad, jacfwd, jacrev, jit
 vmm = jit(vmap(jnp.matmul))
 vdiag = jit(vmap(jnp.diag))
 
-
 def mode_estimation(
-    y: Float[Array, "n+1 p"], # observations
-    x0: Float[Array, "m"], # initial state mean
+    y: Float[Array, "n+1 p"], # observation
+    x0: InitialState, # initial state mean
     A: Float[Array, "n m m"], # state transition matrices
     Sigma: Float[Array, "n+1 m m"], # state covariance matrices
     B: Float[Array, "n+1 p m"], # observation matrices
@@ -70,8 +71,8 @@ def mode_estimation(
 
         signal = vB(x_smooth)
 
-        return (signal,), (x_smooth, z, Gamma)
+        return (signal,), (x_smooth, z, Omega)
 
-    _, (x_smooth, z, Gamma) = scan(iteration, (s_init,), (jnp.arange(n_iter),))
+    _, (x_smooth, z, Omega) = scan(iteration, (s_init,), (jnp.arange(n_iter),))
 
-    return (x_smooth[-1], z[-1], Gamma[-1])
+    return (x_smooth[-1], z[-1], Omega[-1])

@@ -48,4 +48,7 @@ d = { 'settings': { 'branch': 'main',
                              'isssm.lcssm.v_sample': ('lcssm.html#v_sample', 'isssm/lcssm.py'),
                              'isssm.lcssm.v_time': ('lcssm.html#v_time', 'isssm/lcssm.py')},
             'isssm.mode_estimation': { 'isssm.mode_estimation.mode_estimation': ( 'mode_estimation.html#mode_estimation',
-                                                                                  'isssm/mode_estimation.py')}}}
+                                                                                  'isssm/mode_estimation.py')},
+            'isssm.modified_efficient_importance_sampling': { 'isssm.modified_efficient_importance_sampling.modified_efficient_importance_sampling': ( 'modified_efficient_importance_sampling.html#modified_efficient_importance_sampling',
+                                                                                                                                                       'isssm/modified_efficient_importance_sampling.py')},
+            'isssm.typing': {}}}

@@ -8,7 +8,9 @@ website:
       - 20_lcssm.ipynb
       - 30_mode_estimation.ipynb
       - 40_importance_sampling.ipynb
+      - 50_modified_efficient_importance_sampling.ipynb
       - 60_maximum_likelihood_estimation.ipynb
+      - 99_typings.ipynb
       - section: Testing
         contents:
           - Testing/11_analytical_verification.ipynb
