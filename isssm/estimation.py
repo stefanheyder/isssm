@@ -8,6 +8,12 @@ import jax.numpy as jnp
 import jax.random as jrn
 from jax import vmap
 from .kalman import kalman
+from jax import jit
+from scipy.optimize import minimize as minimize_scipy
+from .mode_estimation import mode_estimation
+from .importance_sampling import normalize_weights
+from jax import grad
+from jaxopt import BFGS
 
 # %% ../nbs/60_maximum_likelihood_estimation.ipynb 5
 from jaxtyping import Float, Array
@@ -105,13 +111,9 @@ def lcnll(
 
     _, _, x_pred, Xi_pred = kalman(z, x0, Sigma, Omega, A, B)
 
-    return _lcnll(gnll(y, x_pred, Xi_pred, B, Omega), log_weights)
+    return _lcnll(gnll(z, x_pred, Xi_pred, B, Omega), log_weights)
 
 # %% ../nbs/60_maximum_likelihood_estimation.ipynb 18
-from scipy.optimize import minimize as minimize_scipy
-from .mode_estimation import mode_estimation
-from .importance_sampling import normalize_weights
-from jax import grad
 def mle_lcssm(
     y: Float[Array, "n+1 p"],  # observations $y_t$
     model,  # parameterized LCSSM
@@ -120,7 +122,7 @@ def mle_lcssm(
     n_iter_me: int, # number of mode estimation iterations
     s_init: Float[Array, "n+1 m"],  # initial signals for mode estimation
     N: int, # number of importance samples
-    key: jrn.KeyArray, # random key
+    key: Array, # random key
     options=None, # options for the optimizer
 ) -> Float[Array, "k"]: # MLE
     """Maximum Likelihood Estimation for Log Concave SSMs"""
@@ -147,10 +149,13 @@ def mle_lcssm(
 
         _, _, x_pred, Xi_pred = kalman(z, x0, Sigma, Omega, A, B)
 
-        negloglik = _lcnll(gnll(y, x_pred, Xi_pred, B, Omega), log_weights)
+        negloglik = _lcnll(gnll(z, x_pred, Xi_pred, B, Omega), log_weights)
         norm_weights = normalize_weights(log_weights)
         gradient = -(vd_model_log_prob(theta, samples) * norm_weights[:, None]).sum(axis=0)
         return negloglik, gradient
     
     # Nelder-Mead does not use gradients
-    return minimize_scipy(f, theta0, method="BFGS", options=options, jac=True)
+    result = minimize_scipy(f, theta0, method="BFGS", options=options, jac=True)
+    #solver = BFGS(f, value_and_grad=True, )
+    #result = solver.run(theta0)
+    return result 
