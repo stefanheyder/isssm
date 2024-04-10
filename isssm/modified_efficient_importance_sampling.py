@@ -13,21 +13,19 @@ from functools import partial
 from jax.lax import scan
 from jaxopt import BoxCDQP
 
-from .lcssm import v_sample, v_time
 
 def modified_efficient_importance_sampling(
-    y, x0, A, Sigma, B, xi_fun, dist, z_init, Omega_init, n_iter, N, key
+    y, x0, A, Sigma, B, xi, dist, z_init, Omega_init, n_iter, N, key
 ):
     np1, p = y.shape
     n = np1 - 1
 
     lw_t = vmap(
-        lambda t, s, z, Omega: log_weights_t(t,s,y,xi_fun,dist,z,Omega),
-        (0,0,0,0)
+        lambda s, z, Omega: log_weights_t(s,y,xi,dist,z,Omega),
+        (0,0,0)
     )
 
     vB = vmap(partial(vmap(jnp.matmul), B))
-    vxi = v_sample(v_time(xi_fun))
     v_norm_w = vmap(normalize_weights)
 
     key, subkey = jrn.split(key)
@@ -37,13 +35,12 @@ def modified_efficient_importance_sampling(
         samples = FFBS(z, x0, Sigma, Omega, A, B, N, subkey)
 
         signals = vB(samples)
-        params = vxi(jnp.arange(np1), signals)
 
         # (N, n+1) -> (n+1, N)
-        log_p = dist(params).log_prob(y).T.sum(axis=0)
+        log_p = dist(signals, xi).log_prob(y).T.sum(axis=0)
 
         # (N, n+1) -> (n+1, N)
-        w_s_t = vmap(lambda s: lw_t(jnp.arange(n + 1), s, z, Omega), 0)(signals).T
+        w_s_t = vmap(lambda s: lw_t(s, z, Omega), 0)(signals).T
         w_s_t_norm = v_norm_w(w_s_t)
 
         # (N, n+1, p) -> (n+1, N, p)

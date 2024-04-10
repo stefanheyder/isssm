@@ -11,25 +11,20 @@ from jaxtyping import Float, Array
 from jax import vmap
 from functools import partial
 
-from .lcssm import v_time
-
 MVN = tfd.MultivariateNormalFullCovariance
 
 
 def log_weights_t(
-    t: int,  # time
-    s: Float[Array, "p"],  # signal
-    y: Float[Array, "p"],  # observation
-    xi_fun,  # parameter function
+    s_t: Float[Array, "p"],  # signal
+    y_t: Float[Array, "p"],  # observation
+    xi_t: Float[Array, "p"],  # parameters
     dist,  # observation distribution
-    z: Float[Array, "p"],  # synthetic observation
-    Omega: Float[Array, "p p"],  # synthetic observation covariance
+    z_t: Float[Array, "p"],  # synthetic observation
+    Omega_t: Float[Array, "p p"],  # synthetic observation covariance
 ) -> Float:  # single log weight
     """Log weight for a single time point."""
-    m = s.shape
-    params = xi_fun(t, s)
-    p_ys = dist(params).log_prob(y).sum()
-    g_zs = MVN(s, Omega).log_prob(z).sum()
+    p_ys = dist(s_t, xi_t).log_prob(y_t).sum()
+    g_zs = MVN(s_t, Omega_t).log_prob(z_t).sum()
 
     return p_ys - g_zs
 
@@ -37,23 +32,19 @@ def log_weights_t(
 def log_weights(
     s: Float[Array, "n+1 p"],  # signals
     y: Float[Array, "n+1 p"],  # observations
-    xi_fun,  # parameter function
     dist,  # observation distribution
+    xi: Float[Array, "n+1 p"],  # observation parameters
     z: Float[Array, "n+1 p"],  # synthetic observations
     Omega: Float[Array, "n+1 p p"],  # synthetic observation covariances:
 ) -> Float[Array, "n+1"]:  # log weights
     """Log weights for all time points"""
-    np1, m = s.shape
-    n = np1 - 1
-    params = v_time(xi_fun)(jnp.arange(n + 1), s)
-
-    p_ys = dist(params).log_prob(y).sum()
+    p_ys = dist(s, xi).log_prob(y).sum()
     g_zs = MVN(s, Omega).log_prob(z).sum()
 
     return p_ys - g_zs
 
 # %% ../nbs/40_importance_sampling.ipynb 7
-from jaxtyping import Float, Array
+from jaxtyping import Float, Array, PRNGKeyArray
 from .glssm import FFBS
 import jax.random as jrn
 
@@ -65,13 +56,13 @@ def lcssm_importance_sampling(
     A: Float[Array, "n m m"],  # state transition matrices
     Sigma: Float[Array, "n+1 m m"],  # innovation covariance matrices
     B: Float[Array, "n+1 p m"],  # observation matrices
-    xi_fun,  #
     dist,  # distribution of observations
+    xi: Float[Array, "n+1 p"],  #
     z: Float[Array, "n+1 p"],  # synthetic observations
     Omega: Float[Array, "n+1 p p"],  # covariance of synthetic observations
     N: int,  # number of samples
-    key: jrn.KeyArray,  # random key
-) -> (Float[Array, "N n+1 m"], Float[Array, "N"]):  # importance samples and weights
+    key: PRNGKeyArray  # random key
+) -> tuple[Float[Array, "N n+1 m"], Float[Array, "N"]]:  # importance samples and weights
     key, subkey = jrn.split(key)
     samples = FFBS(z, x0, Sigma, Omega, A, B, N, subkey)
 
@@ -79,11 +70,11 @@ def lcssm_importance_sampling(
 
     s = vmap(vB)(samples)
 
-    lw = v_log_weights(s, y, xi_fun, dist, z, Omega)
+    lw = v_log_weights(s, y, dist, xi, z, Omega)
 
     return samples, lw
 
-# %% ../nbs/40_importance_sampling.ipynb 11
+# %% ../nbs/40_importance_sampling.ipynb 12
 from jaxtyping import Float, Array
 
 
@@ -99,7 +90,7 @@ def normalize_weights(
 
     return weights / weights.sum()
 
-# %% ../nbs/40_importance_sampling.ipynb 14
+# %% ../nbs/40_importance_sampling.ipynb 15
 from jaxtyping import Float, Array
 
 
@@ -116,7 +107,7 @@ def ess_lw(
     """Compute the effective sample size of a set of log weights"""
     return ess(normalize_weights(log_weights))
 
-# %% ../nbs/40_importance_sampling.ipynb 17
+# %% ../nbs/40_importance_sampling.ipynb 18
 def ess_pct(log_weights):
     N, = log_weights.shape
     return ess_lw(log_weights) / N * 100 
