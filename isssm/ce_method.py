@@ -14,7 +14,7 @@ import tensorflow_probability.substrates.jax.distributions as tfd
 from jaxtyping import Float, Array, PRNGKeyArray
 from typing import Tuple
 
-# %% ../nbs/45_cross_entropy_method.ipynb 8
+# %% ../nbs/45_cross_entropy_method.ipynb 9
 def ce_cholesky_block(
     x: Float[Array, "N m"],  # samples of $X_t$
     x_next: Float[Array, "N m"],  # samples of $X_{t+1}$
@@ -85,7 +85,7 @@ def cholesky_components(
 
     return full_diag, off_diag
 
-# %% ../nbs/45_cross_entropy_method.ipynb 17
+# %% ../nbs/45_cross_entropy_method.ipynb 18
 def log_prob(
     x: Float[Array, "n+1 m"], # the location at which to evaluate the likelihood
     full_diag: Float[Array, "n+1 m m"],# block diagonals of $L$
@@ -111,7 +111,7 @@ def log_prob(
 
     return -np1 * m / 2 * jnp.log(2 * jnp.pi) - 1 / 2 * logdet - 1 / 2 * l2_norm
 
-# %% ../nbs/45_cross_entropy_method.ipynb 24
+# %% ../nbs/45_cross_entropy_method.ipynb 25
 def ce_log_weights(
     x: Float[Array, "n+1 m"], # the sample
     y: Float[Array, "n+1 p"], # the observations

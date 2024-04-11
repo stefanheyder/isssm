@@ -4,7 +4,7 @@
 __all__ = ['State', 'StateCov', 'StateTransition', 'predict', 'filter', 'kalman', 'smooth_step', 'smoother', 'sqrt_predict',
            'sqrt_filter', 'sqrt_kalman', 'sqrt_smooth_step', 'sqrt_smoother']
 
-# %% ../nbs/10_kalman_filter_smoother.ipynb 4
+# %% ../nbs/10_kalman_filter_smoother.ipynb 5
 import jax.numpy as jnp
 from jaxtyping import Float, Array
 import jax.scipy.linalg as jsla
@@ -73,7 +73,7 @@ def kalman(
 
     return x_filt, Xi_filt, x_pred, Xi_pred
 
-# %% ../nbs/10_kalman_filter_smoother.ipynb 9
+# %% ../nbs/10_kalman_filter_smoother.ipynb 10
 State = Float[Array, "m"]
 StateCov = Float[Array, "m m"]
 StateTransition = Float[Array, "m m"]
@@ -123,7 +123,7 @@ def smoother(
 
     return x_smooth, Xi_smooth
 
-# %% ../nbs/10_kalman_filter_smoother.ipynb 17
+# %% ../nbs/10_kalman_filter_smoother.ipynb 18
 def sqrt_predict(x_filt, cu_Xi_filt, A, cu_Sigma):
     x_pred = A @ x_filt
     matrix_to_rotate = jnp.block([
@@ -141,7 +141,7 @@ def sqrt_predict(x_filt, cu_Xi_filt, A, cu_Sigma):
     
     return x_pred, cu_Xi_pred, G, cu_H
 
-# %% ../nbs/10_kalman_filter_smoother.ipynb 20
+# %% ../nbs/10_kalman_filter_smoother.ipynb 21
 def sqrt_filter(x_pred, cu_Xi_pred, cu_Omega, B, y):
     y_pred = B @ x_pred
 
@@ -163,7 +163,7 @@ def sqrt_filter(x_pred, cu_Xi_pred, cu_Omega, B, y):
     return x_filt, cu_Xi_filt
 
 
-# %% ../nbs/10_kalman_filter_smoother.ipynb 22
+# %% ../nbs/10_kalman_filter_smoother.ipynb 23
 def sqrt_kalman(
     y: Float[Array, "n+1 p"],
     x0: Float[Array, "m"],
@@ -196,7 +196,7 @@ def sqrt_kalman(
 
     return x_filt, cu_Xi_filt, x_pred, cu_Xi_pred, G, cu_H
 
-# %% ../nbs/10_kalman_filter_smoother.ipynb 25
+# %% ../nbs/10_kalman_filter_smoother.ipynb 26
 def sqrt_smooth_step(
     x_filt: State,
     x_pred_next: State,

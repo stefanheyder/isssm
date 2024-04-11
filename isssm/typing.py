@@ -3,8 +3,8 @@
 # %% auto 0
 __all__ = ['InitialState']
 
-# %% ../nbs/99_typings.ipynb 1
+# %% ../nbs/99_typings.ipynb 2
 from jaxtyping import Float, Array
 
-# %% ../nbs/99_typings.ipynb 2
+# %% ../nbs/99_typings.ipynb 3
 InitialState = Float[Array, "m"]

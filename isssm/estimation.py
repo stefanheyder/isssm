@@ -16,7 +16,7 @@ from .importance_sampling import normalize_weights
 from jax import grad
 from jaxopt import BFGS
 
-# %% ../nbs/60_maximum_likelihood_estimation.ipynb 5
+# %% ../nbs/60_maximum_likelihood_estimation.ipynb 6
 vmm = vmap(jnp.matmul, (0, 0))
 
 
@@ -33,7 +33,7 @@ def gnll(
 
     return -tfd.MultivariateNormalFullCovariance(y_pred, Psi_pred).log_prob(y).sum()
 
-# %% ../nbs/60_maximum_likelihood_estimation.ipynb 8
+# %% ../nbs/60_maximum_likelihood_estimation.ipynb 9
 from scipy.optimize import minimize as minimize_scipy
 from jax.scipy.optimize import minimize as minimize_jax
 from scipy.optimize import OptimizeResult
@@ -70,7 +70,7 @@ def mle_glssm_ad(
 
     return minimize_jax(f, theta0, method="BFGS", options=options)
 
-# %% ../nbs/60_maximum_likelihood_estimation.ipynb 15
+# %% ../nbs/60_maximum_likelihood_estimation.ipynb 16
 from jax.scipy.special import logsumexp
 from .importance_sampling import lcssm_importance_sampling
 from .kalman import kalman
@@ -112,7 +112,7 @@ def lcnll(
 
     return _lcnll(gnll(z, x_pred, Xi_pred, B, Omega), log_weights)
 
-# %% ../nbs/60_maximum_likelihood_estimation.ipynb 18
+# %% ../nbs/60_maximum_likelihood_estimation.ipynb 19
 from .importance_sampling import log_weights
 
 def initial_theta(
@@ -142,7 +142,7 @@ def initial_theta(
     #result = solver.run(theta0)
     return result 
 
-# %% ../nbs/60_maximum_likelihood_estimation.ipynb 19
+# %% ../nbs/60_maximum_likelihood_estimation.ipynb 20
 def mle_lcssm(
     y: Float[Array, "n+1 p"],  # observations $y_t$
     model,  # parameterized LCSSM
