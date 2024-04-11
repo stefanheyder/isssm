@@ -6,4 +6,5 @@ __all__ = ['InitialState']
 # %% ../nbs/99_typings.ipynb 1
 from jaxtyping import Float, Array
 
+# %% ../nbs/99_typings.ipynb 2
 InitialState = Float[Array, "m"]
