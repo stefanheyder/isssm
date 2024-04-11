@@ -14,3 +14,4 @@ pip install isssm
 
 Please check out [the documentation](stefanheyder.github.io/isssm) for
 details and examples.
+
