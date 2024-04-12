@@ -6,32 +6,55 @@ __all__ = ['modified_efficient_importance_sampling']
 # %% ../nbs/50_modified_efficient_importance_sampling.ipynb 4
 import jax.numpy as jnp
 import jax.random as jrn
+from jaxtyping import Float, Array, PRNGKeyArray
 from jax import vmap
 from .glssm import FFBS
+from .optim import converged
 from .importance_sampling import log_weights_t, normalize_weights
 from functools import partial
-from jax.lax import scan
+from jax.lax import while_loop
 from jaxopt import BoxCDQP
 
 
 def modified_efficient_importance_sampling(
-    y, x0, A, Sigma, B, xi, dist, z_init, Omega_init, n_iter, N, key
+    y: Float[Array, "n+1 p"], # observations
+    x0: Float[Array, "m"], # initial state
+    A: Float[Array, "n m m"], # state transition matrices
+    Sigma: Float[Array, "n+1 m m"], # state noise covariance matrices
+    B: Float[Array, "n+1 p m"],  # observation matrices
+    xi: Float[Array, "n+1 p"], # observation parameters
+    dist, # observation distribution
+    z_init: Float[Array, "n+1 p"], # initial z estimate
+    Omega_init: Float[Array, "n+1 p p"], # initial Omega estimate
+    n_iter: int, # number of iterations
+    N: int, # number of samples
+    key: PRNGKeyArray, # random key
+    eps: Float = 1e-5, # convergence threshold
 ):
     np1, p = y.shape
     n = np1 - 1
 
-    lw_t = vmap(
-        lambda s, z, Omega: log_weights_t(s,y,xi,dist,z,Omega),
-        (0,0,0)
-    )
+    lw_t = vmap(lambda s, z, Omega: log_weights_t(s, y, xi, dist, z, Omega), (0, 0, 0))
 
     vB = vmap(partial(vmap(jnp.matmul), B))
     v_norm_w = vmap(normalize_weights)
 
     key, subkey = jrn.split(key)
 
-    def iteration(carry, inputs):
-        a, z, Omega = carry
+    def _break(val):
+        a, i, z, Omega, z_old, Omega_old = val
+
+        z_converged = converged(z, z_old, eps)
+        Omega_converged = converged(Omega, Omega_old, eps)
+        iteration_limit_reached = i >= n_iter
+
+        return jnp.logical_or(
+            jnp.logical_and(z_converged, Omega_converged), iteration_limit_reached
+        )
+
+    def _iteration(val):
+        a, i, z, Omega, _, _ = val
+
         samples = FFBS(z, x0, Sigma, Omega, A, B, N, subkey)
 
         signals = vB(samples)
@@ -44,39 +67,40 @@ def modified_efficient_importance_sampling(
         w_s_t_norm = v_norm_w(w_s_t)
 
         # (N, n+1, p) -> (n+1, N, p)
-        design_lsq = jnp.dstack((jnp.ones((N, n+1, 1)), signals, -0.5 * signals**2)).transpose(
-            (1, 0, 2)
-        )
+        design_lsq = jnp.dstack(
+            (jnp.ones((N, n + 1, 1)), signals, -0.5 * signals**2)
+        ).transpose((1, 0, 2))
 
         ## initial guess by solving unconstrained least squares problem
         ## this turned out to be inferior to using the previous estimate
-        #opt_lambda = lambda A, x: jnp.linalg.lstsq(A,x)
-        #x0s, *_ = vmap(opt_lambda)(jnp.sqrt(w_s_t_norm)[:, :, None] * design_lsq, (jnp.sqrt(w_s_t_norm) * log_p))
+        # opt_lambda = lambda A, x: jnp.linalg.lstsq(A,x)
+        # x0s, *_ = vmap(opt_lambda)(jnp.sqrt(w_s_t_norm)[:, :, None] * design_lsq, (jnp.sqrt(w_s_t_norm) * log_p))
 
         ## flip signs if necessary for feasible point
-        #signs = jnp.sign(x0s[:, p+1:])
-        #x0s = jnp.hstack((
+        # signs = jnp.sign(x0s[:, p+1:])
+        # x0s = jnp.hstack((
         #    x0s[:, 0:1],
         #    x0s[:, 1 : (p + 1)] * signs,
         #    jnp.abs(x0s[:, (p + 1):])
-        #))
+        # ))
 
-        x0s = jnp.hstack((
-            a[:, None],
-            z / vmap(jnp.diag)(Omega),
-            1/vmap(jnp.diag)(Omega),
-        ))    
-        
+        x0s = jnp.hstack(
+            (
+                a[:, None],
+                z / vmap(jnp.diag)(Omega),
+                1 / vmap(jnp.diag)(Omega),
+            )
+        )
+
         def optimize(A, y, w, x0):
             solver = BoxCDQP()
 
-            # diag(w) @ A inefficient, directly multiply rows of A by w
-            Q = 2 * A.T @ (w[:,None] * A)
-            c = -2 * A.T @ (w*y)
+            Q = 2 * A.T @ (w[:, None] * A)
+            c = -2 * A.T @ (w * y)
 
-            l = jnp.concatenate((jnp.full(p+1, -jnp.inf), jnp.full(p, 1e-10)))
-            u = jnp.full(2*p+1, jnp.inf)
-            
+            l = jnp.concatenate((jnp.full(p + 1, -jnp.inf), jnp.full(p, 1e-10)))
+            u = jnp.full(2 * p + 1, jnp.inf)
+
             result = solver.run(
                 x0,
                 params_obj=(Q, c),
@@ -91,20 +115,27 @@ def modified_efficient_importance_sampling(
             x0s,
         )
 
-
         a = wls_estimate[:, 0]
         b = wls_estimate[:, 1 : (p + 1)]
         c = wls_estimate[:, (p + 1) :]
 
-        # sometimes optimal variances are negative, in this case 
+        # sometimes optimal variances are negative, in this case
         # solve constrained least squares problem to ensure valid
         # solution
 
         z_new = b / c
         Omega_new = vmap(jnp.diag)(1 / c)
 
-        return (a, z_new, Omega_new), None
-        
-    (_, z, Omega), _ = scan(iteration, (jnp.zeros(np1), z_init, Omega_init), (jnp.arange(n_iter),))
-    
+
+        return a, i+1, z_new, Omega_new, z, Omega
+
+    init = _iteration(
+        (jnp.zeros(np1), 0, z_init, Omega_init, None, None)
+    )
+
+    _, n_iters, z, Omega, _, _ = while_loop(
+        _break, _iteration, init
+    )
+
+
     return z, Omega

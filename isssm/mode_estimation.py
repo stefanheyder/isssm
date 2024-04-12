@@ -3,8 +3,9 @@
 # %% auto 0
 __all__ = ['vmm', 'vdiag', 'vvmap', 'SmoothState', 'PseudoObs', 'PseudoObsCov', 'mode_estimation']
 
-# %% ../nbs/30_mode_estimation.ipynb 7
+# %% ../nbs/30_mode_estimation.ipynb 8
 from .kalman import predict
+from .optim import converged
 from jaxtyping import Array, Float
 from jax import grad, vmap, jacfwd, jacrev
 from functools import partial
@@ -14,7 +15,7 @@ import jax.random as jrn
 from .typing import InitialState
 
 from .lcssm import nb_lcssm, simulate_lcssm
-from jax.lax import scan
+from jax.lax import scan, while_loop
 from .kalman import smoother, kalman
 from jax import jacfwd, jacrev, jit
 
@@ -39,6 +40,7 @@ def mode_estimation(
     log_lik=None, # log likelihood function
     d_log_lik=None, # derivative of log likelihood function
     dd_log_lik=None, # second derivative of log likelihood function
+    eps: Float=1e-5, # precision of iterations
 ) -> tuple[SmoothState, PseudoObs, PseudoObsCov]:
     def default_log_lik(s_ti, xi_ti, y_ti):
         return dist(s_ti, xi_ti).log_prob(y_ti).sum()
@@ -54,8 +56,17 @@ def mode_estimation(
     vd_log_lik = jit(vvmap(d_log_lik))
     vdd_log_lik = jit(vvmap(dd_log_lik))
 
-    def iteration(carry, input):
-        s, = carry
+    def _break(val):
+        _, i, z, Omega, _, z_old, Omega_old = val
+
+        z_converged = converged(z, z_old, eps)
+        Omega_converged = converged(Omega, Omega_old, eps)
+        iteration_limit_reached = i >= n_iter
+
+        return jnp.logical_or(jnp.logical_and(z_converged, Omega_converged), iteration_limit_reached)
+
+    def _iteration(val):
+        s, i, z_old, Omega_old, _, _, _ = val
 
         grad = vd_log_lik(s, xi, y)
         Gamma = -vdd_log_lik(s, xi, y)
@@ -67,11 +78,18 @@ def mode_estimation(
 
         x_smooth, Xi_smooth = smoother(x_filt, Xi_filt, x_pred, Xi_pred, A)
 
-        #s_new = vB(x_smooth)
         s_new = (B @ x_smooth[:,:, None])[:, :, 0]
 
-        return (s_new,), (x_smooth, z, Omega)
+        return s_new, i+1, z, Omega, x_smooth, z_old, Omega_old
+    
+    init = _iteration(
+        (s_init, 0, None, None, None, None, None)
+    )
+    # iterate once more, so z_old, Omega_old have sensible values
+    init = _iteration(init)
 
-    _, (x_smooth, z, Omega) = scan(iteration, (s_init,), (jnp.arange(n_iter),))
+    s, n_iters, z, Omega, x_smooth, _, _ = while_loop(
+        _break, _iteration, init
+    )
 
-    return (x_smooth[-1], z[-1], Omega[-1])
+    return x_smooth, z, Omega
