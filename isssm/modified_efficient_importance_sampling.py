@@ -133,8 +133,10 @@ def modified_efficient_importance_sampling(
         (jnp.zeros(np1), 0, z_init, Omega_init, None, None)
     )
 
+    _keep_going = lambda *args: jnp.logical_not(_break(*args))
+
     _, n_iters, z, Omega, _, _ = while_loop(
-        _break, _iteration, init
+        _keep_going, _iteration, init
     )
 
 
