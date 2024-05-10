@@ -74,7 +74,6 @@ def ce_cholesky_last(
 ) -> Float[Array, "m m"]:  # Cholesky factor
     """Calculate the Cholesky factor of $P$ corresponding to $X_n$."""
     _, m = x.shape
-    L = jnp.zeros((m, m))
     weights = weights / weights.sum()
 
     mean = jnp.sum(x * weights[:, None], axis=0)
@@ -106,7 +105,7 @@ def ce_cholesky_last(
     
     _, LT = scan(_iter, (0, cov), (jnp.eye(m),))
 
-    lam = jnp.sqrt(jnp.diag(L))
+    lam = jnp.sqrt(jnp.diag(LT))
     L = LT.T / lam[:, None]
     return L
 
@@ -143,21 +142,41 @@ def simulate(
     """Simulate from Markov process with Cholesky factor $L$."""
     n, m, _ = full_diag.shape
 
+    #key, subkey = jrn.split(key)
+    #x = jnp.zeros((N, n, m))
+    #z_n = jrn.normal(subkey, shape=(N, m))
+    #x_n = vsolve_t(full_diag[-1].T, z_n)
+
+    #x = x.at[:, -1].set(x_n)
+
+    #for i in range(n - 1):
+    #    key, subkey = jrn.split(key)
+    #    z = jrn.normal(subkey, shape=(N, m))
+    #    new_x = vsolve_t(
+    #        full_diag[n - i - 2].T, z - vmm(off_diag[n - i - 2], x[:, n - i - 1])
+    #    )
+    #    x = x.at[:, n - i - 2].set(new_x)
+
+    def _iteration(carry, input):
+        x, = carry
+        z, full_diag, off_diag = input
+
+        new_x = vsolve_t(full_diag.T, z - vmm(off_diag, x))
+
+        return (new_x,), new_x
+    
     key, subkey = jrn.split(key)
-    x = jnp.zeros((N, n, m))
-    z_n = jrn.normal(subkey, shape=(N, m))
-    x_n = vsolve_t(full_diag[-1].T, z_n)
+    extended_off_diag = jnp.concatenate([off_diag, jnp.zeros((1, m, m))], axis=0)
+    _, x = scan(
+        _iteration, 
+        (jnp.zeros((N,m)),), 
+        (jrn.normal(subkey, shape=(n, N, m)), full_diag[::-1], extended_off_diag[::-1])
+    )
 
-    x = x.at[:, -1].set(x_n)
+    x = x[::-1].transpose((1, 0, 2))
 
-    for i in range(n - 1):
-        key, subkey = jrn.split(key)
-        z = jrn.normal(subkey, shape=(N, m))
-        new_x = vsolve_t(
-            full_diag[n - i - 2].T, z - vmm(off_diag[n - i - 2], x[:, n - i - 1])
-        )
-        x = x.at[:, n - i - 2].set(new_x)
     return x
+
 
 # %% ../nbs/45_cross_entropy_method.ipynb 18
 def marginals(
@@ -284,11 +303,12 @@ def ce_cholesky_precision(
     )
 
     # cholesky helper functions not jittable
-    # iterations, diag, off_diag, mean, *_ = while_loop(_break, _iteration, init)
-    val = init
-    while(not _break(val)):
-        val = _iteration(val)
-    iterations, diag, off_diag, mean, *_ = val
+    _keep_going = lambda x: jnp.logical_not(_break(x))
+    iterations, diag, off_diag, mean, *_ = while_loop(_keep_going, _iteration, init)
+    #val = init
+    #while(not _break(val)):
+    #    val = _iteration(val)
+    #iterations, diag, off_diag, mean, *_ = val
 
     samples = simulate(diag, off_diag, subkey, N) + mean
 
