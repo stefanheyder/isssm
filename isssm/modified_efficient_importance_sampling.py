@@ -98,14 +98,17 @@ def modified_efficient_importance_sampling(
             Q = 2 * A.T @ (w[:, None] * A)
             c = -2 * A.T @ (w * y)
 
-            l = jnp.concatenate((jnp.full(p + 1, -jnp.inf), jnp.full(p, 1e-10)))
-            u = jnp.full(2 * p + 1, jnp.inf)
+            #l = jnp.concatenate((jnp.full(p + 1, -jnp.inf), jnp.full(p, 1e-10)))
+            #u = jnp.full(2 * p + 1, jnp.inf)
 
-            result = solver.run(
-                x0,
-                params_obj=(Q, c),
-                params_ineq=(l, u),
-            ).params
+            #result = solver.run(
+            #    x0,
+            #    params_obj=(Q, c),
+            #    params_ineq=(l, u),
+            #).params
+            
+            # WLS
+            result = -jnp.linalg.solve(Q, c)
             return result
 
         wls_estimate = vmap(optimize)(

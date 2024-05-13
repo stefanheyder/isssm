@@ -196,7 +196,7 @@ def marginals(
 
         Sigma = Sigma.at[i].set(A_i.T @ Sigma[i + 1] @ A_i + Omega_i)
 
-    return mu, Sigma
+    return mu, vmap(jnp.diag)(Sigma)
 
 # %% ../nbs/45_cross_entropy_method.ipynb 21
 def log_prob(
