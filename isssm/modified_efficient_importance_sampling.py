@@ -8,13 +8,17 @@ import jax.numpy as jnp
 import jax.random as jrn
 from jaxtyping import Float, Array, PRNGKeyArray
 from jax import vmap
-from .glssm import FFBS
 from .optim import converged
 from .importance_sampling import log_weights_t, normalize_weights
 from functools import partial
 from jax.lax import while_loop
-from jaxopt import BoxCDQP
+from .kalman import kalman
+from jax.lax import scan
+from tensorflow_probability.substrates.jax.distributions import (
+    MultivariateNormalFullCovariance as MVN
+)
 
+from .glssm import vmatmul
 
 def modified_efficient_importance_sampling(
     y: Float[Array, "n+1 p"], # observations
@@ -39,10 +43,8 @@ def modified_efficient_importance_sampling(
     vB = vmap(partial(vmap(jnp.matmul), B))
     v_norm_w = vmap(normalize_weights)
 
-    key, subkey = jrn.split(key)
-
     def _break(val):
-        a, i, z, Omega, z_old, Omega_old = val
+        a, i, z, Omega, z_old, Omega_old, key = val
 
         z_converged = converged(z, z_old, eps)
         Omega_converged = converged(Omega, Omega_old, eps)
@@ -53,71 +55,12 @@ def modified_efficient_importance_sampling(
         )
 
     def _iteration(val):
-        a, i, z, Omega, _, _ = val
+        a, i, z, Omega, _, _, initial_key = val
 
-        # TODO: implement sampling inline, to avoid unnecessary memory allocation
-        samples = FFBS(z, x0, Sigma, Omega, A, B, N, subkey)
+        x_filt, Xi_filt, x_pred, Xi_pred = kalman(z, x0, Sigma, Omega, A, B)
 
-        signals = vB(samples)
-
-        # (N, n+1) -> (n+1, N)
-        log_p = dist(signals, xi).log_prob(y).T.sum(axis=0)
-
-        # (N, n+1) -> (n+1, N)
-        w_s_t = vmap(lambda s: lw_t(s, y, xi, z, Omega), 0)(signals).T
-        w_s_t_norm = v_norm_w(w_s_t)
-
-        # (N, n+1, p) -> (n+1, N, p)
-        #design_lsq = jnp.dstack(
-        #    (jnp.ones((N, n + 1, 1)), signals, -0.5 * signals**2)
-        #).transpose((1, 0, 2))
-
-        ## initial guess by solving unconstrained least squares problem
-        ## this turned out to be inferior to using the previous estimate
-        ##opt_lambda = lambda A, x: jnp.linalg.lstsq(A,x)
-        ##x0s, *_ = vmap(opt_lambda)(jnp.sqrt(w_s_t_norm)[:, :, None] * design_lsq, (jnp.sqrt(w_s_t_norm) * log_p))
-
-        ### flip signs if necessary for feasible point
-        ## signs = jnp.sign(x0s[:, p+1:])
-        ## x0s = jnp.hstack((
-        ##    x0s[:, 0:1],
-        ##    x0s[:, 1 : (p + 1)] * signs,
-        ##    jnp.abs(x0s[:, (p + 1):])
-        ## ))
-
-        #x0s = jnp.hstack(
-        #    (
-        #        a[:, None],
-        #        z / vmap(jnp.diag)(Omega),
-        #        1 / vmap(jnp.diag)(Omega),
-        #    )
-        #)
-
-        #def optimize(A, y, w, x0):
-        #    solver = BoxCDQP()
-
-        #    Q = 2 * A.T @ (w[:, None] * A)
-        #    c = -2 * A.T @ (w * y)
-
-        #    #l = jnp.concatenate((jnp.full(p + 1, -jnp.inf), jnp.full(p, 1e-10)))
-        #    #u = jnp.full(2 * p + 1, jnp.inf)
-
-        #    #result = solver.run(
-        #    #    x0,
-        #    #    params_obj=(Q, c),
-        #    #    params_ineq=(l, u),
-        #    #).params
-        #    
-        #    # WLS
-        #    result = -jnp.linalg.solve(Q, c)
-        #    return result
-
-        #wls_estimate = vmap(optimize)(
-        #    design_lsq,
-        #    log_p,
-        #    w_s_t_norm,
-        #    x0s,
-        #)
+        key, subkey = jrn.split(initial_key)
+        last_samples = MVN(x_filt[-1], Xi_filt[-1]).sample(N, seed=subkey)
 
         def optimal_parameters(signal: Float[Array, "N p"], weights: Float[Array, "N"], log_p: Float[Array, "N"]):
             ones = jnp.ones_like(weights)[:,None]
@@ -133,11 +76,44 @@ def modified_efficient_importance_sampling(
             ])
             
             return jnp.linalg.solve(X_T_W_X, X_T_W_y[:,0])
-        wls_estimate = vmap(optimal_parameters)(
-            signals.transpose((1,0,2)),
-            w_s_t_norm,
-            log_p
+
+        def eis_parameters(B_t, xi_t, y_t, z_t, Omega_t, samples):
+            signal_t = vmatmul(B_t, samples)
+            log_p_t = dist(signal_t, xi_t).log_prob(y_t).sum(axis=-1)
+            log_w_t = vmap(lambda s_t: log_weights_t(s_t, y_t, xi_t, dist, z_t, Omega_t))(signal_t)
+            w_t_norm = normalize_weights(log_w_t)
+
+            beta_t = optimal_parameters(signal_t, w_t_norm, log_p_t)
+            return beta_t
+
+        def sample_and_estimate(carry, inputs):
+            previous_samples, key = carry
+            x_filt_t, Xi_filt_t, Xi_pred_t, A_t, B_t, xi_t, y_t, z_t, Omega_t = inputs
+
+            # sampling
+            G_t = Xi_filt_t @ jnp.linalg.solve(Xi_pred_t, A_t).T
+
+            cond_expectation = x_filt_t + vmatmul(G_t, previous_samples - (A_t @ x_filt_t)[None])
+            cond_covariance = Xi_filt_t - G_t @ Xi_pred_t @ G_t.T
+
+            key, subkey = jrn.split(key)
+            new_samples = MVN(cond_expectation, cond_covariance).sample(seed=subkey)
+
+            # estimation 
+            beta_t = eis_parameters(B_t, xi_t, y_t, z_t, Omega_t, new_samples)
+
+            return (new_samples, key), beta_t
+
+        wls_estimate_n = eis_parameters(B[-1], xi[-1], y[-1], z[-1], Omega[-1], last_samples)
+            
+        key, subkey = jrn.split(key)
+        _, wls_estimate = scan(
+            sample_and_estimate,
+            (last_samples, subkey),
+            (x_filt[:-1], Xi_filt[:-1], Xi_pred[1:], A, B[:-1], xi[:-1], y[:-1], z[:-1], Omega[:-1]),
+            reverse=True
         )
+        wls_estimate = jnp.concatenate([wls_estimate, wls_estimate_n[None]])
 
         a = wls_estimate[:, 0]
         b = wls_estimate[:, 1 : (p + 1)]
@@ -147,15 +123,16 @@ def modified_efficient_importance_sampling(
         Omega_new = vmap(jnp.diag)(1 / c)
 
 
-        return a, i+1, z_new, Omega_new, z, Omega
+        return a, i+1, z_new, Omega_new, z, Omega, initial_key
 
+    key, subkey = jrn.split(key)
     init = _iteration(
-        (jnp.zeros(np1), 0, z_init, Omega_init, None, None)
+        (jnp.zeros(np1), 0, z_init, Omega_init, None, None, subkey)
     )
 
     _keep_going = lambda *args: jnp.logical_not(_break(*args))
 
-    _, n_iters, z, Omega, _, _ = while_loop(
+    _, n_iters, z, Omega, _, _, _ = while_loop(
         _keep_going, _iteration, init
     )
 
