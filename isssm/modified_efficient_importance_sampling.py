@@ -34,7 +34,7 @@ def modified_efficient_importance_sampling(
     np1, p = y.shape
     n = np1 - 1
 
-    lw_t = vmap(lambda s, z, Omega: log_weights_t(s, y, xi, dist, z, Omega), (0, 0, 0))
+    lw_t = vmap(lambda s, y, xi, z, Omega: log_weights_t(s, y, xi, dist, z, Omega))
 
     vB = vmap(partial(vmap(jnp.matmul), B))
     v_norm_w = vmap(normalize_weights)
@@ -55,6 +55,7 @@ def modified_efficient_importance_sampling(
     def _iteration(val):
         a, i, z, Omega, _, _ = val
 
+        # TODO: implement sampling inline, to avoid unnecessary memory allocation
         samples = FFBS(z, x0, Sigma, Omega, A, B, N, subkey)
 
         signals = vB(samples)
@@ -63,68 +64,84 @@ def modified_efficient_importance_sampling(
         log_p = dist(signals, xi).log_prob(y).T.sum(axis=0)
 
         # (N, n+1) -> (n+1, N)
-        w_s_t = vmap(lambda s: lw_t(s, z, Omega), 0)(signals).T
+        w_s_t = vmap(lambda s: lw_t(s, y, xi, z, Omega), 0)(signals).T
         w_s_t_norm = v_norm_w(w_s_t)
 
         # (N, n+1, p) -> (n+1, N, p)
-        design_lsq = jnp.dstack(
-            (jnp.ones((N, n + 1, 1)), signals, -0.5 * signals**2)
-        ).transpose((1, 0, 2))
+        #design_lsq = jnp.dstack(
+        #    (jnp.ones((N, n + 1, 1)), signals, -0.5 * signals**2)
+        #).transpose((1, 0, 2))
 
         ## initial guess by solving unconstrained least squares problem
         ## this turned out to be inferior to using the previous estimate
-        # opt_lambda = lambda A, x: jnp.linalg.lstsq(A,x)
-        # x0s, *_ = vmap(opt_lambda)(jnp.sqrt(w_s_t_norm)[:, :, None] * design_lsq, (jnp.sqrt(w_s_t_norm) * log_p))
+        ##opt_lambda = lambda A, x: jnp.linalg.lstsq(A,x)
+        ##x0s, *_ = vmap(opt_lambda)(jnp.sqrt(w_s_t_norm)[:, :, None] * design_lsq, (jnp.sqrt(w_s_t_norm) * log_p))
 
-        ## flip signs if necessary for feasible point
-        # signs = jnp.sign(x0s[:, p+1:])
-        # x0s = jnp.hstack((
-        #    x0s[:, 0:1],
-        #    x0s[:, 1 : (p + 1)] * signs,
-        #    jnp.abs(x0s[:, (p + 1):])
-        # ))
+        ### flip signs if necessary for feasible point
+        ## signs = jnp.sign(x0s[:, p+1:])
+        ## x0s = jnp.hstack((
+        ##    x0s[:, 0:1],
+        ##    x0s[:, 1 : (p + 1)] * signs,
+        ##    jnp.abs(x0s[:, (p + 1):])
+        ## ))
 
-        x0s = jnp.hstack(
-            (
-                a[:, None],
-                z / vmap(jnp.diag)(Omega),
-                1 / vmap(jnp.diag)(Omega),
-            )
-        )
+        #x0s = jnp.hstack(
+        #    (
+        #        a[:, None],
+        #        z / vmap(jnp.diag)(Omega),
+        #        1 / vmap(jnp.diag)(Omega),
+        #    )
+        #)
 
-        def optimize(A, y, w, x0):
-            solver = BoxCDQP()
+        #def optimize(A, y, w, x0):
+        #    solver = BoxCDQP()
 
-            Q = 2 * A.T @ (w[:, None] * A)
-            c = -2 * A.T @ (w * y)
+        #    Q = 2 * A.T @ (w[:, None] * A)
+        #    c = -2 * A.T @ (w * y)
 
-            #l = jnp.concatenate((jnp.full(p + 1, -jnp.inf), jnp.full(p, 1e-10)))
-            #u = jnp.full(2 * p + 1, jnp.inf)
+        #    #l = jnp.concatenate((jnp.full(p + 1, -jnp.inf), jnp.full(p, 1e-10)))
+        #    #u = jnp.full(2 * p + 1, jnp.inf)
 
-            #result = solver.run(
-            #    x0,
-            #    params_obj=(Q, c),
-            #    params_ineq=(l, u),
-            #).params
+        #    #result = solver.run(
+        #    #    x0,
+        #    #    params_obj=(Q, c),
+        #    #    params_ineq=(l, u),
+        #    #).params
+        #    
+        #    # WLS
+        #    result = -jnp.linalg.solve(Q, c)
+        #    return result
+
+        #wls_estimate = vmap(optimize)(
+        #    design_lsq,
+        #    log_p,
+        #    w_s_t_norm,
+        #    x0s,
+        #)
+
+        def optimal_parameters(signal: Float[Array, "N p"], weights: Float[Array, "N"], log_p: Float[Array, "N"]):
+            ones = jnp.ones_like(weights)[:,None]
+            w_inner_prod = lambda a, b: jnp.einsum('i,ij,ik->jk',weights, a, b)
             
-            # WLS
-            result = -jnp.linalg.solve(Q, c)
-            return result
-
-        wls_estimate = vmap(optimize)(
-            design_lsq,
-            log_p,
+            X_T_W_X = jnp.block([
+                [w_inner_prod(ones, ones), w_inner_prod(ones, signal), w_inner_prod(ones, -.5 * signal**2)],
+                [w_inner_prod(signal, ones), w_inner_prod(signal, signal), w_inner_prod(signal, -.5 * signal**2)],
+                [w_inner_prod(-.5 * signal**2, ones), w_inner_prod(-.5 * signal**2, signal), w_inner_prod(-.5 * signal**2, -.5 * signal**2)]
+            ])
+            X_T_W_y = jnp.concatenate([
+                w_inner_prod(ones, log_p[:,None]), w_inner_prod(signal, log_p[:, None]), w_inner_prod(-.5 * signal**2, log_p[:, None])
+            ])
+            
+            return jnp.linalg.solve(X_T_W_X, X_T_W_y[:,0])
+        wls_estimate = vmap(optimal_parameters)(
+            signals.transpose((1,0,2)),
             w_s_t_norm,
-            x0s,
+            log_p
         )
 
         a = wls_estimate[:, 0]
         b = wls_estimate[:, 1 : (p + 1)]
         c = wls_estimate[:, (p + 1) :]
-
-        # sometimes optimal variances are negative, in this case
-        # solve constrained least squares problem to ensure valid
-        # solution
 
         z_new = b / c
         Omega_new = vmap(jnp.diag)(1 / c)
