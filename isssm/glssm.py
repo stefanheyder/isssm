@@ -155,7 +155,7 @@ def simulate_smoothed_FW1994(
 
         G = Xi_filt @ jnp.linalg.solve(Xi_pred, A).T
 
-        cond_expectation = x_filt + vmatmul(G, X_smooth_next - (A @x_filt)[None])
+        cond_expectation = x_filt + vmatmul(G, X_smooth_next - (A @ x_filt)[None])
         cond_covariance = Xi_filt - G @ Xi_pred @ G.T
 
         key, subkey = jrn.split(key)
