@@ -1,0 +1,471 @@
+[
+  {
+    "objectID": "importance_sampling.html",
+    "href": "importance_sampling.html",
+    "title": "Importance Sampling for Log Concave State Space Models",
+    "section": "",
+    "text": "After having observed \\(Y\\) one is usually interested in properties of the conditional distribution of states \\(X\\) given \\(Y\\). Typically this means terms of the form\n\\[\n\\begin{align*}\n\\mathbf E (f(X) | Y) &= \\mathbf E (f(X_0, \\dots, X_n) | Y_0, \\dots, Y_n) \\\\\n    &= \\int f(x_0, \\dots, x_n) p(x_0, \\dots, x_n | y_0, \\dots, y_n) \\mathrm d x_0 \\dots \\mathrm d x_n.\n\\end{align*}\n\\]\nAs the density \\(p(x|y)\\) is known only up to a constant, we resort to importance sampling with a GLSSM, represented by its gaussian densities \\(g\\). The methods of mode estimation and (modified) efficient importance sampling perform this task for loc concave state space models where the states are jointly gaussian.\nBoth methods construct surrogate linear gaussian state space models that are parameterized by synthetic observations \\(z_t\\) and their covariance matrices \\(\\Omega_t\\). Usually \\(\\Omega_t\\) is a diagonal matrix which is justified if the components of the observation vector at time \\(t\\), \\(Y^i_t\\), \\(i = 1, \\dots, p\\) are conditionally independent given states \\(X_t\\).\nThese models are then based on the following SSM: \\[\n\\begin{align*}\n    X_0 &\\sim \\mathcal N (x_0, \\Sigma_0) &&\\\\\n    X_{t + 1} &= A_t X_{t} + \\varepsilon_{t + 1} &&t = 0, \\dots, n - 1\\\\\n    \\varepsilon_t &\\sim \\mathcal N (0, \\Sigma_t) && t = 1, \\dots, n \\\\\n    S_t &= B_t X_t &&\\\\\n    Z_t &= S_t + \\eta_t && t =0, \\dots, n & \\\\\n    \\eta_t &\\sim \\mathcal N(0, \\Omega_t) && t=0, \\dots, n.\n\\end{align*}\n\\]\nIn this setting we can transform the expectation w.r.t the condtiional density \\(p(x|y)\\) to one w.r.t the density \\(g(x|z)\\).\n\\[\n\\begin{align*}\n\\int f(x) p(x|y) \\mathrm d x &= \\int f(x) \\frac{p(x|y)}{g(x|z)} g(x|z) \\mathrm d x\\\\\n&= \\int f(x) \\frac{p(y|x)}{g(z|x)} \\frac{g(z)}{p(y)} g(x|z) \\mathrm d x.\n\\end{align*}\n\\]\nLet \\(w(x) = \\frac{p(y|x)}{g(z|x)} = \\frac{p(y|s)}{g(z|s)}\\) be the (unnormalized) importance sampling weights which only depend on \\(s_t = B_t x_t\\), \\(t = 0, \\dots, n\\).\nsource",
+    "crumbs": [
+      "Importance Sampling for Log Concave State Space Models"
+    ]
+  },
+  {
+    "objectID": "importance_sampling.html#effective-sample-size",
+    "href": "importance_sampling.html#effective-sample-size",
+    "title": "Importance Sampling for Log Concave State Space Models",
+    "section": "Effective Sample Size",
+    "text": "Effective Sample Size\nThe effective sample size is an important diagnostic for the performance of importance sampling, it is defined by\n\\[\n\\text{ESS} = \\frac{\\left(\\sum_{i = 1}^{N} w(X^i)\\right)^2}{\\sum_{i = 1}^N w^2(X_i)} = \\frac{1}{\\sum_{i = 1}^N W^2(X^i)}\n\\]\n\nsource\n\ness_lw\n\n ess_lw (log_weights:jaxtyping.Float[Array,'N'])\n\nCompute the effective sample size of a set of log weights\n\n\n\n\nType\nDetails\n\n\n\n\nlog_weights\nFloat[Array, ‘N’]\nthe log weights\n\n\nReturns\nFloat\nthe effective sample size\n\n\n\n\nsource\n\n\ness\n\n ess (normalized_weights:jaxtyping.Float[Array,'N'])\n\nCompute the effective sample size of a set of normalized weights\n\n\n\n\nType\nDetails\n\n\n\n\nnormalized_weights\nFloat[Array, ‘N’]\nthe normailzed weights\n\n\nReturns\nFloat\nthe effective sample size\n\n\n\n\ness(weights)\n\nArray(995.73549268, dtype=float64)\n\n\nTo compare different approximations one may also be interested in \\(\\frac{\\text{ESS}}{N} \\cdot 100\\%\\), the percentage of effective samples.\n\nsource\n\n\ness_pct\n\n ess_pct (log_weights)",
+    "crumbs": [
+      "Importance Sampling for Log Concave State Space Models"
+    ]
+  },
+  {
+    "objectID": "models/stsm.html",
+    "href": "models/stsm.html",
+    "title": "Basic Structural Time Series Model",
+    "section": "",
+    "text": "We implement the univariate model from Chapter 3.2.2 in (Durbin and Koopman 2012) and refer the reader to their discussion.\n\nsource\n\nstsm\n\n stsm (x0:jaxtyping.Float[Array,'m'], s2_mu:jaxtyping.Float,\n       s2_nu:jaxtyping.Float, s2_seasonal:jaxtyping.Float, n:int,\n       Sigma_init:jaxtyping.Float[Array,'mm'], o2:jaxtyping.Float,\n       s_order:int)\n\n\n\n\n\nType\nDetails\n\n\n\n\nx0\nFloat[Array, ‘m’]\ninitial state\n\n\ns2_mu\nFloat\nvariance of trend innovations\n\n\ns2_nu\nFloat\nvariance of velocity innovations\n\n\ns2_seasonal\nFloat\nvariance of velocity innovations\n\n\nn\nint\nnumber of time points\n\n\nSigma_init\nFloat[Array, ‘m m’]\ninitial state covariance\n\n\no2\nFloat\nvariance of observation noise\n\n\ns_order\nint\norder of seasonal component\n\n\n\n\nfrom isssm.glssm import simulate_glssm\nimport jax.random as jrn\nimport matplotlib.pyplot as plt\n\n\nx0, A, B, Sigma, Omega = stsm(jnp.zeros(2), 1., 1., 1., 100, jnp.eye(2), 1., 0)\nkey = jrn.PRNGKey(534512423)\nkey, subkey = jrn.split(key)\n(x,), (y,) = simulate_glssm(x0, A, B, Sigma, Omega, 1, subkey)\n\nfig, axs = plt.subplots(1, 2, figsize=(12, 4))\naxs[0].set_title(\"observations\")\naxs[0].plot(y)\naxs[1].set_title(\"states\")\naxs[1].plot(x)\nplt.show()\n\n\n\n\n\n\n\n\n\n\n\n\n\nReferences\n\nDurbin, J., and S. J. Koopman. 2012. Time Series Analysis by State Space Methods. 2nd ed. Oxford Statistical Science Series 38. Oxford: Oxford University Press.",
+    "crumbs": [
+      "models",
+      "Basic Structural Time Series Model"
+    ]
+  },
+  {
+    "objectID": "99_optimization.html",
+    "href": "99_optimization.html",
+    "title": "isssm",
+    "section": "",
+    "text": "source\n\nconverged\n\n converged (new, old, eps)",
+    "crumbs": [
+      "99_optimization.html"
+    ]
+  },
+  {
+    "objectID": "testing/analytical_verification.html",
+    "href": "testing/analytical_verification.html",
+    "title": "Analytical Verification of Kalman filter and smoother",
+    "section": "",
+    "text": "We start with a simple verification for a model that only consists of \\(X_0, X_1, Y_0, Y_1\\).\nFor this model the filtering and smoothing distributions is easily derived by hand and we can compare to the outputs of the isssm.kalman.kalman/isssm.kalman.smoother and isssm.kalman.sqrt_filter/isssm.kalman.sqrt_smoother methods.\n\nfrom isssm.glssm_models import lcm\nfrom isssm.glssm import simulate_glssm\nfrom isssm.kalman import kalman, smoother, sqrt_kalman, sqrt_smoother\nimport jax.numpy as jnp\nimport jax.random as jrn\nimport fastcore.test as fct\nimport jax.scipy.linalg as jsla\n\n\nx0, A, B, Sigma, Omega = lcm(1, 0., 1., 1., 1.)\n\n_, (y,) = simulate_glssm(x0, A, B, Sigma, Omega, 1, jrn.PRNGKey(34234))\n\nNo GPU/TPU found, falling back to CPU. (Set TF_CPP_MIN_LOG_LEVEL=0 and rerun for more info.)\n\n\n\nEX = jnp.array([x0, x0])\nEY = jnp.array([x0, x0])\n\nCovX = jnp.array([[1., 1.], [1., 2.]])\nCovY = jnp.array([[2., 1.], [1., 3.]])\n\nCovXY = jnp.array([[1., 1.], [1., 2.]])\n\nEX_c_Y = EX + CovXY @ jnp.linalg.inv(CovY) @ (y - EY)\nCovX_c_Y = CovX - CovXY @ jnp.linalg.inv(CovY) @ CovXY.T\n\n\nx_filt, Xi_filt, x_pred, Xi_pred = kalman(y, x0, Sigma, Omega, A, B)\nx_smooth, Xi_smooth = smoother(x_filt, Xi_filt, x_pred, Xi_pred, A)\n\nfct.test_close(x_smooth, EX_c_Y)\nfct.test_close(Xi_smooth, jnp.diag(CovX_c_Y).reshape((2,1,1)))\n\nfct.test_close(x_smooth[-1], x_filt[-1])\nfct.test_close(Xi_smooth[-1], Xi_filt[-1])\n\n\ncuSigma = jsla.cholesky(Sigma)\ncuOmega = jsla.cholesky(Omega)\ncx_filt, cuXi_filt, cx_pred, cuXi_pred, G, cuH = sqrt_kalman(y, x0, cuSigma, cuOmega, A, B)\n\ncx_smooth, cuXi_smooth = sqrt_smoother(cx_filt, cuXi_filt, cx_pred, cuXi_pred, G, cuH)\n\nfct.test_close(Xi_smooth, cuXi_smooth**2)\nfct.test_close(x_smooth, cx_smooth)",
+    "crumbs": [
+      "testing",
+      "Analytical Verification of Kalman filter and smoother"
+    ]
+  },
+  {
+    "objectID": "glssm.html",
+    "href": "glssm.html",
+    "title": "Gaussian Linear State Space Models",
+    "section": "",
+    "text": "Consider a gaussian state space model of the form \\[\n\\begin{align*}\n    X_0 &\\sim \\mathcal N (x_0, \\Sigma_0) &\\\\\n    X_{t + 1} &= A_t X_{t} + \\varepsilon_{t + 1} &t = 0, \\dots, n - 1\\\\\n    \\varepsilon_t &\\sim \\mathcal N (0, \\Sigma_t) & t = 1, \\dots, n \\\\\n    Y_t &= B_t X_t + \\eta_t & t =0, \\dots, n & \\\\\n    \\eta_t &\\sim \\mathcal N(0, \\Omega_t) & t=0, \\dots, n.\n\\end{align*}\n\\] As the joint distribution of \\((X_0, \\dots, X_n, Y_0, \\dots, Y_n)\\) is gaussian, we call it a Gaussian linear state space model (GLSSM).",
+    "crumbs": [
+      "Gaussian Linear State Space Models"
+    ]
+  },
+  {
+    "objectID": "glssm.html#sampling-from-the-joint-distribution",
+    "href": "glssm.html#sampling-from-the-joint-distribution",
+    "title": "Gaussian Linear State Space Models",
+    "section": "Sampling from the joint distribution",
+    "text": "Sampling from the joint distribution\nTo obtain a sample \\((X_0, \\dots, X_n), (Y_0, \\dots, Y_n)\\) we first simulate from the joint distribution of the states and then, as observations are coniditionally independent of one another given the states, simulate all states at once.\n\nsource\n\nsimulate_states\n\n simulate_states (x0:jaxtyping.Float[Array,'m'],\n                  A:jaxtyping.Float[Array,'nmm'],\n                  Sigma:jaxtyping.Float[Array,'n+1mm'], N:int, key:Union[j\n                  axtyping.Key[Array,''],jaxtyping.UInt32[Array,'2']])\n\nSimulate states of a GLSSM\n\n\n\n\n\n\n\n\n\nType\nDetails\n\n\n\n\nx0\nFloat[Array, ‘m’]\ninitial mean \\(\\mathbf E \\left( X_0 \\right)\\)\n\n\nA\nFloat[Array, ‘n m m’]\ntransition matrices \\(A_t\\), \\(t = 0, \\dots, n-1\\)\n\n\nSigma\nFloat[Array, ‘n+1 m m’]\ncovariance matrices of innovations \\(\\Sigma_t\\), \\(t = 0, \\dots, n\\)\n\n\nN\nint\nnumber of samples to draw\n\n\nkey\nUnion\nthe random state\n\n\nReturns\nFloat[Array, ‘N n+1 m’]\nan array of N samples from the state distribution \n\n\n\n\nsource\n\n\nsimulate_glssm\n\n simulate_glssm (x0:jaxtyping.Float[Array,'m'],\n                 A:jaxtyping.Float[Array,'nmm'],\n                 B:jaxtyping.Float[Array,'n+1pm'],\n                 Sigma:jaxtyping.Float[Array,'n+1mm'],\n                 Omega:jaxtyping.Float[Array,'n+1pp'], N:int, key:Union[ja\n                 xtyping.Key[Array,''],jaxtyping.UInt32[Array,'2']])\n\nSimulate states and observations of a GLSSM\n\n\n\n\n\n\n\n\n\nType\nDetails\n\n\n\n\nx0\nFloat[Array, ‘m’]\ninitial mean \\(\\mathbf E X_0\\)\n\n\nA\nFloat[Array, ‘n m m’]\ntransition matrices \\(A_t\\), \\(t = 0, \\dots, n - 1\\)\n\n\nB\nFloat[Array, ‘n+1 p m’]\nobservation matrices \\(B_t\\), \\(t = 0, \\dots, n\\)\n\n\nSigma\nFloat[Array, ‘n+1 m m’]\ncovariance matrices of innovations \\(\\Sigma_t\\), \\(t = 0, \\dots, n\\)\n\n\nOmega\nFloat[Array, ‘n+1 p p’]\ncovariance matrices of errors \\(\\Omega_t\\), \\(t=0, \\dots, n\\)\n\n\nN\nint\nnumber of sample paths\n\n\nkey\nUnion\nthe random state\n\n\nReturns\n(&lt;class ‘jaxtyping.Float[Array, ’N n+1 m’]’&gt;, &lt;class ‘jaxtyping.Float[Array, ’N n+1 p’]’&gt;)\na tuple of two arrays each with of N samples from the state/observation distribution\n\n\n\n\nm, p, n = 3, 2, 100\nA = jnp.broadcast_to(jnp.eye(m), (n, m, m))\nB = jnp.broadcast_to(jnp.array([[1, 0, 1], [0, 1, 1]]), (n + 1, p, m))\n\ns2, omega2 = 1, 1\nSigma = jnp.broadcast_to(s2 * jnp.eye(m), (n + 1, m, m))\nOmega = jnp.broadcast_to(omega2 * jnp.eye(p), (n + 1, p, p))\nx0 = jnp.zeros(m)\n\nkey = jrn.PRNGKey(53412312)\nkey, subkey = jrn.split(key)\n(X, ), (Y,) = simulate_glssm(x0, A, B, Sigma, Omega, 1, subkey)\n\n\nfig, (ax1, ax2) = plt.subplots(2)\n\nax1.set_title(\"$X_t$\")\nax1.plot(X)\n\nax2.set_title(\"$Y_t$\")\nax2.plot(Y)\nplt.show()",
+    "crumbs": [
+      "Gaussian Linear State Space Models"
+    ]
+  },
+  {
+    "objectID": "glssm.html#sampling-from-the-smoothing-distribution",
+    "href": "glssm.html#sampling-from-the-smoothing-distribution",
+    "title": "Gaussian Linear State Space Models",
+    "section": "Sampling from the smoothing distribution",
+    "text": "Sampling from the smoothing distribution\nAfter having run the Kalman filter we can use a recursion due to Frühwirth-Schnatter (Frühwirth-Schnatter 1994) to obtain samples from the joint conditional distribution the states given observations.\nBy the dependency structure of states and observations the conditional densities can be factorized in the following way:\n\\[\n\\begin{align*}\np(x_0, \\dots, x_n | y_0, \\dots, y_n) &=  p(x_n | y_0, \\dots, y_n) \\prod_{t = n - 1}^0 p(x_{t}| x_{t + 1}, \\dots, x_n, y_0, \\dots, y_n) \\\\\n&= p(x_n | y_0, \\dots, y_n) \\prod_{t = n - 1}^0 p(x_{t}| x_{t + 1}, y_0, \\dots, y_n)\n\\end{align*}\n\\]\nand the conditional distributions are again gaussian with conditional expecatation \\[\n\\mathbf E (X_{t} | X_{t + 1}, Y_0, \\dots, Y_n) = \\hat X_{t|t} + G_t (X_{t + 1} - \\hat X_{t + 1|t})\n\\] and conditional covariance matrix \\[\n\\text{Cov} (X_t | X_{t + 1}, Y_0, \\dots, Y_n) = \\Xi_{t|t} - G_t\\Xi_{t + 1 | t} G_t^T\n\\]\nwhere \\(G_t = \\Xi_{t|t} A_t^T \\Xi_{t + 1|t}^{-1}\\) is the smoothing gain.\n\nsource\n\nFFBS\n\n FFBS (y:jaxtyping.Float[Array,'n+1m'], x0:jaxtyping.Float[Array,'m'],\n       Sigma:jaxtyping.Float[Array,'n+1mm'],\n       Omega:jaxtyping.Float[Array,'n+1pp'],\n       A:jaxtyping.Float[Array,'nmm'], B:jaxtyping.Float[Array,'n+1pm'],\n       N:int,\n       key:Union[jaxtyping.Key[Array,''],jaxtyping.UInt32[Array,'2']])\n\n*The Forward-Filter Backwards-Sampling Algorithm\nFrom (Frühwirth-Schnatter 1994).*\n\n\n\n\n\n\n\n\n\nType\nDetails\n\n\n\n\ny\nFloat[Array, ‘n+1 m’]\nObservations \\(y\\)\n\n\nx0\nFloat[Array, ‘m’]\ninitial mean \\(\\mathbf E X_0\\)\n\n\nSigma\nFloat[Array, ‘n+1 m m’]\ninnovation covariances \\(\\Sigma_t\\)\n\n\nOmega\nFloat[Array, ‘n+1 p p’]\nerrors \\(\\Omega_t\\)\n\n\nA\nFloat[Array, ‘n m m’]\ntransition matrices \\(A_t\\)\n\n\nB\nFloat[Array, ‘n+1 p m’]\nobservation matrices \\(B_t\\)\n\n\nN\nint\nnumber of samples\n\n\nkey\nUnion\nrandom state\n\n\nReturns\nFloat[Array, ‘N n+1 m’]\nan array of N samples from the smoothing distribution\n\n\n\n\nsource\n\n\nsimulate_smoothed_FW1994\n\n simulate_smoothed_FW1994 (x_filt:jaxtyping.Float[Array,'n+1m'],\n                           Xi_filt:jaxtyping.Float[Array,'n+1mm'],\n                           Xi_pred:jaxtyping.Float[Array,'n+1mm'],\n                           A:jaxtyping.Float[Array,'nmm'], N:int, key:Unio\n                           n[jaxtyping.Key[Array,''],jaxtyping.UInt32[Arra\n                           y,'2']])\n\nSimulate from smoothing distribution \\(p(X_0, \\dots, X_n|Y_0, \\dots, Y_n)\\)\n\n\n\n\n\n\n\n\n\nType\nDetails\n\n\n\n\nx_filt\nFloat[Array, ‘n+1 m’]\nfiltered states \\(\\hat X_{t\\vert t}\\)\n\n\nXi_filt\nFloat[Array, ‘n+1 m m’]\nfiltered covariance matrices \\(\\Xi_{t\\vert t}\\), \\(t=0,\\dots,n\\)\n\n\nXi_pred\nFloat[Array, ‘n+1 m m’]\nprediction covariance matrices \\(\\Xi_{t + 1 \\vert t}\\), \\(t=0, \\dots, n-1\\)\n\n\nA\nFloat[Array, ‘n m m’]\ntransition matrices \\(A_t\\), \\(t=0,\\dots,n-1\\)\n\n\nN\nint\nnumber of samples\n\n\nkey\nUnion\nthe random states\n\n\nReturns\nFloat[Array, ‘N n+1 m’]\nan array of N samples from the smoothing distribution\n\n\n\n\nx_filt, Xi_filt, x_pred, Xi_pred = kalman(Y, x0, Sigma, Omega, A, B)\n\nkey, subkey = jrn.split(key)\nX_sim, = simulate_smoothed_FW1994(x_filt, Xi_filt, Xi_pred, A, 1, subkey)\n\nassert X_sim.shape == (n + 1, m)\n\n\nx_smooth, Xi_smooth = smoother(x_filt, Xi_filt, x_pred, Xi_pred, A)\n\nplt.plot(x_smooth)\nplt.plot(X_sim, alpha=.5, linestyle=\"dashed\")\nplt.show()",
+    "crumbs": [
+      "Gaussian Linear State Space Models"
+    ]
+  },
+  {
+    "objectID": "glssm.html#joint-density",
+    "href": "glssm.html#joint-density",
+    "title": "Gaussian Linear State Space Models",
+    "section": "Joint Density",
+    "text": "Joint Density\nBy the dependency structure of the model, the joint density factorizes as\n\\[\np(x,y) = \\prod_{t = 0}^n p(x_{t}| x_{t -1}) p(y_{t}|x_{t})\n\\] where \\(p(x_0|x_{-1}) = p(x_0)\\). The following functions return these components or evaluate the joint density directly.\n\nsource\n\nlog_prob\n\n log_prob (x:jaxtyping.Float[Array,'n+1m'],\n           y:jaxtyping.Float[Array,'n+1p'], x0:jaxtyping.Float[Array,'m'],\n           A:jaxtyping.Float[Array,'nmm'],\n           B:jaxtyping.Float[Array,'n+1pm'],\n           Sigma:jaxtyping.Float[Array,'n+1mm'],\n           Omega:jaxtyping.Float[Array,'n+1pp'])\n\n\nsource\n\n\nlog_probs_y\n\n log_probs_y (y:jaxtyping.Float[Array,'n+1p'],\n              x:jaxtyping.Float[Array,'n+1m'],\n              B:jaxtyping.Float[Array,'n+1pm'],\n              Omega:jaxtyping.Float[Array,'n+1pp'])\n\n\n\n\n\n\n\n\n\n\nType\nDetails\n\n\n\n\ny\nFloat[Array, ‘n+1 p’]\nthe observations\n\n\nx\nFloat[Array, ‘n+1 m’]\nthe states\n\n\nB\nFloat[Array, ‘n+1 p m’]\nobservation matrices\n\n\nOmega\nFloat[Array, ‘n+1 p p’]\nerror covariances\n\n\nReturns\nFloat[Array, ‘n+1’]\nlog probabilities \\(p(y_t \\| x_t)\\)\n\n\n\n\nsource\n\n\nlog_probs_x\n\n log_probs_x (x:jaxtyping.Float[Array,'n+1m'],\n              x0:jaxtyping.Float[Array,'m'],\n              A:jaxtyping.Float[Array,'nmm'],\n              Sigma:jaxtyping.Float[Array,'n+1mm'])\n\n\n\n\n\n\n\n\n\n\nType\nDetails\n\n\n\n\nx\nFloat[Array, ‘n+1 m’]\nthe states\n\n\nx0\nFloat[Array, ‘m’]\ninitial mean\n\n\nA\nFloat[Array, ‘n m m’]\ntransition matrices\n\n\nSigma\nFloat[Array, ‘n+1 m m’]\ninnovation covariances\n\n\nReturns\nFloat[Array, ‘n+1’]\nlog probabilities \\(p(x_t \\| x_{t-1})\\)\n\n\n\n\nfct.test_eq(log_probs_x(X, x0, A, Sigma).shape, (n+1,))\nfct.test_eq(log_probs_y(Y, X, B, Omega).shape, (n+1,))\nfct.test_eq(log_prob(X, Y, x0, A, B, Sigma, Omega).shape, ())",
+    "crumbs": [
+      "Gaussian Linear State Space Models"
+    ]
+  },
+  {
+    "objectID": "lcssm.html",
+    "href": "lcssm.html",
+    "title": "Log-Concave State Space Models",
+    "section": "",
+    "text": "Code\nimport matplotlib.pyplot as plt\nimport jax.numpy as jnp\nimport jax.random as jrn\nA log-concave state space model is a partially gaussian state space model where the distribution of states \\(X_t\\) is gaussian, but the (conditional) distribution of observations \\(Y_t\\) is non-gaussian, but log-concave in signals \\(S_t = B_tX_t\\) for a matrix \\(B_t\\).\nThat is we consider\n\\[\n\\begin{align*}\n    X_0 &\\sim \\mathcal N(x_0, \\Sigma_0)\\\\\n    X_{t + 1} &= A_t X_t + \\varepsilon_{t + 1}\\\\\n    \\varepsilon_{t} &\\sim \\mathcal N(0, \\Sigma_t)\\\\\n    Y_t | X_t &\\sim Y_t | S_t \\sim p(y_t|s_t)\n\\end{align*}\n\\] where the conditional density \\(p(y_t|s_t)\\) is log-concave, i.e. \\(\\log p(y_t|s_t)\\) is concave in \\(s_t\\).",
+    "crumbs": [
+      "Log-Concave State Space Models"
+    ]
+  },
+  {
+    "objectID": "lcssm.html#simulation",
+    "href": "lcssm.html#simulation",
+    "title": "Log-Concave State Space Models",
+    "section": "Simulation",
+    "text": "Simulation\nAs the states are gaussian, we can first simulate the states \\(X\\) and then, conditional on them, calculate \\(S\\) and \\(\\xi\\).\n\nsource\n\nsimulate_lcssm\n\n simulate_lcssm (x0:jaxtyping.Float[Array,'m'],\n                 A:jaxtyping.Float[Array,'nmm'],\n                 Sigma:jaxtyping.Float[Array,'n+1mm'],\n                 B:jaxtyping.Float[Array,'n+1pm'], dist, xi, N:int, key:Un\n                 ion[jaxtyping.Key[Array,''],jaxtyping.UInt32[Array,'2']])\n\n\n\n\n\nType\nDetails\n\n\n\n\nx0\nFloat[Array, ‘m’]\ninitial state\n\n\nA\nFloat[Array, ‘n m m’]\ntransition matrices\n\n\nSigma\nFloat[Array, ‘n+1 m m’]\ninnovation covariances\n\n\nB\nFloat[Array, ‘n+1 p m’]\nsignal matrices\n\n\ndist\n\nobservation distribution\n\n\nxi\n\nobservation parameters\n\n\nN\nint\nnumber of samples\n\n\nkey\nUnion\nrandom key\n\n\nReturns\ntuple",
+    "crumbs": [
+      "Log-Concave State Space Models"
+    ]
+  },
+  {
+    "objectID": "lcssm.html#negative-binomial-common-factor-model",
+    "href": "lcssm.html#negative-binomial-common-factor-model",
+    "title": "Log-Concave State Space Models",
+    "section": "Negative Binomial Common Factor Model",
+    "text": "Negative Binomial Common Factor Model\nAs an example consider a variant of the common factor model where observations now follow a conditional negative binomial distribution, i.e. \\[Y_t^i| X_{t} \\sim \\text{NegBinom}(\\exp((BX_t)_i), r)\\] for \\(i = 1,2\\), conditionally independent.\n\nsource\n\nnb_lcssm\n\n nb_lcssm (x0:jaxtyping.Float[Array,'m'], A:jaxtyping.Float[Array,'nmm'],\n           Sigma:jaxtyping.Float[Array,'n+1mm'],\n           B:jaxtyping.Float[Array,'n+1pm'], r:jaxtyping.Float)\n\nCreate a negative binomial LCSSM with constant overdispersion\n\n\n\n\nType\nDetails\n\n\n\n\nx0\nFloat[Array, ‘m’]\ninitial state\n\n\nA\nFloat[Array, ‘n m m’]\ntransition matrices\n\n\nSigma\nFloat[Array, ‘n+1 m m’]\ninnovation covariances\n\n\nB\nFloat[Array, ‘n+1 p m’]\nsignal matrices\n\n\nr\nFloat\noverdispersion parameter\n\n\n\n\nsource\n\n\npoisson_lcssm\n\n poisson_lcssm (x0:jaxtyping.Float[Array,'m'],\n                A:jaxtyping.Float[Array,'nmm'],\n                Sigma:jaxtyping.Float[Array,'n+1mm'],\n                B:jaxtyping.Float[Array,'n+1pm'])\n\nCreate a negative binomial LCSSM with constant overdispersion\n\n\n\n\nType\nDetails\n\n\n\n\nx0\nFloat[Array, ‘m’]\ninitial state\n\n\nA\nFloat[Array, ‘n m m’]\ntransition matrices\n\n\nSigma\nFloat[Array, ‘n+1 m m’]\ninnovation covariances\n\n\nB\nFloat[Array, ‘n+1 p m’]\nsignal matrices\n\n\n\nWe use the same set of parameters for this model: the transition matrices \\(A_t\\) are the identity matrix and the signal matrices \\(B_t\\) are \\(\\begin{pmatrix}\n    1 & 0 & 1 \\\\ 0 & 1 & 1\n\\end{pmatrix}\\).\n\nm, p, n = 3, 2, 100\nA = jnp.broadcast_to(jnp.eye(m), (n, m, m))\nB = jnp.broadcast_to(jnp.array([[1, 0, 1], [0, 1, 1]]), (n + 1, p, m))\n\ns2= 0.01\nSigma = jnp.broadcast_to(s2 * jnp.eye(m), (n + 1, m, m))\nx0 = jnp.ones(m)\n\nkey = jrn.PRNGKey(512)\nkey, subkey = jrn.split(key)\n*_, dist, xi = nb_lcssm(x0, A, Sigma, B, 20.)\nN = 1\n(X, ), (Y,) = simulate_lcssm(x0, A, Sigma, B, dist, xi, N, subkey)\n\n\nfig, (ax1, ax2) = plt.subplots(2)\n\nax1.set_title(\"States\")\nax2.set_title(\"Observations\")\n\nax1.plot(X)\nax2.plot(Y)\n\nplt.show()\n\n\n\n\n\n\n\n\nNotice that the observations are now integer valued.",
+    "crumbs": [
+      "Log-Concave State Space Models"
+    ]
+  },
+  {
+    "objectID": "lcssm.html#joint-density",
+    "href": "lcssm.html#joint-density",
+    "title": "Log-Concave State Space Models",
+    "section": "joint density",
+    "text": "joint density\nTo evaluate the joint density we use the same approach as described in [00_glssm#Joint Density], replacing the observation density with the LCSSM one.\n\nsource\n\nlog_prob\n\n log_prob (x:jaxtyping.Float[Array,'n+1m'],\n           y:jaxtyping.Float[Array,'n+1p'], x0:jaxtyping.Float[Array,'m'],\n           A:jaxtyping.Float[Array,'nmm'],\n           Sigma:jaxtyping.Float[Array,'n+1mm'],\n           B:jaxtyping.Float[Array,'n+1pm'], dist, xi)\n\n\n\n\n\nType\nDetails\n\n\n\n\nx\nFloat[Array, ‘n+1 m’]\nstates\n\n\ny\nFloat[Array, ‘n+1 p’]\nobservations\n\n\nx0\nFloat[Array, ‘m’]\ninitial mean\n\n\nA\nFloat[Array, ‘n m m’]\ntransition matrices\n\n\nSigma\nFloat[Array, ‘n+1 m m’]\ninnovation covariances\n\n\nB\nFloat[Array, ‘n+1 p m’]\nsignal matrices\n\n\ndist\n\nobservation distribution\n\n\nxi\n\nobservation parameters\n\n\n\n\nsource\n\n\nlog_probs_y\n\n log_probs_y (x:jaxtyping.Float[Array,'n+1m'],\n              y:jaxtyping.Float[Array,'n+1p'],\n              B:jaxtyping.Float[Array,'n+1pm'], dist, xi)\n\n\n\n\n\nType\nDetails\n\n\n\n\nx\nFloat[Array, ‘n+1 m’]\nstates\n\n\ny\nFloat[Array, ‘n+1 p’]\nobservations\n\n\nB\nFloat[Array, ‘n+1 p m’]\nsignal matrices\n\n\ndist\n\nobservation distribution\n\n\nxi\n\nobservation parameters\n\n\n\n\nlog_prob(X, Y, x0, A, Sigma, B, dist, xi)\n\nArray(-65.55389508, dtype=float64)",
+    "crumbs": [
+      "Log-Concave State Space Models"
+    ]
+  },
+  {
+    "objectID": "kalman_filter_smoother.html",
+    "href": "kalman_filter_smoother.html",
+    "title": "Kalman filter and smoother variants in JAX",
+    "section": "",
+    "text": "config = jax.config\n# use x86 for testing purposes\nconfig.update(\"jax_enable_x64\", True)\nFor \\(t, s \\in \\{0, \\dots, n\\}\\) consider the following BLPs and associated covariance matrices \\[\n\\begin{align*}\n    \\hat X_{t|s} &= \\mathbf E \\left( X_t | Y_s, \\dots, Y_0\\right) \\\\\n    \\Xi_{t | s} &= \\text{Cov} \\left(X_t | Y_s, \\dots, Y_0 \\right)\\\\\n    \\hat Y_{t|s} &= \\mathbf E \\left( Y_t | Y_s, \\dots, Y_0\\right) \\\\\n    \\Psi_{t | s} &= \\text{Cov} \\left(Y_t | Y_s, \\dots, Y_0 \\right)\n\\end{align*}\n\\]\nThe Kalman filter consists of the following two-step recursion:",
+    "crumbs": [
+      "Kalman filter and smoother variants in JAX"
+    ]
+  },
+  {
+    "objectID": "kalman_filter_smoother.html#square-root-filter",
+    "href": "kalman_filter_smoother.html#square-root-filter",
+    "title": "Kalman filter and smoother variants in JAX",
+    "section": "Square Root Filter",
+    "text": "Square Root Filter\nThe Square Root Filter is based on Cholesky decompositions of the covariance matrices \\(\\Sigma\\), \\(\\Xi\\) and so on.\nWe use Cholesky decompositions of a matrix \\(A\\) of the form \\(A = LL^T = R^TR\\) where \\(L\\) is a lower triangular and \\(R\\) an upper triangular matrix.\nWe’ll use \\(\\grave A\\) and \\(\\acute A\\) to denote the lower and upper Cholesky decomoposition of \\(A\\), so that\n\\[\nA = \\grave A \\grave A^T = \\acute A^T \\acute A\n\\]\n\n\n\n\n\n\nImplementation Detail\n\n\n\nscipy.linalg.choleksy by default returns an upper cholesky root \\(\\acute A\\) but np.linalg.cholesy a lower cholesky root \\(\\grave A\\). To get the lower cholesky root from scipy.linalg.cholesky use argument lower = True.\nMnemoic: acute \\(\\acute A\\) is cu_A and grave \\(\\grave A\\) is cr_A.\n\n\nThe square root filter is then based on “Cholesky Matrix Calculus”:\nInitialization \\[\n\\begin{align*}\n\\hat X_{0|0} &= x_0\\\\\n\\acute\\Xi_{0|0} &= \\acute\\Sigma_0\n\\end{align*}\n\\]\nIterate for \\(t = 0, \\dots, n-1\\)\nPrediction\nUpdating the covariance is based on the following QR-decompositions \\[\n\\begin{align*}\n    \\begin{pmatrix}\n        \\acute\\Sigma_{t + 1} & 0 \\\\\n        \\acute\\Xi_{t|t} A_t^T & \\acute \\Xi_{t | t}\n    \\end{pmatrix}\n    =\n    Q_{t + 1 | t} \\begin{pmatrix}\n        \\acute\\Xi_{t +1|t} & \\acute \\Xi_{t + 1 | t}G_t^T \\\\\n        0 & \\acute H_{t+1|t}\n    \\end{pmatrix}\n\\end{align*}\n\\] where \\(Q_{t+1|t}\\) is a orthogonal matrix and \\(H_{t + 1 | t}= \\Xi_{t | t} - G_{t}\\Xi_{t + 1 |  t}G_t^T\\) which will be used in the smoothing step later.\nThe predicted states are as in the usual Kalman Filter: \\[\n\\begin{align*}\n\\hat X_{t + 1 | t} &= A_{t} \\hat X_{t | t}\n\\end{align*}\n\\]\n\n\n\n\n\n\nImplementation Detail\n\n\n\nI will denote Cholesky decompositions in the following code with a cu (for upper triangular) and cl (for lower triangular) prefix.\nThat is cu_Xi_pred is \\(\\acute\\Xi_{t + 1 | t}\\) and cl_Xi_filt is \\(\\grave \\Xi_{t + 1|t + 1}\\) and so on.\n\n\n\nsource\n\nsqrt_predict\n\n sqrt_predict (x_filt, cu_Xi_filt, A, cu_Sigma)\n\nFiltering\nFor the covariances we use \\[\n\\begin{align*}\n    \\begin{pmatrix}\n        \\acute\\Omega_{t + 1}& 0 \\\\\n        \\acute \\Xi_{t + 1 | t} B_{t + 1}^T & \\acute \\Xi_{t + 1 | t}\n    \\end{pmatrix}\n    =\n    Q_{t + 1 | t + 1}\\begin{pmatrix}\n        \\acute\\Psi_{t + 1 | t}& \\acute\\Psi_{t + 1 | t} K_{t + 1}^T \\\\\n        0 & \\acute \\Xi_{t + 1 | t + 1}\n    \\end{pmatrix}\n\\end{align*}\n\\] where \\(Q_{t + 1 | t + 1}\\) is an orthogonal matrix.\nFor the filtered states note that\n\\[\n    \\hat X_{t + 1 | t + 1} = \\hat X_{t + 1|t} + K_{t + 1} (Y_{t + 1} - \\hat Y_{t + 1 | t})\n\\]\nand \\(K_{t + 1}\\) can be recovered from above matrix by inverting \\(\\acute \\Psi_{t + 1 | t}\\).\n\nsource\n\n\nsqrt_filter\n\n sqrt_filter (x_pred, cu_Xi_pred, cu_Omega, B, y)\n\nPutting all of this together we obtain the Kalman filter in square root form:\n\nsource\n\n\nsqrt_kalman\n\n sqrt_kalman (y:jaxtyping.Float[Array,'n+1p'],\n              x0:jaxtyping.Float[Array,'m'],\n              cu_Sigma:jaxtyping.Float[Array,'n+1mm'],\n              cu_Omega:jaxtyping.Float[Array,'n+1pp'],\n              A:jaxtyping.Float[Array,'nmm'],\n              B:jaxtyping.Float[Array,'n+1pm'])\n\n\ncu_Sigma = jsla.cholesky(Sigma)\ncu_Omega= jsla.cholesky(Omega)\ncx_filt, cu_Xi_filt, cx_pred, cu_Xi_pred, G, cu_H = sqrt_kalman(y, x0, cu_Sigma, cu_Omega, A, B)\n\ndef Grammian(A):\n    return A.T @ A\nvGrammian = vmap(Grammian)\n\n\nnpt.assert_allclose(cx_filt, x_filt)\nnpt.assert_allclose(cx_pred, x_pred)\nnpt.assert_allclose(vGrammian(cu_Xi_filt), Xi_filt)\nnpt.assert_allclose(vGrammian(cu_Xi_pred), Xi_pred)",
+    "crumbs": [
+      "Kalman filter and smoother variants in JAX"
+    ]
+  },
+  {
+    "objectID": "kalman_filter_smoother.html#square-root-smoother",
+    "href": "kalman_filter_smoother.html#square-root-smoother",
+    "title": "Kalman filter and smoother variants in JAX",
+    "section": "Square Root Smoother",
+    "text": "Square Root Smoother\nWe obtain Cholesky decompositions of the smoothed covariance matrices by the following QR decomposition:\n\\[\n\\begin{align*}\n    \\begin{pmatrix}\n        \\acute\\Xi_{t + 1 | n} G_t \\\\\n        \\acute H_{t + 1 | t}\n    \\end{pmatrix}\n    =\n    Q_{t|n} \\begin{pmatrix}\n        \\acute \\Xi_{t | n}\\\\\n        0\n    \\end{pmatrix}\n\\end{align*}\n\\]\nand smoothed states by\n\\[\n\\begin{align*}\n    \\hat X_{t | n} &= \\hat X_{t | t} + G_t (\\hat X_{t + 1| n} - \\hat X_{t + 1 | t})\n\\end{align*}\n\\]\nas \\(G_t\\) has already been obtained.\n\nsource\n\nsqrt_smoother\n\n sqrt_smoother (x_filt:jaxtyping.Float[Array,'n+1m'],\n                cu_Xi_filt:jaxtyping.Float[Array,'n+1mm'],\n                x_pred:jaxtyping.Float[Array,'n+1m'],\n                cu_Xi_pred:jaxtyping.Float[Array,'n+1mm'],\n                G:jaxtyping.Float[Array,'nmm'],\n                cu_H:jaxtyping.Float[Array,'nmm'])\n\n\nsource\n\n\nsqrt_smooth_step\n\n sqrt_smooth_step (x_filt:jaxtyping.Float[Array,'m'],\n                   x_pred_next:jaxtyping.Float[Array,'m'],\n                   x_smooth_next:jaxtyping.Float[Array,'m'],\n                   cu_Xi_smooth_next:jaxtyping.Float[Array,'mm'],\n                   G:jaxtyping.Float[Array,'mm'],\n                   cu_H:jaxtyping.Float[Array,'mm'])\n\n\ncx_smooth, cu_Xi_smooth = sqrt_smoother(cx_filt, cu_Xi_filt, cx_pred, cu_Xi_pred, G, cu_H)\n\nnpt.assert_allclose(cx_smooth, x_smooth)\nnpt.assert_allclose(vGrammian(cu_Xi_smooth), Xi_smooth)",
+    "crumbs": [
+      "Kalman filter and smoother variants in JAX"
+    ]
+  },
+  {
+    "objectID": "maximum_likelihood_estimation.html",
+    "href": "maximum_likelihood_estimation.html",
+    "title": "Maximum Likelihood estimation",
+    "section": "",
+    "text": "For Gaussian linear state space models we can evaluate the likelihood analytically with a single pass of the Kalman filter. Based on the predictions \\(\\hat Y_{t| t - 1}\\) and associated covariance matrices \\(\\Psi_{t + 1 | t}\\) for \\(t = 0, \\dots n\\) produced by the Kalman filter we can derive the gaussian negative log likelihood which is given by the gaussian distribution with that mean and covariance matrix and observation \\(Y_t\\).\n\nsource\n\n\n\n gnll (y:jaxtyping.Float[Array,'n+1p'],\n       x_pred:jaxtyping.Float[Array,'n+1m'],\n       Xi_pred:jaxtyping.Float[Array,'n+1mm'],\n       B:jaxtyping.Float[Array,'n+1pm'],\n       Omega:jaxtyping.Float[Array,'n+1pp'])\n\nGaussian negative log-likelihood\n\n\n\n\n\n\n\n\n\nType\nDetails\n\n\n\n\ny\nFloat[Array, ‘n+1 p’]\nobservations \\(y_t\\)\n\n\nx_pred\nFloat[Array, ‘n+1 m’]\npredicted states \\(\\hat X_{t+1\\bar t}\\)\n\n\nXi_pred\nFloat[Array, ‘n+1 m m’]\npredicted state covariances \\(\\Xi_{t+1\\bar t}\\)\n\n\nB\nFloat[Array, ‘n+1 p m’]\nstate observation matrices \\(B_{t}\\)\n\n\nOmega\nFloat[Array, ‘n+1 p p’]\nobservation covariances \\(\\Omega_{t}\\)\n\n\nReturns\nFloat\ngaussian negative log-likelihood",
+    "crumbs": [
+      "Maximum Likelihood estimation"
+    ]
+  },
+  {
+    "objectID": "maximum_likelihood_estimation.html#gaussian-linear-models",
+    "href": "maximum_likelihood_estimation.html#gaussian-linear-models",
+    "title": "Maximum Likelihood estimation",
+    "section": "",
+    "text": "For Gaussian linear state space models we can evaluate the likelihood analytically with a single pass of the Kalman filter. Based on the predictions \\(\\hat Y_{t| t - 1}\\) and associated covariance matrices \\(\\Psi_{t + 1 | t}\\) for \\(t = 0, \\dots n\\) produced by the Kalman filter we can derive the gaussian negative log likelihood which is given by the gaussian distribution with that mean and covariance matrix and observation \\(Y_t\\).\n\nsource\n\n\n\n gnll (y:jaxtyping.Float[Array,'n+1p'],\n       x_pred:jaxtyping.Float[Array,'n+1m'],\n       Xi_pred:jaxtyping.Float[Array,'n+1mm'],\n       B:jaxtyping.Float[Array,'n+1pm'],\n       Omega:jaxtyping.Float[Array,'n+1pp'])\n\nGaussian negative log-likelihood\n\n\n\n\n\n\n\n\n\nType\nDetails\n\n\n\n\ny\nFloat[Array, ‘n+1 p’]\nobservations \\(y_t\\)\n\n\nx_pred\nFloat[Array, ‘n+1 m’]\npredicted states \\(\\hat X_{t+1\\bar t}\\)\n\n\nXi_pred\nFloat[Array, ‘n+1 m m’]\npredicted state covariances \\(\\Xi_{t+1\\bar t}\\)\n\n\nB\nFloat[Array, ‘n+1 p m’]\nstate observation matrices \\(B_{t}\\)\n\n\nOmega\nFloat[Array, ‘n+1 p p’]\nobservation covariances \\(\\Omega_{t}\\)\n\n\nReturns\nFloat\ngaussian negative log-likelihood",
+    "crumbs": [
+      "Maximum Likelihood estimation"
+    ]
+  },
+  {
+    "objectID": "maximum_likelihood_estimation.html#mle-in-glssms",
+    "href": "maximum_likelihood_estimation.html#mle-in-glssms",
+    "title": "Maximum Likelihood estimation",
+    "section": "MLE in GLSSMs",
+    "text": "MLE in GLSSMs\nFor a parametrized GLSSM, that is a model that depends on parameters \\(\\theta\\), we can use numerical optimization to find the maximum likelihood estimatior.\n\n\n\n\n\n\nCaution\n\n\n\nWith these methods, the user has to take care that they provide a parametrization that is unconstrained, i.e. using \\(\\log\\) transformations for positive parameters.\n\n\n\n\n\n\n\n\nImplementation Detail\n\n\n\nFor low dimensional state space models obtaining the gradient of the negative log likelihood may be feasible by automatic differentiation, in this case use the mle_glssm_ad method. Otherwise the derivative free Nelder-Mead method in mle_glssm may be favorable.\n\n\n\nsource\n\nmle_glssm_ad\n\n mle_glssm_ad (y:jaxtyping.Float[Array,'n+1p'], model,\n               theta0:jaxtyping.Float[Array,'k'], aux, options=None)\n\nMaximum likelihood estimation for GLSSM using automatic differentiation\n\n\n\n\n\n\n\n\n\n\nType\nDefault\nDetails\n\n\n\n\ny\nFloat[Array, ‘n+1 p’]\n\nobservations \\(y_t\\)\n\n\nmodel\n\n\nparameterize GLSSM\n\n\ntheta0\nFloat[Array, ‘k’]\n\ninitial parameter guess\n\n\naux\n\n\nauxiliary data for the model\n\n\noptions\nNoneType\nNone\noptions for the optimizer\n\n\nReturns\nOptimizeResults\n\nresult of MLE optimization\n\n\n\n\nsource\n\n\nmle_glssm\n\n mle_glssm (y:jaxtyping.Float[Array,'n+1p'], model,\n            theta0:jaxtyping.Float[Array,'k'], aux, options=None)\n\nMaximum likelihood estimation for GLSSM\n\n\n\n\nType\nDefault\nDetails\n\n\n\n\ny\nFloat[Array, ‘n+1 p’]\n\nobservations \\(y_t\\)\n\n\nmodel\n\n\nparameterize GLSSM\n\n\ntheta0\nFloat[Array, ‘k’]\n\ninitial parameter guess\n\n\naux\n\n\nauxiliary data for the model\n\n\noptions\nNoneType\nNone\noptions for the optimizer\n\n\nReturns\nOptimizeResult\n\nresult of MLE optimization\n\n\n\n\ndef parameterized_lcm(theta, aux):\n    log_s2_eps, log_s2_eta = theta\n    n, x0, s2_x0 = aux\n\n    return lcm(n, x0, s2_x0, jnp.exp(log_s2_eps), jnp.exp(log_s2_eta))\n    \ntheta = jnp.log(jnp.array([2., 3.]))\naux = (100, 0., 1.)\nx0, A, B, Sigma, Omega = parameterized_lcm(theta, aux)\n_, (y,) = simulate_glssm(x0, A, B, Sigma, Omega, 1, jrn.PRNGKey(15435324))\n\n# start far away from true parameter\nresult_nelder_mead = mle_glssm(y, parameterized_lcm, 2 * jnp.ones(2), aux, options={\"return_all\": True})\nresult_ad = mle_glssm_ad(y, parameterized_lcm, 2 * jnp.ones(2), aux)\n\n\nimport matplotlib.pyplot as plt\n\n\ntheta_nm = jnp.array(result_nelder_mead.allvecs)\nplt.plot(jnp.exp(theta_nm[:,0]), jnp.exp(theta_nm[:,1]), alpha=.2)\nplt.scatter(jnp.exp(theta_nm[:,0]), jnp.exp(theta_nm[:,1]), alpha=.2)\nplt.scatter(*jnp.exp(result_ad.x), c=\"g\", marker=\"x\", label=\"found\", s=100)\nplt.scatter(*jnp.exp(theta), c=\"r\", s=100, marker=\"x\", label=\"true\")\nplt.legend()\nplt.xlabel(\"$\\\\sigma^2_\\\\varepsilon$\")\nplt.ylabel(\"$\\\\sigma^2_\\\\eta$\")\nplt.show()",
+    "crumbs": [
+      "Maximum Likelihood estimation"
+    ]
+  },
+  {
+    "objectID": "maximum_likelihood_estimation.html#asymptotic-behavior-of-mle",
+    "href": "maximum_likelihood_estimation.html#asymptotic-behavior-of-mle",
+    "title": "Maximum Likelihood estimation",
+    "section": "Asymptotic behavior of MLE",
+    "text": "Asymptotic behavior of MLE\n\n\n\n\n\n\nTODO\n\n\n\nWrite / Implement",
+    "crumbs": [
+      "Maximum Likelihood estimation"
+    ]
+  },
+  {
+    "objectID": "maximum_likelihood_estimation.html#inference-for-log-concave-state-space-models",
+    "href": "maximum_likelihood_estimation.html#inference-for-log-concave-state-space-models",
+    "title": "Maximum Likelihood estimation",
+    "section": "Inference for Log-Concave State Space Models",
+    "text": "Inference for Log-Concave State Space Models\nFor non-gaussian state space models we cannot evaluate the likelihood analytically but resort to simulation methods, more specifically importance sampling.\nImportance Sampling is performed using a surrogate gaussian model that shares the state density \\(g(x) = p(x)\\) and is parameterized by synthetic observations \\(z\\) and their covariance matrices \\(\\Omega\\). In this surrogate model the likeilhood \\(\\ell_g = g(z)\\) and posterior distribution \\(g(x|z)\\) are tractable and we can simulate from the posterior.\nHaving obtained \\(N\\) independent samples \\(X^i, i= 1, \\dots, N\\) from this surrogate posterior we can evaluate the likelihood \\(\\ell\\) by Monte-Carlo integration:\n\\[\n\\begin{align*}\np(y) &= \\int p(x, y) \\,\\mathrm dx \\\\\n    &=\\int \\frac{p(x,y)}{g(x|z)} g(x|z) \\,\\mathrm dx \\\\\n    &= g(z) \\int \\frac{p(y|x)}{g(z|x)} g(x|z)\\,\\mathrm dx \\\\\n    &\\approx g(z) \\frac 1 N \\sum_{i =1}^N w(X^i)\n\\end{align*}\n\\]\nwhere \\(w(X^i) = \\frac{p\\left(y|X^i\\right)}{g\\left(z|X^i\\right)}\\) are the unnormalized importance sampling weights.\nIn total we can approximate the negative log-likelihood by\n\\[\n\\ell = - \\log p(y) \\approx \\ell_g - \\log \\left(\\sum_{i=1}^N w(X^i) \\right) + \\log N.\n\\]\n\n\n\n\n\n\nTODO\n\n\n\nUse differentiation only weights for gradient\n\n\n\nsource\n\nlcnll\n\n lcnll (y:jaxtyping.Float[Array,'n+1p'], x0:jaxtyping.Float[Array,'m'],\n        A:jaxtyping.Float[Array,'nmm'],\n        Sigma:jaxtyping.Float[Array,'n+1mm'],\n        B:jaxtyping.Float[Array,'n+1pm'],\n        xi:jaxtyping.Float[Array,'n+1p'], dist,\n        z:jaxtyping.Float[Array,'n+1p'],\n        Omega:jaxtyping.Float[Array,'n+1pp'], N:int,\n        key:Union[jaxtyping.Key[Array,''],jaxtyping.UInt32[Array,'2']])\n\nLog-Concave Negative Log-Likelihood\n\n\n\n\n\n\n\n\n\nType\nDetails\n\n\n\n\ny\nFloat[Array, ‘n+1 p’]\nobservations\n\n\nx0\nFloat[Array, ‘m’]\ninitial state\n\n\nA\nFloat[Array, ‘n m m’]\nstate transition matrices\n\n\nSigma\nFloat[Array, ‘n+1 m m’]\ninnovation covariance matrices\n\n\nB\nFloat[Array, ‘n+1 p m’]\nobservation matrices\n\n\nxi\nFloat[Array, ‘n+1 p’]\nobservation parameters\n\n\ndist\n\ndistribution of observations\n\n\nz\nFloat[Array, ‘n+1 p’]\nsynthetic observations\n\n\nOmega\nFloat[Array, ‘n+1 p p’]\ncovariance of synthetic observations\n\n\nN\nint\nnumber of samples\n\n\nkey\nUnion\nrandom key\n\n\nReturns\nFloat\nthe approximate negative log-likelihood\n\n\n\nTo perform maximum likelihood estimation in a parameterized log-concave state space model we have to evaluate the likelihood several times. For evaluating the likelihood at \\(\\theta\\) we have to perform the following:\n\nFind a surrogate gaussian model \\(g(x,z)\\) for \\(p_\\theta(x,y)\\) (e.g. mode estimation or efficient importance sampling).\nGenerate importance samples from these models using the Kalman smoother.\nApproximate the negative log likelihood using the methods of this module.\n\nThis makes maximum likelihood an intensive task for these kinds of models.\nFor an initial guess we optimize the approximatie loglikelihood with the weights component fixed at the mode, see Eq. (21) in(Duribn1997Monte?) for further details.\n\nsource\n\n\ninitial_theta\n\n initial_theta (y:jaxtyping.Float[Array,'n+1p'], model,\n                theta0:jaxtyping.Float[Array,'k'], aux, n_iter_me:int,\n                s_init:jaxtyping.Float[Array,'n+1m'], options=None)\n\nInitial value for Maximum Likelihood Estimation for Log Concave SSMs\n\n\n\n\n\n\n\n\n\n\nType\nDefault\nDetails\n\n\n\n\ny\nFloat[Array, ‘n+1 p’]\n\nobservations \\(y_t\\)\n\n\nmodel\n\n\nparameterized LCSSM\n\n\ntheta0\nFloat[Array, ‘k’]\n\ninitial parameter guess\n\n\naux\n\n\nauxiliary data for the model\n\n\nn_iter_me\nint\n\nnumber of mode estimation iterations\n\n\ns_init\nFloat[Array, ‘n+1 m’]\n\ninitial signals for mode estimation\n\n\noptions\nNoneType\nNone\noptions for the optimizer\n\n\n\n\nsource\n\n\nmle_lcssm\n\n mle_lcssm (y:jaxtyping.Float[Array,'n+1p'], model,\n            theta0:jaxtyping.Float[Array,'k'], aux, n_iter_me:int,\n            s_init:jaxtyping.Float[Array,'n+1m'], N:int, key:jax.Array,\n            options=None)\n\nMaximum Likelihood Estimation for Log Concave SSMs\n\n\n\n\n\n\n\n\n\n\nType\nDefault\nDetails\n\n\n\n\ny\nFloat[Array, ‘n+1 p’]\n\nobservations \\(y_t\\)\n\n\nmodel\n\n\nparameterized LCSSM\n\n\ntheta0\nFloat[Array, ‘k’]\n\ninitial parameter guess\n\n\naux\n\n\nauxiliary data for the model\n\n\nn_iter_me\nint\n\nnumber of mode estimation iterations\n\n\ns_init\nFloat[Array, ‘n+1 m’]\n\ninitial signals for mode estimation\n\n\nN\nint\n\nnumber of importance samples\n\n\nkey\nArray\n\nrandom key\n\n\noptions\nNoneType\nNone\noptions for the optimizer\n\n\nReturns\nFloat[Array, ‘k’]\n\nMLE\n\n\n\nAs an example consider a parameterized version of the common factor negative binomial model with unknown parameters \\(\\sigma^2_\\varepsilon\\) and \\(r\\).\n\ndef lc_model(theta, aux):\n    log_s2_eps, log_r = theta\n\n    n, x0 = aux\n    \n    r = jnp.exp(log_r)\n    s2_eps = jnp.exp(log_s2_eps)\n\n    A = jnp.broadcast_to(jnp.eye(3), (n, 3, 3))\n    Sigma = jnp.broadcast_to(jnp.eye(3) * s2_eps, (n+1, 3, 3))\n    B = jnp.broadcast_to(jnp.array([[1., 1., 0.], [0., 1., 1.]]), (n+1, 2, 3))\n\n    return nb_lcssm(x0, A, Sigma, B, r)\n\nn = 10\ntheta_lc = jnp.array([jnp.log(0.1), jnp.log(20.)])\naux = (n, jnp.ones(3))\nx0, A, Sigma, B, dist, xi = lc_model(theta_lc, aux)\nkey = jrn.PRNGKey(512)\nkey, subkey = jrn.split(key)\n_, (y,) = simulate_lcssm(x0, A, Sigma, B, dist, xi, 1, subkey)\n\n\ninitial_result = initial_theta(\n    y, lc_model, theta_lc, aux, 10, jnp.log(y + 1) \n)\ntheta0 = initial_result.x\ntheta0\n\narray([-2.16919616,  0.68065415])\n\n\n\n@jit\ndef lcnll_full(theta):\n    x0, A, Sigma, B, xi_fun, dist = lc_model(theta, aux)\n\n    _, z, Omega = mode_estimation(y, x0, A, Sigma, B, xi_fun, dist, jnp.log(y + 1.), 10)\n\n    return lcnll(y, x0, A, Sigma, B, xi_fun, dist, z, Omega, 1000, subkey)\n\n\n# 2d grid on the log scale\nlog_sigma, log_r = jnp.meshgrid(jnp.linspace(-3, 3, 21) + theta_lc[0], jnp.linspace(-4, 3, 21) + theta_lc[1])\n#flatten\nthetas = jnp.vstack([log_sigma.ravel(), log_r.ravel()]).T\n\nnlls = vmap(lcnll_full)(thetas)\n#location of minium in nlls\ni = jnp.argmin(nlls)\n#location of minimum in the grid\ni_sigma, i_r = i // 21, i % 21\n\nplt.contourf(log_sigma, log_r, nlls.reshape(21, 21))\nplt.scatter(log_sigma[i_sigma, i_r], log_r[i_sigma, i_r], c=\"white\", marker=\"x\", label=\"min_grid\")\nplt.scatter(theta_lc[0], theta_lc[1], c=\"r\", marker=\"x\", label=\"true\")\nplt.scatter(theta0[0], theta0[1], c=\"black\", marker=\"x\", label=\"$\\\\theta_0$\")\nplt.scatter(*result.x, c=\"g\", marker=\"o\", label=\"min_mle\")\nplt.legend()\nplt.xlabel(\"$\\\\log(\\\\sigma^2_\\\\varepsilon)$\")\nplt.ylabel(\"$\\\\log(r)$\")\nplt.colorbar()\nplt.show()\n\n\n\n\n\n\n\n\n\ntheta0\n\narray([-2.16919616,  0.68065415])",
+    "crumbs": [
+      "Maximum Likelihood estimation"
+    ]
+  },
+  {
+    "objectID": "typings.html",
+    "href": "typings.html",
+    "title": "Typings",
+    "section": "",
+    "text": "source\n\n\n\n MarkovProcessCholeskyComponents\n                                  (diagonals:jaxtyping.Float[Array,'n+1mm'\n                                  ], off_diagonals:jaxtyping.Float[Array,'\n                                  nmm'])",
+    "crumbs": [
+      "Typings"
+    ]
+  },
+  {
+    "objectID": "typings.html#cross_entropy_method.ipynb",
+    "href": "typings.html#cross_entropy_method.ipynb",
+    "title": "Typings",
+    "section": "",
+    "text": "source\n\n\n\n MarkovProcessCholeskyComponents\n                                  (diagonals:jaxtyping.Float[Array,'n+1mm'\n                                  ], off_diagonals:jaxtyping.Float[Array,'\n                                  nmm'])",
+    "crumbs": [
+      "Typings"
+    ]
+  },
+  {
+    "objectID": "cross_entropy_method.html",
+    "href": "cross_entropy_method.html",
+    "title": "Cross-Entropy method",
+    "section": "",
+    "text": "[!CAUTION] this module is still under construction\nThe cross entropy method (Rubinstein1997Optimization?; Rubinstein2004CrossEntropy?) is a method for determining good importance sampling proposals. Given a parametric family of proposals \\(g_\\theta(x)\\) and target \\(p(x)\\), the Cross-Entropy method aims at choosing \\(\\theta\\) such that the Cross Entropy \\[\n\\mathcal H_{\\text{CE}} \\left( p \\middle|\\middle| g_{\\theta} \\right) = \\int p(x) \\log g_{\\theta}(x) \\mathrm d x\n\\] is maximized. This is equivalent to minimizing the Kullback Leibler divergence between \\(p\\) and \\(g_\\theta\\). As \\(H_\\text{CE}\\) is not analytically available, it is approximated by importance sampling itself, usually with a suitable proposal \\(g_{\\hat\\theta_0}\\). Then the approximate optimization problem is solved, yielding \\(\\hat \\theta_1\\). These steps are then iterated until convergence, using common random numbers to ensure convergence.\nConsidering the Cross-Entropy method with a Gaussian proposal \\(g_\\theta\\), we see that the optimal \\(\\theta\\) only depends on the first and second order moments of \\(p\\), indeed the optimal Gaussian is the one that matches these moments. Unfortunately this approach is not feasible for the models we consider in this package as the dimensionality (\\(n \\cdot m\\)) is likely too high to act on the joint distribution directly - matching means is feasible, but simulating from the distribution and evaluating the likelihood is infeasible. However, we can exploit the Markov structure of our models:\nFor the class of state space models treated in this package, it can be shown that the smoothing distribution, the target of our inference, \\(p(x|y)\\), is again a Markov process, see Chapter 5 in (Chopin2020Introduction?), so it makes sense to approximate this distribution with a Gaussian Markov process. For such a Gaussian Markov process it is known that the precision matrix \\(P\\) of the joint distribution is sparse, indeed it is a block-tri-diagonal matrix.",
+    "crumbs": [
+      "Cross-Entropy method"
+    ]
+  },
+  {
+    "objectID": "cross_entropy_method.html#computation-of-cholesky-factor-l-of-p",
+    "href": "cross_entropy_method.html#computation-of-cholesky-factor-l-of-p",
+    "title": "Cross-Entropy method",
+    "section": "computation of Cholesky factor \\(L\\) of \\(P\\)",
+    "text": "computation of Cholesky factor \\(L\\) of \\(P\\)\n(Schafer2021Sparse?) show that the centered Gaussian Markov process (more generally any Gaussian distribution with given sparsity) which minimizes the Kullback-Leibler divergence to a centered Gaussian with specified covariance matrix has an analytically and numerically tractable Cholesky decomposition that can be computed fast. Using this Cholesky decomposition we are able to evaluate the likelihood and simulate from this distribution.\nConsider states \\(X_t\\) consisting of \\(m\\) states \\(X_{t,1}, \\dots, X_{t, m}\\). The \\(i\\)-th \\(v_{i}\\) column of the KL-optimal Cholesky decomposition corresponding to \\(X_t\\) can, by (Schafer2021Sparse?), be obtained by \\[\nv_{i} = \\frac{1}{\\lambda_{i}}\\text{Cov} \\left(X_{t,i}, \\dots, X_{t,m}, X_{t+1, 1}, \\dots, X_{t+1, m} \\right)^{-1} e_{1}\n\\] where \\(\\lambda_i\\) is the square root of the first entry of the matrix vector product on the right-hand side and \\(e_{1}\\) is the first unit vector. If \\(t=n\\), then it suffices to replace above covariance with \\(\\text{Cov}\\left(X_{t,i}, \\dots, X_{t,m}\\right)\\). In our setup we replace the exact covariance by an importance sampling estimate with weights \\(w^i\\), \\(i = 1, \\dots, n\\).\n\nsource\n\ncholesky_components\n\n cholesky_components (samples:jaxtyping.Float[Array,'Nnm'],\n                      weights:jaxtyping.Float[Array,'N'])\n\ncalculate all components of the Cholesky factor of \\(P\\)\n\n\n\n\n\n\n\n\n\nType\nDetails\n\n\n\n\nsamples\nFloat[Array, ‘N n m’]\nsamples of \\(X_1, \\ldots, X_n\\)\n\n\nweights\nFloat[Array, ‘N’]\n\\(w\\), need not be normalized\n\n\nReturns\nMarkovProcessCholeskyComponents\nblock diagonal and off-diagonal components\n\n\n\n\nsource\n\n\nce_cholesky_last\n\n ce_cholesky_last (x:jaxtyping.Float[Array,'Nm'],\n                   weights:jaxtyping.Float[Array,'N'])\n\nCalculate the Cholesky factor of \\(P\\) corresponding to \\(X_n\\).\n\n\n\n\nType\nDetails\n\n\n\n\nx\nFloat[Array, ‘N m’]\nsamples of \\(X_n\\)\n\n\nweights\nFloat[Array, ‘N’]\n\\(w\\), need not be normalized\n\n\nReturns\nFloat[Array, ‘m m’]\nCholesky factor\n\n\n\n\nsource\n\n\nce_cholesky_block\n\n ce_cholesky_block (x:jaxtyping.Float[Array,'Nm'],\n                    x_next:jaxtyping.Float[Array,'Nm'],\n                    weights:jaxtyping.Float[Array,'N'])\n\nCalculate the columns and section of rows of the Cholesky factor of \\(P\\) corresponding to \\(X_t\\), \\(t &lt; n\\).\n\n\n\n\nType\nDetails\n\n\n\n\nx\nFloat[Array, ‘N m’]\nsamples of \\(X_t\\)\n\n\nx_next\nFloat[Array, ‘N m’]\nsamples of \\(X_{t+1}\\)\n\n\nweights\nFloat[Array, ‘N’]\n\\(w\\), need not be normalized\n\n\nReturns\nFloat[Array, ’2*m m’]\nCholesky factor\n\n\n\n\nsource\n\n\nfinal_precision_root\n\n final_precision_root (cov)\n\n\nsource\n\n\ntransition_precision_root\n\n transition_precision_root (cov)",
+    "crumbs": [
+      "Cross-Entropy method"
+    ]
+  },
+  {
+    "objectID": "cross_entropy_method.html#running-example-ar1-process",
+    "href": "cross_entropy_method.html#running-example-ar1-process",
+    "title": "Cross-Entropy method",
+    "section": "running example: AR(1) process",
+    "text": "running example: AR(1) process\nwe’ll use the simples non-degenerate Gaussian Markov process as an example, an AR(1) process. We start this process in its stationary distribution.\n\na = 1/2\ns2 = 1.\n\nn = 10\n# stationary\ntau2 = s2 / (1 - a**2)\n\ncov = jnp.array([[\n    tau2 * a**(jnp.abs(i - j))\n    for j in range(n)\n] for i in range(n)])\n\n\nN = 100000\ninitial_samples = MVN(jnp.zeros(n), cov).sample((N,), seed=jrn.PRNGKey(5324523423))[...,None]\ninitial_weights = jnp.ones(N)\ninitial_samples.shape\n\nroot_diag, root_off_diag = cholesky_components(initial_samples, initial_weights)\nP = jnp.linalg.inv(cov)\nL = jnp.diag(jnp.concatenate(root_diag)[:,0]) + jnp.diag(jnp.concatenate(root_off_diag)[:,0], -1)\nplt.title(\"$L$ has lower bi-diagonal structure\")\nplt.imshow(L)\nplt.colorbar()\nplt.show()\n\n\n\n\n\n\n\n\n\nplt.title(\"difference between $L L^T$ and $P$\")\nplt.imshow(L @ L.T - P)\nplt.colorbar()\nplt.show()",
+    "crumbs": [
+      "Cross-Entropy method"
+    ]
+  },
+  {
+    "objectID": "cross_entropy_method.html#simulation-using-l",
+    "href": "cross_entropy_method.html#simulation-using-l",
+    "title": "Cross-Entropy method",
+    "section": "simulation using \\(L\\)",
+    "text": "simulation using \\(L\\)\nAs \\(LL^T = P = \\Sigma^{-1}\\), \\(L^{-T}L^{-1} = \\Sigma\\) so to simulate \\(X \\sim \\mathcal N(0, \\Sigma)\\) it suffices to simulate a standard normal \\(Z \\sim \\mathcal N(0, I)\\) and solve \\(L^T X = Z\\). Luckily, \\(L^T\\) is an upper block diagonal matrix which solving this system of equations straightforward. To this end we partition \\(X = (X_1^{T}, \\dots, X_n^{T})^{T}\\) and \\(Z = (Z_1^{T}, \\dots, Z_n^{T})^{T}\\) and \\(L = \\text{block-diag} \\left( L_{1,1}, \\dots, L_{n,n} \\right) + \\text{lower-block-off-diag} \\left( L_{2,1}, \\dots, L_{n, n-1} \\right)\\). Starting with \\(X_n\\), we solve \\[\nL_{n,n}^T X_{n} = Z_{n}\n\\] by using the fact that \\(L_{n,n}^T\\) is an upper triangular matrix. We then iteratively solve for \\(i = n-1, \\dots, 1\\) \\[\nL_{i,i}^TX_{i} + L_{i+1,i}^T X_{i + 1} = Z_{i},\n\\] so \\[\nX_{i} = L_{i,i}^{-T} \\left( Z_{i} - L_{i +1, i}^{T} X_{i + 1} \\right).\n\\]\n\nsource\n\nsimulate\n\n simulate (full_diag:jaxtyping.Float[Array,'nmm'],\n           off_diag:jaxtyping.Float[Array,'n-1mm'],\n           key:Union[jaxtyping.Key[Array,''],jaxtyping.UInt32[Array,'2']],\n           N:int)\n\nSimulate from Markov process with Cholesky factor \\(L\\).\n\n\n\n\n\n\n\n\n\nType\nDetails\n\n\n\n\nfull_diag\nFloat[Array, ‘n m m’]\nblock diagonals of \\(L\\)\n\n\noff_diag\nFloat[Array, ‘n-1 m m’]\noff-diagonals of \\(L\\)\n\n\nkey\nUnion\nrandom key\n\n\nN\nint\nnumber of samples\n\n\nReturns\nFloat[Array, ‘N n m’]\n\\(N\\) samples of \\(X_1, \\ldots, X_n\\)\n\n\n\n\nsource\n\n\nsimulate_backwards\n\n simulate_backwards (z_t, x_next, diag_tt, off_diag_t_tp1)",
+    "crumbs": [
+      "Cross-Entropy method"
+    ]
+  },
+  {
+    "objectID": "cross_entropy_method.html#marginal-distributions",
+    "href": "cross_entropy_method.html#marginal-distributions",
+    "title": "Cross-Entropy method",
+    "section": "marginal distributions",
+    "text": "marginal distributions\nRewriting the above equations used for simulation, we see that\n\\[\nX_{i} = A_{i + 1} X_{i + 1} + \\varepsilon_{i}\n\\]\nwith \\(X_n \\sim \\mathcal N\\left(0, L_{n,n}^{-T}L_{n,n}^{-1}\\right)\\), \\(A_{i + 1} = -L_{i,i}^{-T}L_{i +1, i}^{T}\\) and \\(\\varepsilon_{i} \\sim \\mathcal N\\left(0, L_{i,i}^{-T}L_{i,i}^{-1}\\right).\\)\nFrom these recursions we can caluclate the marginal covariances of \\(X_i\\) for all \\(i\\) by iteration.\n\nsource\n\nmarginals\n\n marginals (mu:jaxtyping.Float[Array,'m'],\n            full_diag:jaxtyping.Float[Array,'nmm'],\n            off_diag:jaxtyping.Float[Array,'n-1mm'])\n\n\n\n\n\nType\nDetails\n\n\n\n\nmu\nFloat[Array, ‘m’]\nmean\n\n\nfull_diag\nFloat[Array, ‘n m m’]\nblock diagonals of \\(L\\)\n\n\noff_diag\nFloat[Array, ‘n-1 m m’]\noff-diagonals of \\(L\\)\n\n\n\n\nL_true = jnp.linalg.cholesky(jnp.linalg.inv(cov)).T\n\n_,marginal_var = marginals(jnp.zeros(n), root_diag, root_off_diag)\n\nfct.test_close(marginal_var[0,0], jnp.diag(cov), .01)",
+    "crumbs": [
+      "Cross-Entropy method"
+    ]
+  },
+  {
+    "objectID": "cross_entropy_method.html#evaluating-the-density",
+    "href": "cross_entropy_method.html#evaluating-the-density",
+    "title": "Cross-Entropy method",
+    "section": "Evaluating the density",
+    "text": "Evaluating the density\nSimilar to simulation, we can evaluate the log-density \\[\n\\log p(x) = - \\frac{n\\cdot m}{2}  \\log(2  \\pi) - \\frac{1}{2} \\log \\det \\Sigma - \\frac 1 2 (x - \\mu)^{T} \\Sigma^{-1}(x-\\mu)\n\\] efficiently using \\(L\\).\nFor the \\(\\log\\det \\Sigma\\)-term notice that \\(\\Sigma = L^{-T}L^{-1}\\) results in \\(2 \\log\\det L = 2 \\sum_{i = 1}^n \\log\\det L_{i,i}\\). These determinants are simply the product of the diagonal entries, as \\(L\\) is a lower triangular matrix.\nThe quadratic part can be rewritten as \\(\\lVert L^T(x-\\mu) \\rVert^{2}\\) and, using the structure of \\(L^{T}\\), this consists of terms of the form \\(L^T_{i,i} (x_i - \\mu_i) + L^T_{i+1, i}(x_{i + 1} - \\mu_{i + 1})\\).\n\nsource\n\nlog_prob\n\n log_prob (x:jaxtyping.Float[Array,'n+1m'],\n           full_diag:jaxtyping.Float[Array,'n+1mm'],\n           off_diag:jaxtyping.Float[Array,'nmm'],\n           mean:jaxtyping.Float[Array,'n+1m'])\n\n\n\n\n\n\n\n\n\n\nType\nDetails\n\n\n\n\nx\nFloat[Array, ‘n+1 m’]\nthe location at which to evaluate the likelihood\n\n\nfull_diag\nFloat[Array, ‘n+1 m m’]\nblock diagonals of \\(L\\)\n\n\noff_diag\nFloat[Array, ‘n m m’]\noff-diagonals of \\(L\\)\n\n\nmean\nFloat[Array, ‘n+1 m’]\nmean of the process\n\n\nReturns\nFloat\nlog-likelihood",
+    "crumbs": [
+      "Cross-Entropy method"
+    ]
+  },
+  {
+    "objectID": "cross_entropy_method.html#example-ar1-process-with-nb-observations",
+    "href": "cross_entropy_method.html#example-ar1-process-with-nb-observations",
+    "title": "Cross-Entropy method",
+    "section": "Example: AR(1) process with NB observations",
+    "text": "Example: AR(1) process with NB observations",
+    "crumbs": [
+      "Cross-Entropy method"
+    ]
+  },
+  {
+    "objectID": "cross_entropy_method.html#importance-sampling",
+    "href": "cross_entropy_method.html#importance-sampling",
+    "title": "Cross-Entropy method",
+    "section": "Importance Sampling",
+    "text": "Importance Sampling\nFor importance sampling with this model the log weights read \\[\n\\log w(x) = \\log p(x|y) - \\log g(x) = \\log p(x,y) - \\log g(x) - \\log p(y),\n\\] where we ignore the \\(\\log p(y)\\) term to obtain autonormailsed importance sampling weights.\n\nsource\n\nce_log_weights\n\n ce_log_weights (x:jaxtyping.Float[Array,'n+1m'],\n                 y:jaxtyping.Float[Array,'n+1p'],\n                 full_diag:jaxtyping.Float[Array,'n+1mm'],\n                 off_diag:jaxtyping.Float[Array,'nmm'],\n                 mean:jaxtyping.Float[Array,'n+1m'],\n                 x0:jaxtyping.Float[Array,'m'],\n                 A:jaxtyping.Float[Array,'nmm'],\n                 Sigma:jaxtyping.Float[Array,'n+1mm'],\n                 B:jaxtyping.Float[Array,'n+1pm'], dist:tensorflow_probabi\n                 lity.substrates.jax.distributions.distribution.Distributi\n                 on, xi:jaxtyping.Float[Array,'n+1m'])\n\n\n\n\n\nType\nDetails\n\n\n\n\nx\nFloat[Array, ‘n+1 m’]\nthe sample\n\n\ny\nFloat[Array, ‘n+1 p’]\nthe observations\n\n\nfull_diag\nFloat[Array, ‘n+1 m m’]\nblock diagonals of \\(L\\)\n\n\noff_diag\nFloat[Array, ‘n m m’]\noff-diagonals of \\(L\\)\n\n\nmean\nFloat[Array, ‘n+1 m’]\nmean of the process\n\n\nx0\nFloat[Array, ‘m’]\ninitial state\n\n\nA\nFloat[Array, ‘n m m’]\ntransition matrix\n\n\nSigma\nFloat[Array, ‘n+1 m m’]\ncovariance matrix\n\n\nB\nFloat[Array, ‘n+1 p m’]\nobservation matrix\n\n\ndist\nDistribution\ndistribution of the initial state\n\n\nxi\nFloat[Array, ‘n+1 m’]\ninitial state\n\n\nReturns\nFloat\nlog-weights",
+    "crumbs": [
+      "Cross-Entropy method"
+    ]
+  },
+  {
+    "objectID": "cross_entropy_method.html#ssm-to-markov-model",
+    "href": "cross_entropy_method.html#ssm-to-markov-model",
+    "title": "Cross-Entropy method",
+    "section": "SSM to Markov Model",
+    "text": "SSM to Markov Model\nTo inititialize the Cross-Entropy method, we will use the Laplace approximation, see [30_mode_estimation.ipynb]. This approximates the true posterior by the posterior of a Gaussian state space model. To initiailze the Cross-entropy procedure, we determine the Cholesky root of this Gaussian posterior and use it as an initial value. To determine the diagonal and off-diagonal components of the Cholesky root, we calcultae the joint covariance matrix \\(\\text{Cov} \\left( X_t, X_{t + 1} | Y_1, \\dots, Y_n \\right)\\) using the Kalman smoother and the FFBS, which results in \\[\n\\text{Cov} \\left( X_t, X_{t + 1} | Y_1, \\dots, Y_n \\right) = \\begin{pmatrix}\n\\Xi_{t|n} & \\Xi_{t|t} A_t^T \\Xi_{t + 1|t}^{-1} \\Xi_{t + 1|n} \\\\\n\\left(\\Xi_{t|t} A_t^T \\Xi_{t + 1|t}^{-1} \\Xi_{t + 1|n} \\right)^T & \\Xi_{t + 1 | n}\n\\end{pmatrix}.\n\\]\nThen the algorithm by (Schafer2021Sparse?) allows us efficiently determine the desired cholesky root.\n\nfrom jax.lax import cond\n\n# | export\n\nfrom isssm.kalman import kalman, smoother\n\n\ndef joint_cov(Xi_smooth_t, Xi_smooth_tp1, Xi_filt_t, Xi_pred_tp1, A_t):\n    \"\"\"Joint covariance of conditional Markov process\"\"\"\n    off_diag = Xi_filt_t @ A_t.T @ jnp.linalg.solve(Xi_pred_tp1, Xi_smooth_tp1)\n    return jnp.block([[Xi_smooth_t, off_diag], [off_diag.T, Xi_smooth_tp1]])\n\n\ndef forward_model_markov_process(y, x0, A, B, Sigma, Omega, time_reverse=True):\n    \"\"\"mean + Cholesky root components of precision matrix of smoothing distribution\"\"\"\n\n    x_filter, Xi_filter, x_pred, Xi_pred = kalman(y, x0, Sigma, Omega, A, B)\n    x_smooth, Xi_smooth = smoother(x_filter, Xi_filter, x_pred, Xi_pred, A)\n\n    (m,) = x0.shape\n\n    # permute X_t and X_t+1\n    P = jnp.block([[jnp.zeros((m, m)), jnp.eye(m)], [jnp.eye(m), jnp.zeros((m, m))]])\n\n    covs = vmap(joint_cov)(\n        Xi_smooth[:-1], Xi_smooth[1:], Xi_filter[:-1], Xi_pred[1:], A\n    )\n\n    def forwards(x_smooth, covs, Xi_smooth):\n        return x_smooth[::-1], vmap(lambda cov: P @ cov @ P.T)(covs)[::-1], Xi_smooth[0]\n\n    def backwards(x_smooth, covs, Xi_smooth):\n        return x_smooth, covs, Xi_smooth[-1]\n\n    mu, covs, final_cov = cond(\n        time_reverse, backwards, forwards, x_smooth, covs, Xi_smooth\n    )\n\n    roots = vmap(transition_precision_root)(covs)\n\n    root_diag, root_off_diag = jnp.split(roots, 2, 1)\n    final_root = final_precision_root(final_cov)\n\n    full_diag = jnp.concatenate([root_diag, final_root[None, :]], axis=0)\n\n    return mu, (full_diag, root_off_diag)\n\n\nsource\n\nce_cholesky_precision\n\n ce_cholesky_precision (y:jaxtyping.Float[Array,'n+1p'],\n                        x0:jaxtyping.Float[Array,'m'],\n                        A:jaxtyping.Float[Array,'nmm'],\n                        Sigma:jaxtyping.Float[Array,'n+1mm'],\n                        B:jaxtyping.Float[Array,'n+1pm'],\n                        xi:jaxtyping.Float[Array,'n+1p'], dist,\n                        initial_mean:jaxtyping.Float[Array,'n+1m'],\n                        initial_diag:jaxtyping.Float[Array,'n+1mm'],\n                        initial_off_diag:jaxtyping.Float[Array,'nmm'],\n                        n_iter:int, N:int, key:Union[jaxtyping.Key[Array,'\n                        '],jaxtyping.UInt32[Array,'2']],\n                        eps:jaxtyping.Float=1e-05)\n\n\n\n\n\nType\nDefault\nDetails\n\n\n\n\ny\nFloat[Array, ‘n+1 p’]\n\nobservations\n\n\nx0\nFloat[Array, ‘m’]\n\ninitial state\n\n\nA\nFloat[Array, ‘n m m’]\n\nstate transition matrices\n\n\nSigma\nFloat[Array, ‘n+1 m m’]\n\nstate noise covariance matrices\n\n\nB\nFloat[Array, ‘n+1 p m’]\n\nobservation matrices\n\n\nxi\nFloat[Array, ‘n+1 p’]\n\nobservation parameters\n\n\ndist\n\n\nobservation distribution\n\n\ninitial_mean\nFloat[Array, ‘n+1 m’]\n\ninitial mean\n\n\ninitial_diag\nFloat[Array, ‘n+1 m m’]\n\ninitial off_diag\n\n\ninitial_off_diag\nFloat[Array, ‘n m m’]\n\ninitial off_diag\n\n\nn_iter\nint\n\nnumber of iterations\n\n\nN\nint\n\nnumber of samples\n\n\nkey\nUnion\n\nrandom key\n\n\neps\nFloat\n1e-05\nconvergence threshold\n\n\n\n\n# model setup\nm, p, np1 = 1, 1, 100\nA = jnp.broadcast_to(jnp.eye(m), (np1, m, m))\nB = jnp.broadcast_to(jnp.eye(m), (np1 + 1, p, m))\n\ns2= 0.01\nSigma = jnp.broadcast_to(s2 * jnp.eye(m), (np1 + 1, m, m))\nx0 = jnp.ones(m)\n\n*_, dist, xi = nb_lcssm(x0, A, Sigma, B, 10.)\n\n# simulate from model\nkey = jrn.PRNGKey(51)\nkey, subkey = jrn.split(key)\nN = 1\n(x_true, ), (y,) = simulate_lcssm(x0, A, Sigma, B, dist, xi, N, subkey)\n\n# laplace approximation & importance sampling\ns_init = x_true #jnp.log(y + 1.)\nx_smooth, z, Omega = mode_estimation(y, x0, A, Sigma, B, dist, xi, s_init, 100)\n\n\nN = 100000\nkey, subkey = jrn.split(key)\ninitial_samples, initial_log_weights = lcssm_importance_sampling(y, x0, A, Sigma, B, dist, xi, z, Omega, N, subkey)\n\ninitial_weights = jnp.exp(initial_log_weights - jnp.max(initial_log_weights))\ness_pct(initial_log_weights)\n\nArray(94.44502857, dtype=float64)\n\n\n\ninitial_mean, (initial_diag, initial_off_diag) = forward_model_markov_process(z, x0, A, B, Sigma, Omega)\n\nkey, subkey = jrn.split(key)\n\ncomponents, (samples, log_weights), iterations =  ce_cholesky_precision(\n    y, x0, A, Sigma, B, xi, dist, \n    initial_mean, initial_diag, initial_off_diag,\n    10, N, subkey\n)\n\ness_pct(log_weights)\n\nArray(98.67888455, dtype=float64)",
+    "crumbs": [
+      "Cross-Entropy method"
+    ]
+  },
+  {
+    "objectID": "cross_entropy_method.html#multivarite-test",
+    "href": "cross_entropy_method.html#multivarite-test",
+    "title": "Cross-Entropy method",
+    "section": "Multivarite test",
+    "text": "Multivarite test\n\nn = 3\nm = 2\nN = int(1e5)\nx0 = jnp.zeros(m)\nA = jnp.tile(jnp.eye(m)[None,:,:], (n, 1, 1))\nkey, subkey = jrn.split(key)\nSigma = jnp.tile(jnp.eye(m)[None,:,:], (n + 1, 1, 1))\n\n# NB observations \nmodel = nb_lcssm(\n    x0,\n    A,\n    Sigma,\n    jnp.tile(jnp.eye(m)[None, :,:], (n + 1, 1, 1)),\n    .1\n)\nx0, A, Sigma, B, dist, xi = model\n\nkey, subkey = jrn.split(key)\n(X,), (Y,) = simulate_lcssm(*model, 1, subkey)\n\ns_init = vmap(jnp.dot)(B, X)\nX_smooth, z_la, Omega_la = mode_estimation(Y, x0, A, Sigma, B, dist, xi, s_init, 10)\n\ninitial_mean, (initial_diag, initial_off_diag) = forward_model_markov_process(\n    z_la, x0, A, B, Sigma, Omega_la\n)\n#with jax.default_device(jax.devices(\"cpu\")[0]):\n_, (_, log_weights_ce), _ = ce_cholesky_precision(\n    Y,\n    x0,\n    A,\n    Sigma,\n    B,\n    xi,\n    dist,\n    initial_mean,\n    initial_diag,\n    initial_off_diag,\n    10,\n    N,\n    subkey,\n)\n\ness_pct(log_weights_ce)\n\nArray(0.00490383, dtype=float64)",
+    "crumbs": [
+      "Cross-Entropy method"
+    ]
+  },
+  {
+    "objectID": "cross_entropy_method.html#asymptotic-covariance",
+    "href": "cross_entropy_method.html#asymptotic-covariance",
+    "title": "Cross-Entropy method",
+    "section": "Asymptotic covariance",
+    "text": "Asymptotic covariance\nSee the derivations in the package authors PhD thesis. Given the Gaussian proposal \\[\n\\log g_{\\psi}(x) = \\psi^{T}T(x) + \\log Z(\\psi),\n\\] where \\(\\psi = \\left( \\Sigma^{-1}\\mu, -\\frac 12 \\Sigma^{-1} \\right)\\), \\(T(x) = \\left( x, xx^T \\right)^T\\), \\(\\log Z(\\psi) = -\\frac{1}{2}\\mu^{T}\\Sigma^{-1}\\mu + \\frac{1}{2}\\log \\lvert \\Sigma\\rvert\\), a conistent estimator of the asymptotic variance of the CE estimate (for a single iteration) is given by\n\\[\n- \\frac{1}{\\sum_{i = 1}^{N}w_{i}} I(\\hat \\psi_{\\text{CE}})^{-1} \\left( \\sum_{i = 1}^N w_{i}^{2} \\left( (\\mu, \\Sigma + \\mu\\mu^{T})^{T} + (X_{i}, X_{i}X_{i}^T)^{T} \\right) \\left( (\\mu, \\Sigma + \\mu\\mu^{T})^{T} + (X_{i}, X_{i}X_{i}^T)^{T} \\right) ^{T}\\right)I(\\hat \\psi_{\\text{CE}})^{-1}.\n\\]\nHere \\(I(\\psi) = \\begin{pmatrix}-\\Sigma & - 2\\mu^{T} \\otimes \\Sigma \\\\ -2 (\\mu^{T} \\otimes \\Sigma)^{T} & \\frac{1}{2} \\Sigma^{-1}\\otimes \\Sigma^{-1}\\end{pmatrix}\\)",
+    "crumbs": [
+      "Cross-Entropy method"
+    ]
+  },
+  {
+    "objectID": "Testing/analytical_verification.html",
+    "href": "Testing/analytical_verification.html",
+    "title": "Analytical Verification of Kalman filter and smoother",
+    "section": "",
+    "text": "We start with a simple verification for a model that only consists of \\(X_0, X_1, Y_0, Y_1\\).\nFor this model the filtering and smoothing distributions is easily derived by hand and we can compare to the outputs of the isssm.kalman.kalman/isssm.kalman.smoother and isssm.kalman.sqrt_filter/isssm.kalman.sqrt_smoother methods.\n\nfrom isssm.glssm_models import lcm\nfrom isssm.glssm import simulate_glssm\nfrom isssm.kalman import kalman, smoother, sqrt_kalman, sqrt_smoother\nimport jax.numpy as jnp\nimport jax.random as jrn\nimport fastcore.test as fct\nimport jax.scipy.linalg as jsla\n\n\nx0, A, B, Sigma, Omega = lcm(1, 0., 1., 1., 1.)\n\n_, (y,) = simulate_glssm(x0, A, B, Sigma, Omega, 1, jrn.PRNGKey(34234))\n\nNo GPU/TPU found, falling back to CPU. (Set TF_CPP_MIN_LOG_LEVEL=0 and rerun for more info.)\n\n\n\nEX = jnp.array([x0, x0])\nEY = jnp.array([x0, x0])\n\nCovX = jnp.array([[1., 1.], [1., 2.]])\nCovY = jnp.array([[2., 1.], [1., 3.]])\n\nCovXY = jnp.array([[1., 1.], [1., 2.]])\n\nEX_c_Y = EX + CovXY @ jnp.linalg.inv(CovY) @ (y - EY)\nCovX_c_Y = CovX - CovXY @ jnp.linalg.inv(CovY) @ CovXY.T\n\n\nx_filt, Xi_filt, x_pred, Xi_pred = kalman(y, x0, Sigma, Omega, A, B)\nx_smooth, Xi_smooth = smoother(x_filt, Xi_filt, x_pred, Xi_pred, A)\n\nfct.test_close(x_smooth, EX_c_Y)\nfct.test_close(Xi_smooth, jnp.diag(CovX_c_Y).reshape((2,1,1)))\n\nfct.test_close(x_smooth[-1], x_filt[-1])\nfct.test_close(Xi_smooth[-1], Xi_filt[-1])\n\n\ncuSigma = jsla.cholesky(Sigma)\ncuOmega = jsla.cholesky(Omega)\ncx_filt, cuXi_filt, cx_pred, cuXi_pred, G, cuH = sqrt_kalman(y, x0, cuSigma, cuOmega, A, B)\n\ncx_smooth, cuXi_smooth = sqrt_smoother(cx_filt, cuXi_filt, cx_pred, cuXi_pred, G, cuH)\n\nfct.test_close(Xi_smooth, cuXi_smooth**2)\nfct.test_close(x_smooth, cx_smooth)",
+    "crumbs": [
+      "Testing",
+      "Analytical Verification of Kalman filter and smoother"
+    ]
+  },
+  {
+    "objectID": "modified_efficient_importance_sampling.html",
+    "href": "modified_efficient_importance_sampling.html",
+    "title": "Modified Efficient Importance Sampling",
+    "section": "",
+    "text": "Due to the large dimension of the problem we solve it for each \\(t\\) separately\n\\[\n\\begin{align*}\n\\sum_{i = 1}^N(\\log p(y_t|s_t^{i}) - \\log g(z_{t}| s_t^{i}) - \\lambda_{t})^2 w(s_t^i) &= \\sum_{i = 1}^N\\left(\\log p(y_t|s_t^{i}) +\\frac{1}{2} (z_{t} - s_{t}^{i})^T\\Omega^{-1}_{t}(z_{t} - s_{t}^{i}) + \\frac{p}{2} \\log (2\\pi) + \\frac{1}{2} \\log \\det \\Omega_{t} - \\lambda_{t}\\right)^2 w(s_t^i)\n%&=  \\sum_{i = 1}^{N}(\\log p(y_t|s_t^{i}) - (- 2 \\Omega_t ^{-1}z_t)^{T} s^{i}_t -  (s^{i}_t)^T\\Omega_t^{-1}s^{i}_t - \\lambda_t - C_t)^2w(s_t^i) \\\\\n%&= \\sum_{i = 1}^N \\left(\\log p(y_t|s_t^{i}) - (s^{i}_t)^{T}(- 2 \\Omega_t ^{-1}z_t) + \\frac{1}{2} \\sum_{j = 1}^{p} (s^{i}_{t,j})^{2} \\frac{1}{\\omega_{t,j}} - \\lambda_t - C_t \\right)\n\\end{align*}\n\\]\nand minimized over the unknown parameters \\(\\left(z_t, \\Omega_t, \\lambda_t - C_t\\right)\\), which is a weighted least squares setting with “observations” \\(\\log p(y_t|s_t)\\).\nTo perform the estimation memory efficient, we combine the FFBS algorithm (see [00_glssm.ipynb]) with the optimization procedure, so the memory requirement of this algorithm is \\(\\mathcal O(N)\\) instead of \\(\\mathcal O(N\\cdot n)\\).\n\n\nsource\n\nmodified_efficient_importance_sampling\n\n modified_efficient_importance_sampling (y:jaxtyping.Float[Array,'n+1p'],\n                                         x0:jaxtyping.Float[Array,'m'],\n                                         A:jaxtyping.Float[Array,'nmm'], S\n                                         igma:jaxtyping.Float[Array,'n+1mm\n                                         '],\n                                         B:jaxtyping.Float[Array,'n+1pm'],\n                                         xi:jaxtyping.Float[Array,'n+1p'],\n                                         dist, z_init:jaxtyping.Float[Arra\n                                         y,'n+1p'], Omega_init:jaxtyping.F\n                                         loat[Array,'n+1pp'], n_iter:int,\n                                         N:int, key:Union[jaxtyping.Key[Ar\n                                         ray,''],jaxtyping.UInt32[Array,'2\n                                         ']], eps:jaxtyping.Float=1e-05)\n\n\n\n\n\nType\nDefault\nDetails\n\n\n\n\ny\nFloat[Array, ‘n+1 p’]\n\nobservations\n\n\nx0\nFloat[Array, ‘m’]\n\ninitial state\n\n\nA\nFloat[Array, ‘n m m’]\n\nstate transition matrices\n\n\nSigma\nFloat[Array, ‘n+1 m m’]\n\nstate noise covariance matrices\n\n\nB\nFloat[Array, ‘n+1 p m’]\n\nobservation matrices\n\n\nxi\nFloat[Array, ‘n+1 p’]\n\nobservation parameters\n\n\ndist\n\n\nobservation distribution\n\n\nz_init\nFloat[Array, ‘n+1 p’]\n\ninitial z estimate\n\n\nOmega_init\nFloat[Array, ‘n+1 p p’]\n\ninitial Omega estimate\n\n\nn_iter\nint\n\nnumber of iterations\n\n\nN\nint\n\nnumber of samples\n\n\nkey\nUnion\n\nrandom key\n\n\neps\nFloat\n1e-05\nconvergence threshold\n\n\n\n\nfrom isssm.importance_sampling import log_weights\nfrom isssm.lcssm import nb_lcssm, simulate_lcssm\nfrom isssm.glssm import FFBS\nfrom isssm.kalman import kalman, smoother\nimport jax.random as jrn\nfrom isssm.mode_estimation import mode_estimation\nimport jax.numpy as jnp\nfrom jax import vmap\nfrom functools import partial\nimport matplotlib.pyplot as plt\nfrom isssm.importance_sampling import ess_lw\n\n\nm, p, n = 3, 2, 100\nA = jnp.broadcast_to(jnp.eye(m), (n, m, m))\nB = jnp.broadcast_to(jnp.array([[1, 0, 1], [0, 1, 1]]), (n + 1, p, m))\n\ns2= 0.01\nSigma = jnp.broadcast_to(s2 * jnp.eye(m), (n + 1, m, m))\nx0 = jnp.ones(m)\n\nkey = jrn.PRNGKey(5102)\nkey, subkey = jrn.split(key)\n*_, dist, xi = nb_lcssm(x0, A, Sigma, B, 20.)\n(x, ), (y,) = simulate_lcssm(x0, A, Sigma, B, dist, xi, 1, subkey)\ns_init = jnp.log(y + 1.)\nx_smooth, z, Omega = mode_estimation(y, x0, A, Sigma, B, dist, xi, s_init, 100)\n\nN = int(1e4)\nkey, subkey = jrn.split(key)\nz_meis, Omega_meis = modified_efficient_importance_sampling(\n    y, x0, A, Sigma, B, xi, dist, z, Omega, 10, N, subkey\n)\n\nz_diff = ((z_meis - z)**2).mean(axis=1)\nplt.title(\"Difference in z ME vs. MEIS\")\nplt.plot(z_diff)\nplt.show()\n\nOmega_diff = ((Omega_meis - Omega)**2).mean(axis=(1,2))\nplt.title(\"Difference in Omega ME vs. MEIS\")\nplt.plot(Omega_diff)\nplt.show()\n\n/opt/homebrew/Caskroom/miniconda/base/envs/research/lib/python3.10/site-packages/tensorflow_probability/python/internal/backend/jax/random_generators.py:127: UserWarning: Explicitly requested dtype &lt;class 'jax.numpy.float64'&gt;  is not available, and will be truncated to dtype float32. To enable more dtypes, set the jax_enable_x64 configuration option or the JAX_ENABLE_X64 shell environment variable. See https://github.com/google/jax#current-gotchas for more.\n  samps = jaxrand.gamma(\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\nx_filt, Xi_filt, x_pred, Xi_pred = kalman(z_meis, x0, Sigma, Omega_meis, A, B)\nx_smooth, Xi_smooth = smoother(x_filt, Xi_filt, x_pred, Xi_pred, A)\n\n\nplt.plot(x)\nplt.plot(x_smooth, linestyle=\"--\")\nplt.show()\n\n\n\n\n\n\n\n\n\nfrom isssm.importance_sampling import lcssm_importance_sampling\n\n\nN = 1000\n#samples = FFBS(z_meis, x0, Sigma, Omega_meis, A, B, 1000, jrn.PRNGKey(423423))\n#\n#vB = partial(vmap(jnp.matmul), B)\n#\n#s = vmap(vB)(samples)\n#\n#vlw = vmap(log_weights, (0, None, None, None, None, None))\n#lw = vlw(s, y, dist, xi, z, Omega)\n_, lw_la = lcssm_importance_sampling(y, x0, A, Sigma, B, dist, xi, z, Omega, N, jrn.PRNGKey(423423))\nsamples, lw = lcssm_importance_sampling(y, x0, A, Sigma, B, dist, xi, z_meis, Omega_meis, N, jrn.PRNGKey(423423))\nplt.title(f\"Log weights, ESS = {ess_lw(lw) / lw.shape[0] * 100:.2f}% vs. LA (ESS = {ess_lw(lw_la) / lw_la.shape[0] * 100:.2f}%)\")\nplt.scatter(jnp.arange(N), lw)\nplt.show()\n\n\n\n\n\n\n\n\nEIS increases ESS of importance sampling from \\(\\approx 95\\%\\) (LA) to \\(\\approx 99\\%\\)",
+    "crumbs": [
+      "Modified Efficient Importance Sampling"
+    ]
+  },
+  {
+    "objectID": "mode_estimation.html",
+    "href": "mode_estimation.html",
+    "title": "Mode estimation for log-concave state space models",
+    "section": "",
+    "text": "Consider an LCSSM with states \\(X\\) and observations \\(Y\\). If the joint distribution of \\(X\\) and \\(Y\\) is not gaussian, we are unable to perform the standard Kalman filter and smoother.\nHere we implement the alternative mode estimation method from (Durbin and Koopman 2012), Chapter 10.6. It’s main idea is to approximate the posterior distribution by a gaussian distribution by a second-order Taylor expansion for the log-pdf.\nThis essentially means matching the first and second order derivatives of the observation log-likelihoods at the mode. As the mode is a (global) maximum of the posterior distribution, we can find it by a Newton-Raphson iteration for which (Durbin and Koopman 2012) show, that it can be implemented efficiently by a single pass of a Kalman smoother.\nThe mode estimation procedure is based on the observation that at the mode \\(\\hat s = (\\hat s_0, \\dots, \\hat s_n)\\) the surrogate gaussian model with the same state equation and observation equations\n\\[\n\\begin{align*}\nS_t &= B_t X_t \\\\\nZ_t &= S_t + \\eta_t \\\\\n\\eta_t &\\sim \\mathcal N\\left(0, \\Omega_t\\right)\n\\end{align*}\n\\] for \\(\\Omega_t^{-1} = -\\frac{\\partial^2 \\log p(y_t|\\cdot)}{\\partial (s_t)^2}|_{\\hat s_t}\\) has, for \\(z_t = s_t +\\Omega_t {\\partial p(y_t|\\cdot)}{\\partial s_t}|_{\\hat s_t}\\) mode \\(\\hat s\\).\nIn most cases we are interested in, the observations are conditionally independent given the signals such that \\(\\Omega\\) is a diagonal matrix, which makes inversion much faster as we only have to invert the diagonals. This implementation assumes this to hold, but could be extended to handel the general case as well (replace the calls to vdiag by solve).\nThis is used in a fixed point iteration:\n\nStart with an initial guess \\(\\hat s\\).\nSetup the above gaussian approximation.\nPerform a pass of the Kalman smoother, obtaining the posterior mode \\(\\hat s^+\\).\nSet \\(\\hat s = \\hat s^+\\) and iterate until convergence.\n\n\n\n\n\n\n\nTodo\n\n\n\nImplement this with disturbance smoother (more efficient)\n\n\n\n\nCode\nimport fastcore.test as fct\nfrom isssm.glssm import simulate_glssm\nfrom isssm.glssm_models import lcm\nimport jax.random as jrn\nfrom isssm.kalman import kalman\n\n\n\nsource\n\nmode_estimation\n\n mode_estimation (y:jaxtyping.Float[Array,'n+1p'],\n                  x0:jaxtyping.Float[Array,'m'],\n                  A:jaxtyping.Float[Array,'nmm'],\n                  Sigma:jaxtyping.Float[Array,'n+1mm'],\n                  B:jaxtyping.Float[Array,'n+1pm'], dist,\n                  xi:jaxtyping.Float[Array,'n+1p'],\n                  s_init:jaxtyping.Float[Array,'n+1p'], n_iter:int,\n                  log_lik=None, d_log_lik=None, dd_log_lik=None,\n                  eps:jaxtyping.Float=1e-05)\n\n\n\n\n\n\n\n\n\n\n\nType\nDefault\nDetails\n\n\n\n\ny\nFloat[Array, ‘n+1 p’]\n\nobservation\n\n\nx0\nFloat[Array, ‘m’]\n\ninitial state mean\n\n\nA\nFloat[Array, ‘n m m’]\n\nstate transition matrices\n\n\nSigma\nFloat[Array, ‘n+1 m m’]\n\nstate covariance matrices\n\n\nB\nFloat[Array, ‘n+1 p m’]\n\nobservation matrices\n\n\ndist\n\n\ndistribution of observations\n\n\nxi\nFloat[Array, ‘n+1 p’]\n\nobservation parameters\n\n\ns_init\nFloat[Array, ‘n+1 p’]\n\ninitial signal\n\n\nn_iter\nint\n\nnumber of iterations\n\n\nlog_lik\nNoneType\nNone\nlog likelihood function\n\n\nd_log_lik\nNoneType\nNone\nderivative of log likelihood function\n\n\ndd_log_lik\nNoneType\nNone\nsecond derivative of log likelihood function\n\n\neps\nFloat\n1e-05\nprecision of iterations\n\n\nReturns\ntuple\n\n\n\n\n\nWe return to the Negative Binomial common factor model and use mode estimation to obtain an estimate for the mode of the conditional distribution of states given the observations.\n\nm, p, n = 3, 2, 100\nA = jnp.broadcast_to(jnp.eye(m), (n, m, m))\nB = jnp.broadcast_to(jnp.array([[1, 0, 1], [0, 1, 1]]), (n + 1, p, m))\n\ns2= 0.01\nSigma = jnp.broadcast_to(s2 * jnp.eye(m), (n + 1, m, m))\nx0 = jnp.ones(m)\n\nkey = jrn.PRNGKey(512)\nkey, subkey = jrn.split(key)\n*_,  dist, xi = nb_lcssm(x0, A, Sigma, B, 20.)\nN = 1\n(X, ), (Y,) = simulate_lcssm(x0, A, Sigma, B, dist, xi, N, subkey)\n\n\nfig, (ax1, ax2) = plt.subplots(1, 2, figsize=(10, 5))\nax1.plot(X)\nax1.set_xlabel(\"$t$\")\nax1.set_title(\"States $X$\")\nax2.plot(Y)\nax2.set_xlabel(\"$t$\")\nax2.set_title(\"Observations $Y$\")\nplt.show()\n\n/opt/homebrew/Caskroom/miniconda/base/envs/research/lib/python3.10/site-packages/tensorflow_probability/python/internal/backend/jax/random_generators.py:127: UserWarning: Explicitly requested dtype &lt;class 'jax.numpy.float64'&gt;  is not available, and will be truncated to dtype float32. To enable more dtypes, set the jax_enable_x64 configuration option or the JAX_ENABLE_X64 shell environment variable. See https://github.com/google/jax#current-gotchas for more.\n  samps = jaxrand.gamma(\n\n\n\n\n\n\n\n\n\n\ns_init = jnp.log(Y + 1.)\nx_smooth, z, Omega = mode_estimation(Y, x0, A, Sigma, B, dist, xi, s_init, 10)\n\nplt.title(\"States and mode estimate\")\nplt.plot(X, linestyle='--', color=\"gray\", label=\"$X_t$\")\nplt.plot(x_smooth, color=\"blue\", label=\"$\\\\hat X_t$\")\n\n# unique legend\nhandles, labels = plt.gca().get_legend_handles_labels()\nby_label = dict(zip(labels, handles))\nplt.legend(by_label.values(), by_label.keys())\nplt.show()\n\n\n\n\n\n\n\n\nThe default implementation of the mode_estimation method uses automatic differentiation to evaluate the first and second derivatives necessary to implement mode estimation. You can also provide the derivatives yourself, e.g. for efficiency or numerical stability.\n\n\nCode\nr = 20.\ndef nb_log_lik(s_ti, r_ti, y_ti):\n    return jnp.sum(y_ti * jnp.log(expit(s_ti - jnp.log(r_ti))) - r_ti * jnp.log(jnp.exp(s_ti) + r_ti))\n\ndef d_nb_log_lik(s_ti, r_ti, y_ti):\n    return y_ti - (y_ti + r_ti) * expit(s_ti - jnp.log(r_ti))\n\ndef dd_nb_log_lik(s_ti, r_ti, y_ti):\n    return -(y_ti + r_ti) * expit(s_ti - jnp.log(r_ti)) * (1 - expit(s_ti - jnp.log(r_ti)))\n\nprint(\"10 iterations of mode estimation with AD \")\n\nprint(\"10 iterations of mode estimation without AD\")\n\n\n10 iterations of mode estimation with AD \n1.06 s ± 4.97 ms per loop (mean ± std. dev. of 7 runs, 1 loop each)\n10 iterations of mode estimation without AD\n684 ms ± 2 ms per loop (mean ± std. dev. of 7 runs, 1 loop each)\n\n\n\n\n\n\n\nReferences\n\nDurbin, J., and S. J. Koopman. 2012. Time Series Analysis by State Space Methods. 2nd ed. Oxford Statistical Science Series 38. Oxford: Oxford University Press.",
+    "crumbs": [
+      "Mode estimation for log-concave state space models"
+    ]
+  },
+  {
+    "objectID": "demonstrations/nowcasting_hospitalizations.html",
+    "href": "demonstrations/nowcasting_hospitalizations.html",
+    "title": "Nowcasting Hospitalizations",
+    "section": "",
+    "text": "This notebook provides an extension to the authors participation in the German Nowcasthub, a collaborative effort to nowcast the 7-day number of hospitailsations in Germany. See the site for further details.\nWe quickly describe the model we used in this Hub:",
+    "crumbs": [
+      "demonstrations",
+      "Nowcasting Hospitalizations"
+    ]
+  },
+  {
+    "objectID": "demonstrations/nowcasting_hospitalizations.html#method-for-model-in-nowcatshub",
+    "href": "demonstrations/nowcasting_hospitalizations.html#method-for-model-in-nowcatshub",
+    "title": "Nowcasting Hospitalizations",
+    "section": "Method for model in NowcatsHub",
+    "text": "Method for model in NowcatsHub\nTo predict the number of hospitalisations we consider the reporting process of both reported COVID-19 cases and reported hospitalisations. Recall that the reporting date of a COVID-19 case is shared for both the case and its hospitalisation, i.e. the case and hospitalisation are linked through this date.\nAs hospitalisations are only available as \\(7\\)-day rolling sums we use \\(7\\)-day rolling sums for daily reported incidences as well. To avoid dealing with the double weekday effect of both reporting date of the case and reporting date of the hospitalisation we divide the future hospitalisations we wish to predict into chunks of one week, which gets rid of the weekday effect for the hospitalisations. This is depicted in the figure below. Our prediction of each of these weekly chunks then consists of the fraction of hospitalisations of reported cases in the past.\n\n\nDecomposition of the daily reported hospitalisation incidences into the known incidences \\(\\color{#FF7900}H_{t,d}\\), i.e. the reporting triangle, and the future weekly increments \\(\\color{#00747A} H_{t, d + 7 (k + 1)} - H_{t, d + 7 k}\\). The last increment might not be a weekly one, but we expect few cases to occur for such long delays.\n\nMore formally, denote by \\(h_{t,d}\\) the number of hospitalisations with reporting date \\(t\\) that are known \\(d\\) days later. Unfortunately we only observe \\[H_{t,d} = \\sum_{s = t - 6}^{t} h_{s,d + (t - s)},\\] i.e. a weekly sum of reported hospitalisations. On day \\(T\\) our goal is to predict \\(H_{t,D}\\) for large delays \\(D\\) and days \\(t \\leq T\\), for which it clearly suffices to predict \\(H_{t, D} - H_{t, T - t}\\) and add the known \\(H_{t, T - t}\\) to this prediction. We rewrite this into a weekly telescoping sum\n\\[\nH_{t,D} - H_{t,d} = \\left(H_{t, d + 7} - H_{t,d}\\right) + \\left(H_{t, d + 14} - H_{t, d + 7}\\right) + \\dots + \\left(H_{t,D} - H_{t, d + 7 K}\\right),\n\\]\nwhere \\(K = \\lfloor (D -d) / 7 \\rfloor\\), reducing the task at hand to predict hospitalisations in the \\(k\\)-th week ahead, \\(H_{t, d + 7k} - H_{t, d + 7\\cdot(k - 1)}\\) for \\(k = 1, \\dots, K\\).\nTo leverage known reported incidences, rewrite this as\n\\[\n\\frac{H_{t, d + 7k} - H_{t, d + 7\\cdot(k - 1)}}{I_{t,d}}  I_{t, d} = p_{t,d,k}  I_{t,d}\n\\]\nwhere \\(I_{t,d}\\) is the \\(7\\)-day case incidence with reporting date \\(t\\) known at time \\(t + d\\), i.e. the incidenct case analouge of \\(H_{t,d}\\).\nAssuming that the proportions \\(p_{t,d,k}\\) change slowly over time \\(t\\) we estimate them by\n\\[\n\\widehat {p_{t,d,k}} = \\frac{H_{t - 7k, d + 7k} - H_{t - 7k, d + 7\\cdot(k - 1)}}{I_{t - 7k,d}} = p_{t - 7k,d,k}\n\\]\nand finally predict\n\\[\n\\widehat{H_{t,D}} = H_{t,d} + \\left(\\widehat{p_{t,d,1}} + \\dots + \\widehat{p_{t,d,K}}\\right)  I_{t,d}.\n\\]\nIn essence, this model is a regression of reported hospitalisations on reported cases.\nAs hospitalisation is affected by age, we perform this procedure for all available age groups separately and finally aggregate over all age groups to obtain a nowcast for all age groups combined.\nThis describes our point nowcast for \\(7\\)-day hospitalisations. To obtain uncertainty intervals we fit a normal (age groups 00-04 and 05-14) or lognormal (all other age groups) distribution to the past performance of our model. We chose these distributions based on explorative analysis and believe that these should be seen as heuristics rather than as a matter of fact, which is in line with the philosophy of our model to be as simple as possible.\nDenote by \\(\\hat H_{t,D,s}\\) the nowcast made for date \\(t\\) on date \\(s \\geq t\\). Starting with date \\(t + D\\) the definite \\(H_{t,D}\\) is known and we can estimate the absolute prediction error \\(\\varepsilon_{t,s} = H_{t,D} - \\hat H_{t,D,s}\\) and the relative prediction error \\(\\eta_{t,s} = \\log \\left( H_{t,D} - H_{t, s - t}\\right) - \\log \\left( \\hat H_{t,D,s} - H_{t, s- t} \\right)\\). For the nowcast for date \\(t\\) made on date \\(s\\) we estimate the standard deviation \\(\\hat\\sigma\\) of \\(\\varepsilon_{t - D - i, s - D - i}\\) or \\(\\eta_{t - D - i, s - D - i}\\) (age groups 00-04, 05-14 and others respectively), \\(i = 0, \\dots, 27\\) by its empirical counterpart. The estimated predictive distribution which informs our prediction intervals is then \\(\\mathcal N (\\hat H_{t,D,s}, \\hat\\sigma^2)\\) (age groups 00-04 and 05-14) or \\(\\mathcal{LN} \\left( \\log \\left(\\hat H_{t,D,s} - H_{t, s - t}\\right), \\hat\\sigma^2 \\right) + H_{t, s - t}\\) (all other age groups).\nIn this document, we want to extend this model to account for temporal dependencies, i.e. model \\(p_{t,d,k}, I_{t,d}\\) and \\(H_{t,d}\\) by a state space model.",
+    "crumbs": [
+      "demonstrations",
+      "Nowcasting Hospitalizations"
+    ]
+  },
+  {
+    "objectID": "index.html",
+    "href": "index.html",
+    "title": "isssm",
+    "section": "",
+    "text": "Clone this repository, then run\npip install isssm",
+    "crumbs": [
+      "isssm"
+    ]
+  },
+  {
+    "objectID": "index.html#install",
+    "href": "index.html#install",
+    "title": "isssm",
+    "section": "",
+    "text": "Clone this repository, then run\npip install isssm",
+    "crumbs": [
+      "isssm"
+    ]
+  },
+  {
+    "objectID": "index.html#how-to-use",
+    "href": "index.html#how-to-use",
+    "title": "isssm",
+    "section": "How to use",
+    "text": "How to use\nPlease check out the documentation for details and examples.",
+    "crumbs": [
+      "isssm"
+    ]
+  },
+  {
+    "objectID": "models/gaussian_models.html",
+    "href": "models/gaussian_models.html",
+    "title": "Example gaussian models",
+    "section": "",
+    "text": "# imports for this notebook only\nimport fastcore.test as fct",
+    "crumbs": [
+      "models",
+      "Example gaussian models"
+    ]
+  },
+  {
+    "objectID": "models/gaussian_models.html#locally-constant-model",
+    "href": "models/gaussian_models.html#locally-constant-model",
+    "title": "Example gaussian models",
+    "section": "Locally constant model",
+    "text": "Locally constant model\nThe locally costant model is a very basic example of a gaussian state space model. It is a univariate model with the following dynamics:\n\\[\n\\begin{align*}\n    X_{t + 1} &= X_t + \\varepsilon_{t + 1} & & \\varepsilon_{t + 1} \\sim \\mathcal N(0, \\sigma^2_\\varepsilon), \\\\\n    Y_t &= X_t + \\eta_t && \\eta_{t} \\sim \\mathcal N(0, \\sigma^2_\\eta).\n\\end{align*}\n\\]\nIn this model the states \\(X_t\\) perform a discrete time, univariate, random walk and are observed with noise \\(\\eta_t\\).\n\nsource\n\nlcm\n\n lcm (n:int, x0:jaxtyping.Float, s2_x0:jaxtyping.Float,\n      s2_eps:jaxtyping.Float, s2_eta:jaxtyping.Float)\n\nUnivariate locally constant model\n\n\n\n\nType\nDetails\n\n\n\n\nn\nint\nnumber of observations\n\n\nx0\nFloat\ninitial mean\n\n\ns2_x0\nFloat\ninitial variance\n\n\ns2_eps\nFloat\nvariance of innovations\n\n\ns2_eta\nFloat\nvariance of disturbances\n\n\nReturns\nmodel\na GLSSM\n\n\n\n\nn = 10\nx0, A, B, Sigma, Omega = lcm(n, 0., 1., 1., 1.)\n\n# assess that shapes are correct\nfct.test_eq(x0.shape, (1,))\nfct.test_eq(Sigma.shape, (n+1,1,1))\nfct.test_eq(Omega.shape, (n+1,1,1))\nfct.test_eq(A.shape, (n,1,1))\nfct.test_eq(B.shape, (n+1,1,1))",
+    "crumbs": [
+      "models",
+      "Example gaussian models"
+    ]
+  },
+  {
+    "objectID": "models/gaussian_models.html#common-factor-locally-constant-model",
+    "href": "models/gaussian_models.html#common-factor-locally-constant-model",
+    "title": "Example gaussian models",
+    "section": "Common factor locally constant model",
+    "text": "Common factor locally constant model\nA model where we have two observations each being the sum of two states where one state is shared.\n\\[\n\\begin{align*}\n    X_{t + 1} &= X_t + \\varepsilon_{t + 1} && \\varepsilon_{t + 1} \\sim \\mathcal N(0, \\sigma^2_\\varepsilon I_3) \\\\\n    Y_t &= \\begin{pmatrix} 1 & 0 & 1 \\\\ 0 & 1 & 1 \\end{pmatrix} X_t + \\eta_t && \\eta_t \\sim \\mathcal N(0, \\sigma^2_\\eta I_2)\n\\end{align*}\n\\]\n\nsource\n\ncommon_factor_lcm\n\n common_factor_lcm (n:int, x0:jaxtyping.Float[Array,'3'],\n                    Sigma0:jaxtyping.Float[Array,'33'],\n                    s2_eps:jaxtyping.Float, s2_eta:jaxtyping.Float)\n\n\nn = 10\nx0, A, B, Sigma, Omega = common_factor_lcm(n, jnp.zeros(3), jnp.eye(3), 1., 1.)\n\n# assess that shapes are correct\nfct.test_eq(x0.shape, (3,))\nfct.test_eq(Sigma.shape, (n+1,3,3))\nfct.test_eq(Omega.shape, (n+1,2,2))\nfct.test_eq(A.shape, (n,3,3))\nfct.test_eq(B.shape, (n+1,2,3))",
+    "crumbs": [
+      "models",
+      "Example gaussian models"
+    ]
+  },
+  {
+    "objectID": "models/gaussian_models.html#stationary-ar1-model",
+    "href": "models/gaussian_models.html#stationary-ar1-model",
+    "title": "Example gaussian models",
+    "section": "Stationary AR(1) model",
+    "text": "Stationary AR(1) model\nStates form a stationary AR(1) process with stationary distribution \\(\\mathcal N(\\mu, \\tau^2)\\), observed with noise \\[\n\\begin{align*}\n    \\alpha &\\in \\left( -1, 1\\right) \\\\\n     \\sigma^2 &= (1 - \\alpha^2)\\tau^2\\\\\n    X_{t + 1} &= \\mu + \\alpha (X_t - \\mu) + \\varepsilon_{t + 1}\\\\\n    \\varepsilon_t &\\sim \\mathcal N(0, \\sigma^2)\\\\\n    Y_t &= X_t + \\eta_t \\\\\n    \\eta_t &\\sim \\mathcal N(0, \\omega^2)\n\\end{align*}\n\\]\n\nsource\n\nar1\n\n ar1 (mu, tau2, alpha, omega2, n)\n\n\nimport nbdev\nnbdev.nbdev_export()",
+    "crumbs": [
+      "models",
+      "Example gaussian models"
+    ]
+  }
+]
