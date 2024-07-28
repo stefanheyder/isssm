@@ -11,7 +11,8 @@ from jaxtyping import Float, Array, PRNGKeyArray
 from .kalman import kalman
 from jax import jit
 from scipy.optimize import minimize as minimize_scipy
-from .mode_estimation import mode_estimation
+from .mode_estimation import mode_estimation as LA
+from .modified_efficient_importance_sampling import modified_efficient_importance_sampling as MEIS
 from .importance_sampling import normalize_weights
 from jax import grad
 from jaxopt import BFGS
@@ -128,7 +129,7 @@ def initial_theta(
     def f(theta):
         x0, A, Sigma, B, dist, xi = model(theta, aux)
         
-        X, z, Omega = mode_estimation(y, x0, A, Sigma, B, dist, xi, s_init, n_iter_me)
+        X, z, Omega = LA(y, x0, A, Sigma, B, dist, xi, s_init, n_iter_me)
 
         signal = (B @ X[:,:,None])[:,:,0]
         _, _, x_pred, Xi_pred = kalman(z, x0, Sigma, Omega, A, B)
@@ -142,7 +143,7 @@ def initial_theta(
     #result = solver.run(theta0)
     return result 
 
-# %% ../nbs/60_maximum_likelihood_estimation.ipynb 20
+# %% ../nbs/60_maximum_likelihood_estimation.ipynb 23
 def mle_lcssm(
     y: Float[Array, "n+1 p"],  # observations $y_t$
     model,  # parameterized LCSSM
@@ -156,35 +157,37 @@ def mle_lcssm(
 ) -> Float[Array, "k"]: # MLE
     """Maximum Likelihood Estimation for Log Concave SSMs"""
 
-    key, subkey = jrn.split(key)
-    def model_log_prob(theta, X):
-        x0, A, Sigma, B, dist, xi = model(theta, aux)
-        n, _, _ = A.shape
+    #def model_log_prob(theta, X):
+    #    x0, A, Sigma, B, dist, xi = model(theta, aux)
+    #    n, _, _ = A.shape
+    #    signal = (B @ X[:,:,None])[:,:,0]
+    #    return dist(signal, xi).log_prob(y).sum()
+    #d_model_log_prob = grad(model_log_prob, argnums=0)
+    #vd_model_log_prob = vmap(d_model_log_prob, (None, 0))
 
-        signal = (B @ X[:,:,None])[:,:,0]
-        return dist(signal, xi).log_prob(y).sum()
-
-    d_model_log_prob = grad(model_log_prob, argnums=0)
-    vd_model_log_prob = vmap(d_model_log_prob, (None, 0))
-
-    def f(theta):
+    def f(theta, key):
         x0, A, Sigma, B, dist, xi = model(theta, aux)
         
-        _, z, Omega = mode_estimation(y, x0, A, Sigma, B, dist, xi, s_init, n_iter_me)
+        _, z, Omega = LA(y, x0, A, Sigma, B, dist, xi, s_init, n_iter_me)
 
-        samples, log_weights = lcssm_importance_sampling(
+        key, subkey = jrn.split(key)    
+        z, Omega = MEIS(y, x0, A, Sigma, B, xi, dist, z, Omega, n_iter_me, N, subkey)
+
+        key, subkey = jrn.split(key)    
+        _, log_weights = lcssm_importance_sampling(
             y, x0, A, Sigma, B, dist, xi, z, Omega, N, subkey
         )
 
         _, _, x_pred, Xi_pred = kalman(z, x0, Sigma, Omega, A, B)
 
         negloglik = _lcnll(gnll(z, x_pred, Xi_pred, B, Omega), log_weights)
-        norm_weights = normalize_weights(log_weights)
-        gradient = -(vd_model_log_prob(theta, samples) * norm_weights[:, None]).sum(axis=0)
-        return negloglik, gradient
+        #norm_weights = normalize_weights(log_weights)
+        #gradient = -(vd_model_log_prob(theta, samples) * norm_weights[:, None]).sum(axis=0)
+        return negloglik
     
     # Nelder-Mead does not use gradients
-    result = minimize_scipy(f, theta0, method="BFGS", options=options, jac=True)
+    key, subkey = jrn.split(key)
+    result = minimize_scipy(f, theta0, method="BFGS", options=options, args=(subkey,))
     #solver = BFGS(f, value_and_grad=True, )
     #result = solver.run(theta0)
     return result 

@@ -77,4 +77,5 @@ d = { 'settings': { 'branch': 'main',
                                                                                                                                                        'isssm/modified_efficient_importance_sampling.py')},
             'isssm.optim': {'isssm.optim.converged': ('optimization.html#converged', 'isssm/optim.py')},
             'isssm.typing': { 'isssm.typing.MarkovProcessCholeskyComponents': ( 'typings.html#markovprocesscholeskycomponents',
-                                                                                'isssm/typing.py')}}}
+                                                                                'isssm/typing.py')},
+            'isssm.util': {'isssm.util.MVN_degenerate': ('util.html#mvn_degenerate', 'isssm/util.py')}}}

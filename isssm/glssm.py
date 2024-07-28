@@ -10,9 +10,9 @@ import jax.random as jrn
 from jax import vmap
 from jaxtyping import Float, Array, PRNGKeyArray
 from jax.lax import scan
-from tensorflow_probability.substrates.jax.distributions import MultivariateNormalFullCovariance as MVN
+from .util import MVN_degenerate as MVN
 
-# %% ../nbs/00_glssm.ipynb 5
+# %% ../nbs/00_glssm.ipynb 6
 vmatmul = vmap(jnp.matmul, (None, 0))
 
 
@@ -49,8 +49,8 @@ def simulate_states(
         A, Sigma = inputs
 
         next_loc = vmatmul(A, x_prev)
-        key, subkey = jrn.split(key)
 
+        key, subkey = jrn.split(key)
         samples = MVN(next_loc, Sigma).sample(seed=subkey)
 
         return (samples, key), samples
@@ -60,11 +60,12 @@ def simulate_states(
 
     x0_recast = jnp.broadcast_to(x0, (N, m))
     key, subkey = jrn.split(key)
+
     _, X = scan(sim_next_states, (x0_recast, subkey), (A_ext, Sigma))
 
     return X.transpose((1, 0, 2))
 
-# %% ../nbs/00_glssm.ipynb 6
+# %% ../nbs/00_glssm.ipynb 7
 def simulate_glssm(
     x0: Float[Array, "m"],
     A: Float[Array, "n m m"],
@@ -113,7 +114,7 @@ def simulate_glssm(
 
     return X, Y
 
-# %% ../nbs/00_glssm.ipynb 11
+# %% ../nbs/00_glssm.ipynb 12
 from .kalman import kalman
 def simulate_smoothed_FW1994(
     x_filt: Float[Array, "n+1 m"],
@@ -218,7 +219,7 @@ def FFBS(
     key, subkey = jrn.split(key)
     return simulate_smoothed_FW1994(x_filt, Xi_filt, Xi_pred, A, N, subkey)
 
-# %% ../nbs/00_glssm.ipynb 16
+# %% ../nbs/00_glssm.ipynb 17
 def log_probs_x(
     x: Float[Array, "n+1 m"],  # the states
     x0: Float[Array, "m"],  # initial mean
