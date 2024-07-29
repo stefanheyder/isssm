@@ -6,27 +6,16 @@ __all__ = ['lcm', 'common_factor_lcm', 'ar1']
 # %% ../nbs/models/00_gaussian_models.ipynb 4
 import jax.numpy as jnp
 from jaxtyping import Float, Array
-def lcm(n: int, x0: Float, s2_x0: Float, s2_eps: Float, s2_eta: Float):
-    """Univariate locally constant model
+from .typing import GLSSM
 
-    Parameters
-    ----------
-    n : int
-        number of observations
-    x0 : Float
-        initial mean
-    s2_x0 : Float
-        initial variance
-    s2_eps : Float
-        variance of innovations
-    s2_eta : Float
-        variance of disturbances
 
-    Returns
-    -------
-    model
-        a GLSSM
-    """
+def lcm(
+    n: int,  # number of time steps
+    x0: Float, # initial value
+    s2_x0: Float, # initial variance
+    s2_eps: Float, # innovation variance
+    s2_eta: Float, # observation noise variance
+) -> GLSSM: # the locally constant model
     A = jnp.ones((n, 1, 1))
     B = jnp.ones((n + 1, 1, 1))
 
@@ -35,32 +24,45 @@ def lcm(n: int, x0: Float, s2_x0: Float, s2_eps: Float, s2_eta: Float):
 
     x0 = jnp.array(x0).reshape((1,))
 
-    return x0, A, B, Sigma, Omega
+    return GLSSM(x0, A, Sigma, B, Omega)
 
 # %% ../nbs/models/00_gaussian_models.ipynb 7
-def common_factor_lcm(n: int, x0: Float[Array, "3"], Sigma0: Float[Array, "3 3"], s2_eps: Float, s2_eta: Float):
-
+def common_factor_lcm(
+    n: int,  # number of time steps
+    x0: Float[Array, "3"], # initial state mean
+    Sigma0: Float[Array, "3 3"], # initial state covariance
+    s2_eps: Float, # innovation variance
+    s2_eta: Float, # observation noise variance
+) -> GLSSM:
     if x0.shape != (3,):
-        raise ValueError(f"x0 does not have the correct shape, expected (3,) but got {x0.shape}")
-    
+        raise ValueError(
+            f"x0 does not have the correct shape, expected (3,) but got {x0.shape}"
+        )
+
     A = jnp.broadcast_to(jnp.eye(3), (n, 3, 3))
-    B = jnp.broadcast_to(jnp.array([[1,0,1], [0,1,1]]), (n+1,2,3))
+    B = jnp.broadcast_to(jnp.array([[1, 0, 1], [0, 1, 1]]), (n + 1, 2, 3))
     Sigma = jnp.concatenate(
-        (Sigma0[None], s2_eps * jnp.broadcast_to(jnp.eye(3), (n,3,3)))
+        (Sigma0[None], s2_eps * jnp.broadcast_to(jnp.eye(3), (n, 3, 3)))
     )
-    Omega = s2_eta * jnp.broadcast_to(jnp.eye(2), (n+1,2,2))
-    
-    return x0, A, B, Sigma, Omega
+    Omega = s2_eta * jnp.broadcast_to(jnp.eye(2), (n + 1, 2, 2))
+
+    return GLSSM(x0, A, Sigma, B, Omega)
 
 # %% ../nbs/models/00_gaussian_models.ipynb 10
-def ar1(mu, tau2, alpha, omega2, n):
+def ar1(
+    mu: Float,  # stationary mean
+    tau2: Float,  # stationary variance
+    alpha,  # dampening factor
+    omega2,  # observation noise
+    n: int,  # number of time steps
+) -> GLSSM:
     x0 = mu
     A = jnp.tile(alpha * jnp.eye(1)[None], (n, 1, 1))
     B = jnp.tile(jnp.eye(1)[None], (n + 1, 1, 1))
 
-    sigma2 = (1 - alpha ** 2) * tau2
+    sigma2 = (1 - alpha**2) * tau2
     Sigma = jnp.concatenate((tau2 * jnp.ones((1, 1, 1)), sigma2 * jnp.ones((n, 1, 1))))
 
     Omega = omega2 * jnp.ones((n + 1, 1, 1))
 
-    return x0, A, B, Sigma, Omega
+    return GLSSM(x0, A, Sigma, B, Omega)

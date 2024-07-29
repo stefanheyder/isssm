@@ -3,7 +3,7 @@
 # %% auto 0
 __all__ = ['vsolve_t', 'vmm', 'transition_precision_root', 'final_precision_root', 'ce_cholesky_block', 'ce_cholesky_last',
            'cholesky_components', 'simulate_backwards', 'simulate', 'marginals', 'log_prob', 'ce_log_weights',
-           'ce_cholesky_precision']
+           'joint_cov', 'forward_model_markov_process', 'ce_cholesky_precision']
 
 # %% ../nbs/45_cross_entropy_method.ipynb 1
 import jax.numpy as jnp
@@ -210,33 +210,74 @@ def log_prob(
     return -np1 * m / 2 * jnp.log(2 * jnp.pi) - 1 / 2 * logdet - 1 / 2 * l2_norm
 
 # %% ../nbs/45_cross_entropy_method.ipynb 26
+from .typing import PGSSM
 def ce_log_weights(
     x: Float[Array, "n+1 m"], # the sample
     y: Float[Array, "n+1 p"], # the observations
     full_diag: Float[Array, "n+1 m m"],# block diagonals of $L$
     off_diag: Float[Array, "n m m"], # off-diagonals of $L$
     mean: Float[Array, "n+1 m"], # mean of the process
-    x0: Float[Array, "m"], # initial state
-    A: Float[Array, "n m m"], # transition matrix
-    Sigma: Float[Array, "n+1 m m"], # covariance matrix
-    B: Float[Array, "n+1 p m"], # observation matrix
-    dist: tfd.Distribution, # distribution of the initial state
-    xi: Float[Array, "n+1 m"], # initial state
+    model: PGSSM
 ) -> Float: # log-weights
-    log_p = log_prob_joint(x, y, x0, A, Sigma, B, dist, xi)
+    log_p = log_prob_joint(x, y, model)
     log_g = log_prob(x, full_diag, off_diag, mean)
 
     return log_p - log_g
 
+# %% ../nbs/45_cross_entropy_method.ipynb 28
+from jax.lax import cond
+from .typing import GLSSM
+
+from .kalman import kalman, smoother
+
+
+def joint_cov(Xi_smooth_t, Xi_smooth_tp1, Xi_filt_t, Xi_pred_tp1, A_t):
+    """Joint covariance of conditional Markov process"""
+    off_diag = Xi_filt_t @ A_t.T @ jnp.linalg.solve(Xi_pred_tp1, Xi_smooth_tp1)
+    return jnp.block([[Xi_smooth_t, off_diag], [off_diag.T, Xi_smooth_tp1]])
+
+
+def forward_model_markov_process(y, model: GLSSM, time_reverse=True):
+    """mean + Cholesky root components of precision matrix of smoothing distribution"""
+
+    x0, A, *_ = model
+
+    filtered = kalman(y, model)
+    x_filter, Xi_filter, x_pred, Xi_pred = filtered
+    x_smooth, Xi_smooth = smoother(filtered, A)
+
+    (m,) = x0.shape
+
+    # permute X_t and X_t+1
+    P = jnp.block([[jnp.zeros((m, m)), jnp.eye(m)], [jnp.eye(m), jnp.zeros((m, m))]])
+
+    covs = vmap(joint_cov)(
+        Xi_smooth[:-1], Xi_smooth[1:], Xi_filter[:-1], Xi_pred[1:], A
+    )
+
+    def forwards(x_smooth, covs, Xi_smooth):
+        return x_smooth[::-1], vmap(lambda cov: P @ cov @ P.T)(covs)[::-1], Xi_smooth[0]
+
+    def backwards(x_smooth, covs, Xi_smooth):
+        return x_smooth, covs, Xi_smooth[-1]
+
+    mu, covs, final_cov = cond(
+        time_reverse, backwards, forwards, x_smooth, covs, Xi_smooth
+    )
+
+    roots = vmap(transition_precision_root)(covs)
+
+    root_diag, root_off_diag = jnp.split(roots, 2, 1)
+    final_root = final_precision_root(final_cov)
+
+    full_diag = jnp.concatenate([root_diag, final_root[None, :]], axis=0)
+
+    return mu, (full_diag, root_off_diag)
+
 # %% ../nbs/45_cross_entropy_method.ipynb 31
 def ce_cholesky_precision(
     y: Float[Array, "n+1 p"],  # observations
-    x0: Float[Array, "m"],  # initial state
-    A: Float[Array, "n m m"],  # state transition matrices
-    Sigma: Float[Array, "n+1 m m"],  # state noise covariance matrices
-    B: Float[Array, "n+1 p m"],  # observation matrices
-    xi: Float[Array, "n+1 p"],  # observation parameters
-    dist,  # observation distribution
+    model: PGSSM, # the model
     initial_mean: Float[Array, "n+1 m"],  # initial mean
     initial_diag: Float[Array, "n+1 m m"],  # initial off_diag
     initial_off_diag: Float[Array, "n m m"],  # initial off_diag
@@ -246,6 +287,7 @@ def ce_cholesky_precision(
     eps: Float = 1e-5,  # convergence threshold
 ):
     key, subkey = jrn.split(key)
+    x0, A, Sigma, B, dist, xi = model
 
     def _break(val):
         i, diag, off_diag, mean, old_diag, old_off_diag, old_mean = val
@@ -275,8 +317,8 @@ def ce_cholesky_precision(
 
         samples = simulate(diag, off_diag, subkey, N) + mean
 
-        log_weights = vmap(ce_log_weights, (0, *(None,) * 10))(
-            samples, y, diag, off_diag, mean, x0, A, Sigma, B, dist, xi
+        log_weights = vmap(ce_log_weights, (0, *(None,) * 5))(
+            samples, y, diag, off_diag, mean, model
         )
 
         weights = normalize_weights(log_weights)
@@ -294,8 +336,8 @@ def ce_cholesky_precision(
 
     samples = simulate(diag, off_diag, subkey, N) + mean
 
-    log_weights = vmap(ce_log_weights, (0, *(None,) * 10))(
-        samples, y, diag, off_diag, mean, x0, A, Sigma, B, dist, xi
+    log_weights = vmap(ce_log_weights, (0, *(None,) * 5))(
+        samples, y, diag, off_diag, mean, model
     )
 
     return (diag, off_diag, mean), (samples, log_weights), iterations

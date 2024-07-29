@@ -3,22 +3,21 @@
 # %% auto 0
 __all__ = ['vmm', 'vdiag', 'vvmap', 'SmoothState', 'PseudoObs', 'PseudoObsCov', 'mode_estimation']
 
-# %% ../nbs/30_mode_estimation.ipynb 8
-from .kalman import predict
-from .optim import converged
-from jaxtyping import Array, Float
-from jax import grad, vmap, jacfwd, jacrev
+# %% ../nbs/30_mode_estimation.ipynb 5
 from functools import partial
+
 import jax.numpy as jnp
 import jax.random as jrn
-
-from .typing import InitialState
-
-from .lcssm import nb_lcssm, simulate_lcssm
+from jax import grad, jacfwd, jacrev, jit, vmap
 from jax.lax import scan, while_loop
-from .kalman import smoother, kalman
-from jax import jacfwd, jacrev, jit
+from jaxtyping import Array, Float
 
+from .kalman import kalman, predict, smoother
+from .lcssm import nb_lcssm, simulate_lcssm
+from .optim import converged
+from .typing import GLSSM, PGSSM, InitialState
+
+# %% ../nbs/30_mode_estimation.ipynb 7
 vmm = jit(vmap(jnp.matmul))
 vdiag = jit(vmap(jnp.diag))
 vvmap = lambda fun: vmap(vmap(fun))
@@ -27,21 +26,19 @@ SmoothState = Float[Array, "n+1 m"]
 PseudoObs = Float[Array, "n+1 p"]
 PseudoObsCov = Float[Array, "n+1 p p"]
 
+
 def mode_estimation(
-    y: Float[Array, "n+1 p"], # observation
-    x0: InitialState, # initial state mean
-    A: Float[Array, "n m m"], # state transition matrices
-    Sigma: Float[Array, "n+1 m m"], # state covariance matrices
-    B: Float[Array, "n+1 p m"], # observation matrices
-    dist, # distribution of observations
-    xi: Float[Array, "n+1 p"], # observation parameters
-    s_init: Float[Array, "n+1 p"], # initial signal
-    n_iter: int, # number of iterations
-    log_lik=None, # log likelihood function
-    d_log_lik=None, # derivative of log likelihood function
-    dd_log_lik=None, # second derivative of log likelihood function
-    eps: Float=1e-5, # precision of iterations
+    y: Float[Array, "n+1 p"],  # observation
+    model: PGSSM,
+    s_init: Float[Array, "n+1 p"],  # initial signal
+    n_iter: int,  # number of iterations
+    log_lik=None,  # log likelihood function
+    d_log_lik=None,  # derivative of log likelihood function
+    dd_log_lik=None,  # second derivative of log likelihood function
+    eps: Float = 1e-5,  # precision of iterations
 ) -> tuple[SmoothState, PseudoObs, PseudoObsCov]:
+    x0, A, Sigma, B, dist, xi = model
+
     def default_log_lik(s_ti, xi_ti, y_ti):
         return dist(s_ti, xi_ti).log_prob(y_ti).sum()
 
@@ -63,7 +60,9 @@ def mode_estimation(
         Omega_converged = converged(Omega, Omega_old, eps)
         iteration_limit_reached = i >= n_iter
 
-        return jnp.logical_or(jnp.logical_and(z_converged, Omega_converged), iteration_limit_reached)
+        return jnp.logical_or(
+            jnp.logical_and(z_converged, Omega_converged), iteration_limit_reached
+        )
 
     def _iteration(val):
         s, i, z_old, Omega_old, _, _, _ = val
@@ -74,22 +73,21 @@ def mode_estimation(
         Omega = vdiag(1.0 / Gamma)
 
         z = s + grad / Gamma
-        x_filt, Xi_filt, x_pred, Xi_pred = kalman(z, x0, Sigma, Omega, A, B)
+        filtered = kalman(z, GLSSM(x0, A, Sigma, B, Omega))
 
-        x_smooth, Xi_smooth = smoother(x_filt, Xi_filt, x_pred, Xi_pred, A)
+        x_smooth, Xi_smooth = smoother(filtered, A)
 
-        s_new = (B @ x_smooth[:,:, None])[:, :, 0]
+        s_new = (B @ x_smooth[:, :, None])[:, :, 0]
 
-        return s_new, i+1, z, Omega, x_smooth, z_old, Omega_old
-    
-    init = _iteration(
-        (s_init, 0, None, None, None, None, None)
-    )
+        return s_new, i + 1, z, Omega, x_smooth, z_old, Omega_old
+
+    init = _iteration((s_init, 0, None, None, None, None, None))
     # iterate once more, so z_old, Omega_old have sensible values
     init = _iteration(init)
 
-    s, n_iters, z, Omega, x_smooth, _, _ = while_loop(
-        _break, _iteration, init
-    )
+    s, n_iters, z, Omega, x_smooth, _, _ = while_loop(_break, _iteration, init)
 
     return x_smooth, z, Omega
+
+# %% ../nbs/30_mode_estimation.ipynb 9
+from .typing import PGSSM

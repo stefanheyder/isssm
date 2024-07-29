@@ -7,9 +7,10 @@ __all__ = ['stsm']
 import jax
 import jax.numpy as jnp
 from jaxtyping import Float, Array
+from ..typing import GLSSM
 import jax.scipy as jsp
 
-# %% ../../nbs/models/10_stsm.ipynb 4
+# %% ../../nbs/models/10_stsm.ipynb 5
 def stsm(
     x0: Float[Array, "m"], # initial state
     s2_mu: Float, # variance of trend innovations
@@ -19,7 +20,7 @@ def stsm(
     Sigma_init: Float[Array, "m m"], # initial state covariance
     o2: Float, # variance of observation noise
     s_order: int, # order of seasonal component
-):
+) -> GLSSM:
 
     A = jnp.array([[1, 1], [0, 1]])
     B = jnp.array([[1, 0]])
@@ -27,7 +28,7 @@ def stsm(
     Sigma = jnp.diag(jnp.array([s2_mu, s2_nu]))
 
 
-    if s_order > 0:
+    if s_order >= 2:
         A_seasonal = jnp.block([
             [-jnp.ones((s_order - 1)), -jnp.ones((1,))],
             [jnp.eye(s_order - 1), jnp.zeros((s_order - 1,))]
@@ -47,4 +48,4 @@ def stsm(
 
     Omega = jnp.broadcast_to(jnp.diag(jnp.array([o2])), (n + 1, 1, 1))
 
-    return x0, A, B, Sigma, Omega
+    return GLSSM(x0, A, Sigma, B, Omega)

@@ -4,45 +4,28 @@
 __all__ = ['vmatmul', 'simulate_states', 'simulate_glssm', 'simulate_smoothed_FW1994', 'FFBS', 'log_probs_x', 'log_probs_y',
            'log_prob']
 
-# %% ../nbs/00_glssm.ipynb 4
+# %% ../nbs/00_glssm.ipynb 1
 import jax.numpy as jnp
 import jax.random as jrn
 from jax import vmap
-from jaxtyping import Float, Array, PRNGKeyArray
 from jax.lax import scan
+from jaxtyping import Array, Float, PRNGKeyArray
+
+from .kalman import kalman
+from .typing import (GLSSM, GLSSMObservationModel, GLSSMState,
+                          Observations, States)
 from .util import MVN_degenerate as MVN
 
 # %% ../nbs/00_glssm.ipynb 6
 vmatmul = vmap(jnp.matmul, (None, 0))
 
-
 def simulate_states(
-    x0: Float[Array, "m"],
-    A: Float[Array, "n m m"],
-    Sigma: Float[Array, "n+1 m m"],
-    N: int,
-    key: PRNGKeyArray
-) -> Float[Array, "N n+1 m"]: 
-    """Simulate states of a GLSSM
-
-    Parameters
-    ----------
-    x0 : 
-        initial mean $\\mathbf E \\left( X_0 \\right)$
-    A : 
-        transition matrices $A_t$, $t = 0, \\dots, n-1$
-    Sigma : 
-        covariance matrices of innovations $\\Sigma_t$, $t = 0, \\dots, n$
-    N : 
-        number of samples to draw
-    key : PRNGKeyArray
-        the random state
-
-    Returns
-    -------
-    X
-        an array of N samples from the state distribution 
-    """
+    state: GLSSMState,
+    N: int, # number of samples to draw
+    key: PRNGKeyArray # the random state
+) -> Float[Array, "N n+1 m"]: # array of N samples from the state distribution  
+    """Simulate states of a GLSSM """
+    x0, A, Sigma = state
 
     def sim_next_states(carry, inputs):
         x_prev, key = carry
@@ -67,40 +50,14 @@ def simulate_states(
 
 # %% ../nbs/00_glssm.ipynb 7
 def simulate_glssm(
-    x0: Float[Array, "m"],
-    A: Float[Array, "n m m"],
-    B: Float[Array, "n+1 p m"],
-    Sigma: Float[Array, "n+1 m m"],
-    Omega: Float[Array, "n+1 p p"],
-    N: int,
-    key: PRNGKeyArray
-) -> (Float[Array, "N n+1 m"], Float[Array, "N n+1 p"]):
-    r"""Simulate states and observations of a GLSSM
-
-    Parameters
-    ----------
-    x0 : 
-        initial mean $\mathbf E X_0$
-    A : 
-        transition matrices $A_t$, $t = 0, \dots, n - 1$
-    B : 
-        observation matrices $B_t$, $t = 0, \dots, n$
-    Sigma : 
-        covariance matrices of innovations $\Sigma_t$, $t = 0, \dots, n$
-    Omega : 
-        covariance matrices of errors $\Omega_t$, $t=0, \dots, n$
-    N : int
-        number of sample paths
-    key : PRNGKeyArray
-        the random state
-
-    Returns
-    -------
-    X, Y : 
-        a tuple of two arrays each with of N samples from the state/observation distribution
-    """
+    glssm: GLSSM,
+    N: int, # number of sample paths
+    key: PRNGKeyArray # the random state
+) -> (Float[Array, "N n+1 m"], Float[Array, "N n+1 p"]): # tuple of two arrays each with of N samples from the state/observation distribution
+    """Simulate states and observations of a GLSSM """
+    x0, A, Sigma, B, Omega = glssm
     key, subkey = jrn.split(key)
-    X = simulate_states(x0, A, Sigma, N, subkey).transpose((1, 0, 2))
+    X = simulate_states(GLSSMState(x0, A, Sigma), N, subkey).transpose((1, 0, 2))
 
     S = vmap(vmatmul, (0, 0))(B, X)
 
@@ -115,37 +72,15 @@ def simulate_glssm(
     return X, Y
 
 # %% ../nbs/00_glssm.ipynb 12
-from .kalman import kalman
 def simulate_smoothed_FW1994(
     x_filt: Float[Array, "n+1 m"],
     Xi_filt: Float[Array, "n+1 m m"],
     Xi_pred: Float[Array, "n+1 m m"],
     A: Float[Array, "n m m"],
-    N: int,
-    key: PRNGKeyArray
-) -> Float[Array, "N n+1 m"]:
-    r"""Simulate from smoothing distribution $p(X_0, \dots, X_n|Y_0, \dots, Y_n)$
-
-    Parameters
-    ----------
-    x_filt :
-        filtered states $\hat X_{t\vert t}$
-    Xi_filt :
-        filtered covariance matrices $\Xi_{t\vert t}$, $t=0,\dots,n$
-    Xi_pred :
-        prediction covariance matrices $\Xi_{t + 1 \vert t}$, $t=0, \dots, n-1$
-    A :
-        transition matrices $A_t$, $t=0,\dots,n-1$
-    N :
-        number of samples
-    key :
-        the random states
-
-    Returns
-    -------
-    X :
-        an array of N samples from the smoothing distribution
-    """
+    N: int, # number of samples
+    key: PRNGKeyArray # the random states
+) -> Float[Array, "N n+1 m"]: # array of N samples from the smoothing distribution
+    r"""Simulate from smoothing distribution $p(X_0, \dots, X_n|Y_0, \dots, Y_n)$"""
 
     key, subkey = jrn.split(key)
     X_n = MVN(x_filt[-1], Xi_filt[-1]).sample(N, subkey)
@@ -177,55 +112,26 @@ def simulate_smoothed_FW1994(
 
 
 def FFBS(
-    y: Float[Array, "n+1 m"],
-    x0: Float[Array, "m"],
-    Sigma: Float[Array, "n+1 m m"],
-    Omega: Float[Array, "n+1 p p"],
-    A: Float[Array, "n m m"],
-    B: Float[Array, "n+1 p m"],
-    N: int,
-    key: PRNGKeyArray
-) -> Float[Array, "N n+1 m"]:
-    r"""The Forward-Filter Backwards-Sampling Algorithm
+    y: Observations, # Observations $y$
+    glssm: GLSSM, # GLSSM
+    N: int, # number of samples 
+    key: PRNGKeyArray # random state
+) -> Float[Array, "N n+1 m"]: # N samples from the smoothing distribution
+    r"""The Forward-Filter Backwards-Sampling Algorithm from [@Fruhwirth-Schnatter1994Data]."""
 
-    From [@Fruhwirth-Schnatter1994Data].
-
-    Parameters
-    ----------
-    y :
-        Observations $y$
-    x0 :
-        initial mean $\mathbf E X_0$
-    Sigma :
-        innovation covariances $\Sigma_t$
-    Omega :
-        errors $\Omega_t$
-    A :
-        transition matrices $A_t$
-    B :
-        observation matrices $B_t$
-    N : int
-        number of samples
-    key : PRNGKeyArray
-        random state
-
-    Returns
-    -------
-    X :
-        an array of N samples from the smoothing distribution
-    """
-    x_filt, Xi_filt, _, Xi_pred = kalman(y, x0, Sigma, Omega, A, B)
+    x0, A, Sigma, B, Omega = glssm
+    x_filt, Xi_filt, _, Xi_pred = kalman(y, GLSSM(x0, A, Sigma, B, Omega))
 
     key, subkey = jrn.split(key)
     return simulate_smoothed_FW1994(x_filt, Xi_filt, Xi_pred, A, N, subkey)
 
 # %% ../nbs/00_glssm.ipynb 17
 def log_probs_x(
-    x: Float[Array, "n+1 m"],  # the states
-    x0: Float[Array, "m"],  # initial mean
-    A: Float[Array, "n m m"],  # transition matrices
-    Sigma: Float[Array, "n+1 m m"],  # innovation covariances
+    x: States,  # the states
+    state: GLSSMState # the state model
 ) -> Float[Array, "n+1"]:  # log probabilities $p(x_t | x_{t-1})$
+    """log probabilities $\\log p(x_t | x_{t-1})$"""
+    x0, A, Sigma = state
     (m,) = x0.shape
     A_ext = jnp.concatenate((jnp.eye(m)[jnp.newaxis], A))
     x_prev = jnp.concatenate((x0[None], x[:-1]))
@@ -234,22 +140,22 @@ def log_probs_x(
 
 
 def log_probs_y(
-    y: Float[Array, "n+1 p"],  # the observations
-    x: Float[Array, "n+1 m"],  # the states
-    B: Float[Array, "n+1 p m"],  # observation matrices
-    Omega: Float[Array, "n+1 p p"],  # error covariances
+    y: Observations,  # the observations
+    x: States,  # the states
+    obs_model: GLSSMObservationModel, # the observation model
 ) -> Float[Array, "n+1"]:  # log probabilities $p(y_t | x_t)$
+    """log probabilities $\\log p(y_t | x_t)$"""
+    B, Omega = obs_model
     y_pred = (B @ x[:, :, None])[:, :, 0]
     return MVN(y_pred, Omega).log_prob(y)
 
-
 def log_prob(
-    x: Float[Array, "n+1 m"],
-    y: Float[Array, "n+1 p"],
-    x0: Float[Array, "m"],
-    A: Float[Array, "n m m"],
-    B: Float[Array, "n+1 p m"],
-    Sigma: Float[Array, "n+1 m m"],
-    Omega: Float[Array, "n+1 p p"],
-):
-    return jnp.sum(log_probs_x(x, x0, A, Sigma)) + jnp.sum(log_probs_y(y, x, B, Omega))
+    x: States,
+    y: Observations,
+    glssm: GLSSM
+) -> Float: # $\\log p(x,y)$
+    """joint log probability of states and observations"""
+    x0, A, Sigma, B, Omega = glssm
+    log_p_x = jnp.sum(log_probs_x(x, GLSSMState(x0, A, Sigma)))
+    log_p_y_given_x = jnp.sum(log_probs_y(y, x, GLSSMObservationModel(B, Omega)))
+    return log_p_x + log_p_y_given_x

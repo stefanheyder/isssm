@@ -19,15 +19,11 @@ from tensorflow_probability.substrates.jax.distributions import (
 )
 
 from .glssm import vmatmul
+from .typing import GLSSM, PGSSM
 
 def modified_efficient_importance_sampling(
     y: Float[Array, "n+1 p"], # observations
-    x0: Float[Array, "m"], # initial state
-    A: Float[Array, "n m m"], # state transition matrices
-    Sigma: Float[Array, "n+1 m m"], # state noise covariance matrices
-    B: Float[Array, "n+1 p m"],  # observation matrices
-    xi: Float[Array, "n+1 p"], # observation parameters
-    dist, # observation distribution
+    model: PGSSM, # model
     z_init: Float[Array, "n+1 p"], # initial z estimate
     Omega_init: Float[Array, "n+1 p p"], # initial Omega estimate
     n_iter: int, # number of iterations
@@ -36,6 +32,7 @@ def modified_efficient_importance_sampling(
     eps: Float = 1e-5, # convergence threshold
 ):
     np1, p = y.shape
+    x0, A, Sigma, B, dist, xi = model
     n = np1 - 1
 
     lw_t = vmap(lambda s, y, xi, z, Omega: log_weights_t(s, y, xi, dist, z, Omega))
@@ -57,7 +54,7 @@ def modified_efficient_importance_sampling(
     def _iteration(val):
         a, i, z, Omega, _, _, initial_key = val
 
-        x_filt, Xi_filt, x_pred, Xi_pred = kalman(z, x0, Sigma, Omega, A, B)
+        x_filt, Xi_filt, x_pred, Xi_pred = kalman(z, GLSSM(x0, A, Sigma, B, Omega))
 
         key, subkey = jrn.split(initial_key)
         last_samples = MVN(x_filt[-1], Xi_filt[-1]).sample(N, seed=subkey)
@@ -135,6 +132,5 @@ def modified_efficient_importance_sampling(
     _, n_iters, z, Omega, _, _, _ = while_loop(
         _keep_going, _iteration, init
     )
-
 
     return z, Omega

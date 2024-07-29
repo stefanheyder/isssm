@@ -13,6 +13,7 @@ import jax.numpy as jnp
 from jaxtyping import Float, Array
 from jax import vmap
 from functools import partial
+from .typing import PGSSM
 
 
 
@@ -52,28 +53,27 @@ def log_weights(
 
     return p_ys - g_zs
 
-# %% ../nbs/40_importance_sampling.ipynb 7
+# %% ../nbs/40_importance_sampling.ipynb 8
 from jaxtyping import Float, Array, PRNGKeyArray
 from .glssm import FFBS
 import jax.random as jrn
+from .typing import GLSSM
 
 v_log_weights = vmap(log_weights, (0, None, None, None, None, None))
 
 def lcssm_importance_sampling(
     y: Float[Array, "n+1 p"],  # observations
-    x0: Float[Array, "m"],  # initial state
-    A: Float[Array, "n m m"],  # state transition matrices
-    Sigma: Float[Array, "n+1 m m"],  # innovation covariance matrices
-    B: Float[Array, "n+1 p m"],  # observation matrices
-    dist,  # distribution of observations
-    xi: Float[Array, "n+1 p"],  #
+    model: PGSSM,
     z: Float[Array, "n+1 p"],  # synthetic observations
     Omega: Float[Array, "n+1 p p"],  # covariance of synthetic observations
     N: int,  # number of samples
     key: PRNGKeyArray  # random key
 ) -> tuple[Float[Array, "N n+1 m"], Float[Array, "N"]]:  # importance samples and weights
+    x0, A, Sigma, B, dist, xi = model
     key, subkey = jrn.split(key)
-    samples = FFBS(z, x0, Sigma, Omega, A, B, N, subkey)
+
+    glssm = GLSSM(x0, A, Sigma, B, Omega)
+    samples = FFBS(z, glssm, N, subkey)
 
     vB = partial(vmap(jnp.matmul), B)
 
@@ -83,7 +83,7 @@ def lcssm_importance_sampling(
 
     return samples, lw
 
-# %% ../nbs/40_importance_sampling.ipynb 12
+# %% ../nbs/40_importance_sampling.ipynb 13
 from jaxtyping import Float, Array
 
 
@@ -99,7 +99,7 @@ def normalize_weights(
 
     return weights / weights.sum()
 
-# %% ../nbs/40_importance_sampling.ipynb 15
+# %% ../nbs/40_importance_sampling.ipynb 16
 from jaxtyping import Float, Array
 
 
@@ -116,7 +116,7 @@ def ess_lw(
     """Compute the effective sample size of a set of log weights"""
     return ess(normalize_weights(log_weights))
 
-# %% ../nbs/40_importance_sampling.ipynb 18
+# %% ../nbs/40_importance_sampling.ipynb 19
 def ess_pct(log_weights):
     N, = log_weights.shape
     return ess_lw(log_weights) / N * 100 

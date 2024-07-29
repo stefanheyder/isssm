@@ -4,15 +4,17 @@
 __all__ = ['State', 'StateCov', 'StateTransition', 'predict', 'filter', 'kalman', 'smooth_step', 'smoother', 'sqrt_predict',
            'sqrt_filter', 'sqrt_kalman', 'sqrt_smooth_step', 'sqrt_smoother']
 
-# %% ../nbs/10_kalman_filter_smoother.ipynb 6
+# %% ../nbs/10_kalman_filter_smoother.ipynb 1
 import jax.numpy as jnp
-from jaxtyping import Float, Array
 import jax.scipy.linalg as jsla
-from jax.lax import scan
-from jax import vmap
-
 import tensorflow_probability.substrates.jax.distributions as tfd
+from jax import vmap
+from jax.lax import scan
+from jaxtyping import Array, Float
 
+from .typing import GLSSM, FilterResult, Observations, SmootherResult
+
+# %% ../nbs/10_kalman_filter_smoother.ipynb 8
 def predict(
     x_filt: Float[Array, "m"], # $X_{t|t}$
     Xi_filt: Float[Array, "m m"], # $\Xi_{t|t}
@@ -42,13 +44,11 @@ def filter(
 
 
 def kalman(
-    y: Float[Array, "n+1 p"],
-    x0: Float[Array, "m"],
-    Sigma: Float[Array, "n+1 m m"],
-    Omega: Float[Array, "n+1 p p"],
-    A: Float[Array, "n m m"],
-    B: Float[Array, "n+1 p m"],
-):
+    y: Observations,
+    glssm: GLSSM,
+) -> FilterResult:
+    """Perform the Kalman filter"""
+    x0, A, Sigma, B, Omega = glssm
     def step(carry, inputs):
         x_filt, Xi_filt = carry
         y, Sigma, Omega, A, B = inputs
@@ -62,6 +62,7 @@ def kalman(
     # covariance zero, transition identity
     # will lead to X_0 having correct predictive distribution
     # this avoids having to compute a separate filtering step beforehand
+
     m, = x0.shape
     A_ext = jnp.concatenate(
         (jnp.eye(m)[jnp.newaxis], A)
@@ -71,9 +72,9 @@ def kalman(
         step, (x0, jnp.zeros_like(Sigma[0])), (y, Sigma, Omega, A_ext, B)
     )
 
-    return x_filt, Xi_filt, x_pred, Xi_pred
+    return FilterResult(x_filt, Xi_filt, x_pred, Xi_pred)
 
-# %% ../nbs/10_kalman_filter_smoother.ipynb 11
+# %% ../nbs/10_kalman_filter_smoother.ipynb 12
 State = Float[Array, "m"]
 StateCov = Float[Array, "m m"]
 StateTransition = Float[Array, "m m"]
@@ -89,7 +90,7 @@ def smooth_step(
     A: StateTransition
 ):
     err = x_smooth_next - x_pred_next
-    Gain = Xi_filt @ jsla.solve(Xi_pred_next, A).T
+    Gain = Xi_filt @ A.T @ jnp.linalg.pinv(Xi_pred_next)
 
     x_smooth = x_filt + Gain @ err
     Xi_smooth = Xi_filt - Gain @ (Xi_pred_next - Xi_smooth_next) @ Gain.T
@@ -98,12 +99,10 @@ def smooth_step(
 
 
 def smoother(
-    x_filt: Float[Array, "n+1 m"],
-    Xi_filt: Float[Array, "n+1 m m"],
-    x_pred: Float[Array, "n+1 m"],
-    Xi_pred: Float[Array, "n+1 m m"],
+    filter_result: FilterResult,
     A: Float[Array, "n m m"]
-):
+) -> SmootherResult:
+    x_filt, Xi_filt, x_pred, Xi_pred = filter_result
     def step(carry, inputs):
         x_smooth_next, Xi_smooth_next = carry
         x_filt, Xi_filt, x_pred_next, Xi_pred_next, A = inputs
@@ -121,9 +120,9 @@ def smoother(
     x_smooth = jnp.concatenate([x_smooth, x_filt[None, -1]])
     Xi_smooth = jnp.concatenate([Xi_smooth, Xi_filt[None, -1]])
 
-    return x_smooth, Xi_smooth
+    return SmootherResult(x_smooth, Xi_smooth)
 
-# %% ../nbs/10_kalman_filter_smoother.ipynb 19
+# %% ../nbs/10_kalman_filter_smoother.ipynb 20
 def sqrt_predict(x_filt, cu_Xi_filt, A, cu_Sigma):
     x_pred = A @ x_filt
     matrix_to_rotate = jnp.block([
@@ -141,7 +140,7 @@ def sqrt_predict(x_filt, cu_Xi_filt, A, cu_Sigma):
     
     return x_pred, cu_Xi_pred, G, cu_H
 
-# %% ../nbs/10_kalman_filter_smoother.ipynb 22
+# %% ../nbs/10_kalman_filter_smoother.ipynb 23
 def sqrt_filter(x_pred, cu_Xi_pred, cu_Omega, B, y):
     y_pred = B @ x_pred
 
@@ -163,7 +162,7 @@ def sqrt_filter(x_pred, cu_Xi_pred, cu_Omega, B, y):
     return x_filt, cu_Xi_filt
 
 
-# %% ../nbs/10_kalman_filter_smoother.ipynb 24
+# %% ../nbs/10_kalman_filter_smoother.ipynb 25
 def sqrt_kalman(
     y: Float[Array, "n+1 p"],
     x0: Float[Array, "m"],
@@ -196,7 +195,7 @@ def sqrt_kalman(
 
     return x_filt, cu_Xi_filt, x_pred, cu_Xi_pred, G, cu_H
 
-# %% ../nbs/10_kalman_filter_smoother.ipynb 27
+# %% ../nbs/10_kalman_filter_smoother.ipynb 28
 def sqrt_smooth_step(
     x_filt: State,
     x_pred_next: State,
