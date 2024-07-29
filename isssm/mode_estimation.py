@@ -14,7 +14,7 @@ from jaxtyping import Array, Float
 
 from .kalman import kalman, predict, smoother
 from .lcssm import nb_lcssm, simulate_lcssm
-from .optim import converged
+from .util import converged
 from .typing import GLSSM, PGSSM, InitialState
 
 # %% ../nbs/30_mode_estimation.ipynb 7

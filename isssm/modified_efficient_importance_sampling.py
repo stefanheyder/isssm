@@ -8,7 +8,7 @@ import jax.numpy as jnp
 import jax.random as jrn
 from jaxtyping import Float, Array, PRNGKeyArray
 from jax import vmap
-from .optim import converged
+from .util import converged
 from .importance_sampling import log_weights_t, normalize_weights
 from functools import partial
 from jax.lax import while_loop

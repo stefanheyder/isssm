@@ -17,7 +17,7 @@ import tensorflow_probability.substrates.jax.distributions as tfd
 from jaxtyping import Float, Array, PRNGKeyArray
 from typing import Tuple
 from .importance_sampling import normalize_weights
-from .optim import converged
+from .util import converged
 from jax.lax import while_loop, fori_loop, scan
 
 # %% ../nbs/45_cross_entropy_method.ipynb 9
