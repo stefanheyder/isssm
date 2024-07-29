@@ -53,7 +53,7 @@ def log_weights(
 
     return p_ys - g_zs
 
-# %% ../nbs/40_importance_sampling.ipynb 8
+# %% ../nbs/40_importance_sampling.ipynb 7
 from jaxtyping import Float, Array, PRNGKeyArray
 from .kalman import FFBS
 import jax.random as jrn
@@ -83,7 +83,7 @@ def lcssm_importance_sampling(
 
     return samples, lw
 
-# %% ../nbs/40_importance_sampling.ipynb 13
+# %% ../nbs/40_importance_sampling.ipynb 12
 from jaxtyping import Float, Array
 
 
@@ -99,7 +99,7 @@ def normalize_weights(
 
     return weights / weights.sum()
 
-# %% ../nbs/40_importance_sampling.ipynb 16
+# %% ../nbs/40_importance_sampling.ipynb 15
 from jaxtyping import Float, Array
 
 
@@ -116,7 +116,7 @@ def ess_lw(
     """Compute the effective sample size of a set of log weights"""
     return ess(normalize_weights(log_weights))
 
-# %% ../nbs/40_importance_sampling.ipynb 19
+# %% ../nbs/40_importance_sampling.ipynb 18
 def ess_pct(log_weights):
     N, = log_weights.shape
     return ess_lw(log_weights) / N * 100 

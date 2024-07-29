@@ -20,7 +20,7 @@ from .importance_sampling import normalize_weights
 from .util import converged
 from jax.lax import while_loop, fori_loop, scan
 
-# %% ../nbs/45_cross_entropy_method.ipynb 9
+# %% ../nbs/45_cross_entropy_method.ipynb 8
 def transition_precision_root(cov):
     def _iter(carry, input):
         ei, = input
@@ -119,7 +119,7 @@ def cholesky_components(
 
     return MarkovProcessCholeskyComponents(full_diag, off_diag)
 
-# %% ../nbs/45_cross_entropy_method.ipynb 16
+# %% ../nbs/45_cross_entropy_method.ipynb 15
 vsolve_t = vmap(jsp.linalg.solve_triangular, (None, 0))
 vmm = vmap(jnp.matmul, (None, 0))
 
@@ -163,7 +163,7 @@ def simulate(
     return x
 
 
-# %% ../nbs/45_cross_entropy_method.ipynb 18
+# %% ../nbs/45_cross_entropy_method.ipynb 17
 def marginals(
     mu: Float[Array, "m"],  # mean
     full_diag: Float[Array, "n m m"],  # block diagonals of $L$
@@ -183,7 +183,7 @@ def marginals(
 
     return mu, vmap(jnp.diag)(Sigma)
 
-# %% ../nbs/45_cross_entropy_method.ipynb 21
+# %% ../nbs/45_cross_entropy_method.ipynb 20
 def log_prob(
     x: Float[Array, "n+1 m"], # the location at which to evaluate the likelihood
     full_diag: Float[Array, "n+1 m m"],# block diagonals of $L$
@@ -209,7 +209,7 @@ def log_prob(
 
     return -np1 * m / 2 * jnp.log(2 * jnp.pi) - 1 / 2 * logdet - 1 / 2 * l2_norm
 
-# %% ../nbs/45_cross_entropy_method.ipynb 26
+# %% ../nbs/45_cross_entropy_method.ipynb 24
 from .typing import PGSSM
 def ce_log_weights(
     x: Float[Array, "n+1 m"], # the sample
@@ -224,7 +224,7 @@ def ce_log_weights(
 
     return log_p - log_g
 
-# %% ../nbs/45_cross_entropy_method.ipynb 28
+# %% ../nbs/45_cross_entropy_method.ipynb 26
 from jax.lax import cond
 from .typing import GLSSM
 
@@ -274,7 +274,7 @@ def forward_model_markov_process(y, model: GLSSM, time_reverse=True):
 
     return mu, (full_diag, root_off_diag)
 
-# %% ../nbs/45_cross_entropy_method.ipynb 31
+# %% ../nbs/45_cross_entropy_method.ipynb 29
 def ce_cholesky_precision(
     y: Float[Array, "n+1 p"],  # observations
     model: PGSSM, # the model

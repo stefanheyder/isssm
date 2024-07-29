@@ -17,6 +17,7 @@ from .importance_sampling import normalize_weights
 from .typing import GLSSM, PGSSM
 
 # %% ../nbs/60_maximum_likelihood_estimation.ipynb 6
+from .util import MVN_degenerate as MVN
 vmm = vmap(jnp.matmul, (0, 0))
 
 
@@ -32,7 +33,7 @@ def gnll(
     y_pred = vmm(B, x_pred)
     Psi_pred = vmm(vmm(B, Xi_pred), jnp.transpose(B, (0, 2, 1))) + Omega
 
-    return -tfd.MultivariateNormalFullCovariance(y_pred, Psi_pred).log_prob(y).sum()
+    return -MVN(y_pred, Psi_pred).log_prob(y).sum()
 
 @jit
 def gnll_full(
@@ -164,8 +165,8 @@ def mle_lcssm(
         
         _, z, Omega = LA(y, model, s_init, n_iter_me)
 
-        key, subkey = jrn.split(key)    
-        z, Omega = MEIS(y, model, z, Omega, n_iter_me, N, subkey)
+        #key, subkey = jrn.split(key)    
+        #z, Omega = MEIS(y, model, z, Omega, n_iter_me, N, subkey)
 
         key, subkey = jrn.split(key)    
         return lcnll(y, model, z, Omega, N, subkey)
