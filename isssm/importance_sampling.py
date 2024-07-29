@@ -55,7 +55,7 @@ def log_weights(
 
 # %% ../nbs/40_importance_sampling.ipynb 8
 from jaxtyping import Float, Array, PRNGKeyArray
-from .glssm import FFBS
+from .kalman import FFBS
 import jax.random as jrn
 from .typing import GLSSM
 

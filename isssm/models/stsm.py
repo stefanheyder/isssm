@@ -30,8 +30,8 @@ def stsm(
 
     if s_order >= 2:
         A_seasonal = jnp.block([
-            [-jnp.ones((s_order - 1)), -jnp.ones((1,))],
-            [jnp.eye(s_order - 1), jnp.zeros((s_order - 1,))]
+            [-jnp.ones((1,s_order - 1)), -jnp.ones((1,1))],
+            [jnp.eye(s_order - 1), jnp.zeros((s_order - 1,1))]
         ])
         B_seasonal = (jnp.eye(s_order)[0])[None,:]
         Sigma_seasonal = jnp.diag(jnp.eye(s_order)[0] * s2_seasonal)
