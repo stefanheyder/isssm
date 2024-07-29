@@ -13,7 +13,7 @@ from jax.lax import scan, while_loop
 from jaxtyping import Array, Float
 
 from .kalman import kalman, predict, smoother
-from .lcssm import simulate_lcssm
+from .pgssm import simulate_lcssm
 from .util import converged
 from .typing import GLSSM, PGSSM, InitialState
 

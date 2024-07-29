@@ -12,7 +12,7 @@ import jax.random as jrn
 from .typing import MarkovProcessCholeskyComponents
 from jax import vmap, jit
 from .importance_sampling import ess_pct
-from .lcssm import log_prob as log_prob_joint
+from .pgssm import log_prob as log_prob_joint
 import tensorflow_probability.substrates.jax.distributions as tfd
 from jaxtyping import Float, Array, PRNGKeyArray
 from typing import Tuple
