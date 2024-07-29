@@ -3,14 +3,17 @@ website:
     contents:
       - index.ipynb
       - 00_glssm.ipynb
-      - 01_example_models.ipynb
       - 10_kalman_filter_smoother.ipynb
       - 20_lcssm.ipynb
       - 30_mode_estimation.ipynb
       - 40_importance_sampling.ipynb
+      - 45_cross_entropy_method.ipynb
       - 50_modified_efficient_importance_sampling.ipynb
       - 60_maximum_likelihood_estimation.ipynb
       - 99_typings.ipynb
-      - section: Testing
+      - 99_util.ipynb
+      - section: models
         contents:
-          - Testing/11_analytical_verification.ipynb
+          - models/00_gaussian_models.ipynb
+          - models/10_stsm.ipynb
+          - models/20_pgssm.ipynb

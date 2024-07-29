@@ -68,11 +68,11 @@ def simulate_glssm(
 
     return X, Y
 
-# %% ../nbs/00_glssm.ipynb 12
+# %% ../nbs/00_glssm.ipynb 15
 def log_probs_x(
     x: States,  # the states
     state: GLSSMState # the state model
-) -> Float[Array, "n+1"]:  # log probabilities $p(x_t | x_{t-1})$
+) -> Float[Array, "n+1"]:  # log probabilities $\log p(x_t \vert x_{t-1})$
     """log probabilities $\\log p(x_t | x_{t-1})$"""
     x0, A, Sigma = state
     (m,) = x0.shape
@@ -86,7 +86,7 @@ def log_probs_y(
     y: Observations,  # the observations
     x: States,  # the states
     obs_model: GLSSMObservationModel, # the observation model
-) -> Float[Array, "n+1"]:  # log probabilities $p(y_t | x_t)$
+) -> Float[Array, "n+1"]:  # log probabilities $\log p(y_t \vert x_t)$
     """log probabilities $\\log p(y_t | x_t)$"""
     B, Omega = obs_model
     y_pred = (B @ x[:, :, None])[:, :, 0]
@@ -96,7 +96,7 @@ def log_prob(
     x: States,
     y: Observations,
     glssm: GLSSM
-) -> Float: # $\\log p(x,y)$
+) -> Float: # $\log p(x,y)$
     """joint log probability of states and observations"""
     x0, A, Sigma, B, Omega = glssm
     log_p_x = jnp.sum(log_probs_x(x, GLSSMState(x0, A, Sigma)))
