@@ -94,7 +94,8 @@ def _lcnll(
 ) -> Float:  # the approximate negative log-likelihood
     """Internal Log-Concave Negative Log-Likelihood"""
     (N,) = unnormalized_log_weights.shape
-    return gnll - logsumexp(unnormalized_log_weights) + jnp.log(N)
+    weights = normalize_weights(unnormalized_log_weights)
+    return gnll - logsumexp(unnormalized_log_weights) + jnp.log(N) #- (jnp.var(weights) / (2 * N * jnp.mean(weights) ** 2))
 
 
 def lcnll(
@@ -171,7 +172,6 @@ def mle_lcssm(
         key, subkey = jrn.split(key)    
         return lcnll(y, model, z, Omega, N, subkey)
     
-    # Nelder-Mead does not use gradients
     key, subkey = jrn.split(key)
     result = minimize_scipy(f, theta0, method="BFGS", options=options, args=(subkey,))
     return result 
