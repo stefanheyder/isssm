@@ -229,7 +229,6 @@ def _sim_from_innovations_disturbances(
 ) -> Float[Array, "N n+1 p"]:
     x0, A, Sigma, B, Omega = model
     N, np1, m = eps.shape
-    A_ext = jnp.concatenate((jnp.eye(m)[None], A), axis=0)
 
     def step(carry, inputs):
         (x,) = carry
@@ -240,6 +239,7 @@ def _sim_from_innovations_disturbances(
 
         return (x_next,), y_next
 
+    A_ext = jnp.concatenate((jnp.eye(m)[None], A), axis=0)
     (x,), y = scan(
         step,
         (jnp.broadcast_to(x0, (N, m)),),

@@ -46,7 +46,7 @@ from .models.pgssm import nb_pgssm
 def nb_pgssm_runnning_example(
     x0_trend: Float[Array, "m"]=jnp.zeros(2),
     r: Float =20,
-    Tau: Float[Array, "m m"]=.5 * jnp.array([[1., .5], [.5, 1.]]),
+    Tau: Float[Array, "m m"]=.5 * jnp.array([[1., 0], [0, 1.]]),
     alpha: Float =.5,
     omega2: Float=.01,
     n:int = 100,

@@ -55,7 +55,7 @@ def log_weights(
 
 # %% ../nbs/40_importance_sampling.ipynb 7
 from jaxtyping import Float, Array, PRNGKeyArray
-from .kalman import FFBS
+from .kalman import FFBS, simulation_smoother
 import jax.random as jrn
 from .typing import GLSSM
 
@@ -70,18 +70,15 @@ def lcssm_importance_sampling(
     key: PRNGKeyArray  # random key
 ) -> tuple[Float[Array, "N n+1 m"], Float[Array, "N"]]:  # importance samples and weights
     x0, A, Sigma, B, dist, xi = model
-    key, subkey = jrn.split(key)
-
     glssm = GLSSM(x0, A, Sigma, B, Omega)
-    samples = FFBS(z, glssm, N, subkey)
 
-    vB = partial(vmap(jnp.matmul), B)
-
-    s = vmap(vB)(samples)
+    key, subkey = jrn.split(key)
+    s = simulation_smoother(glssm, z, N, subkey)
+    #samples = FFBS(z, glssm, N, subkey)
 
     lw = v_log_weights(s, y, dist, xi, z, Omega)
 
-    return samples, lw
+    return s, lw
 
 # %% ../nbs/40_importance_sampling.ipynb 12
 from jaxtyping import Float, Array
@@ -116,7 +113,6 @@ def ess_lw(
     """Compute the effective sample size of a set of log weights"""
     return ess(normalize_weights(log_weights))
 
-# %% ../nbs/40_importance_sampling.ipynb 18
 def ess_pct(log_weights):
     N, = log_weights.shape
     return ess_lw(log_weights) / N * 100 
