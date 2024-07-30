@@ -18,6 +18,7 @@ from .util import converged
 from .typing import GLSSM, PGSSM, InitialState
 
 # %% ../nbs/30_mode_estimation.ipynb 7
+from .kalman import smoothed_signals
 vmm = jit(vmap(jnp.matmul))
 vdiag = jit(vmap(jnp.diag))
 vvmap = lambda fun: vmap(vmap(fun))
@@ -54,7 +55,7 @@ def mode_estimation(
     vdd_log_lik = jit(vvmap(dd_log_lik))
 
     def _break(val):
-        _, i, z, Omega, _, z_old, Omega_old = val
+        _, i, z, Omega, z_old, Omega_old = val
 
         z_converged = converged(z, z_old, eps)
         Omega_converged = converged(Omega, Omega_old, eps)
@@ -65,7 +66,7 @@ def mode_estimation(
         )
 
     def _iteration(val):
-        s, i, z_old, Omega_old, _, _, _ = val
+        s, i, z_old, Omega_old, _, _ = val
 
         grad = vd_log_lik(s, xi, y)
         Gamma = -vdd_log_lik(s, xi, y)
@@ -73,21 +74,19 @@ def mode_estimation(
         Omega = vdiag(1.0 / Gamma)
 
         z = s + grad / Gamma
-        filtered = kalman(z, GLSSM(x0, A, Sigma, B, Omega))
+        approx_glssm = GLSSM(x0, A, Sigma, B, Omega)
 
-        x_smooth, Xi_smooth = smoother(filtered, A)
+        filtered = kalman(z, approx_glssm)
+        s_new = smoothed_signals(filtered, z, approx_glssm)
 
-        s_new = (B @ x_smooth[:, :, None])[:, :, 0]
+        return s_new, i + 1, z, Omega, z_old, Omega_old
 
-        return s_new, i + 1, z, Omega, x_smooth, z_old, Omega_old
-
-    init = _iteration((s_init, 0, None, None, None, None, None))
+    init = _iteration((s_init, 0, None, None, None, None))
     # iterate once more, so z_old, Omega_old have sensible values
     init = _iteration(init)
 
-    s, n_iters, z, Omega, x_smooth, _, _ = while_loop(_break, _iteration, init)
+    s, n_iters, z, Omega,  _, _ = while_loop(_break, _iteration, init)
 
+    approx_glssm = GLSSM(x0, A, Sigma, B, Omega)
+    x_smooth, _  = smoother(kalman(z, approx_glssm), A)
     return x_smooth, z, Omega
-
-# %% ../nbs/30_mode_estimation.ipynb 9
-from .typing import PGSSM

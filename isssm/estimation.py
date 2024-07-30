@@ -16,7 +16,7 @@ from .modified_efficient_importance_sampling import modified_efficient_importanc
 from .importance_sampling import normalize_weights
 from .typing import GLSSM, PGSSM
 
-# %% ../nbs/60_maximum_likelihood_estimation.ipynb 6
+# %% ../nbs/60_maximum_likelihood_estimation.ipynb 5
 from .util import MVN_degenerate as MVN
 vmm = vmap(jnp.matmul, (0, 0))
 
@@ -43,7 +43,7 @@ def gnll_full(
     filtered = kalman(y, model)
     return gnll(y, filtered.x_pred, filtered.Xi_pred, model.B, model.Omega)
 
-# %% ../nbs/60_maximum_likelihood_estimation.ipynb 9
+# %% ../nbs/60_maximum_likelihood_estimation.ipynb 8
 from scipy.optimize import minimize as minimize_scipy
 from jax.scipy.optimize import minimize as minimize_jax
 from scipy.optimize import OptimizeResult
@@ -79,7 +79,7 @@ def mle_glssm_ad(
 
     return minimize_jax(f, theta0, method="BFGS", options=options)
 
-# %% ../nbs/60_maximum_likelihood_estimation.ipynb 16
+# %% ../nbs/60_maximum_likelihood_estimation.ipynb 15
 from jax.scipy.special import logsumexp
 from .importance_sampling import lcssm_importance_sampling
 from .kalman import kalman
@@ -116,7 +116,7 @@ def lcnll(
         gnll_full(z, GLSSM(model.x0, model.A, model.Sigma, model.B, Omega)), log_weights
     )
 
-# %% ../nbs/60_maximum_likelihood_estimation.ipynb 19
+# %% ../nbs/60_maximum_likelihood_estimation.ipynb 18
 from .importance_sampling import log_weights
 
 def initial_theta(
@@ -146,7 +146,7 @@ def initial_theta(
     result = minimize_scipy(f, theta0, method="BFGS", options=options)
     return result
 
-# %% ../nbs/60_maximum_likelihood_estimation.ipynb 23
+# %% ../nbs/60_maximum_likelihood_estimation.ipynb 22
 def mle_lcssm(
     y: Float[Array, "n+1 p"],  # observations $y_t$
     model_fn,  # parameterized LCSSM
@@ -166,8 +166,8 @@ def mle_lcssm(
         
         _, z, Omega = LA(y, model, s_init, n_iter_me)
 
-        #key, subkey = jrn.split(key)    
-        #z, Omega = MEIS(y, model, z, Omega, n_iter_me, N, subkey)
+        key, subkey = jrn.split(key)    
+        z, Omega = MEIS(y, model, z, Omega, n_iter_me, N, subkey)
 
         key, subkey = jrn.split(key)    
         return lcnll(y, model, z, Omega, N, subkey)

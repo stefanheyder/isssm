@@ -40,32 +40,41 @@ def simulate_lcssm(
 
 # %% ../nbs/20_lcssm.ipynb 9
 from .models.glssm import mv_ar1
-from .models.stsm import add_seasonal
+from .models.stsm import add_seasonal, stsm
 from .models.pgssm import nb_pgssm
+import jax.scipy.linalg as jsla
+
 
 def nb_pgssm_runnning_example(
-    x0_trend: Float[Array, "m"]=jnp.zeros(2),
-    r: Float =20,
-    Tau: Float[Array, "m m"]=.5 * jnp.array([[1., 0], [0, 1.]]),
-    alpha: Float =.5,
-    omega2: Float=.01,
-    n:int = 100,
-    x0_seasonal: Float[Array, "s"]=jnp.zeros(5),
-    s2_seasonal: Float = .1, 
-    Sigma0_seasonal:Float[Array, "s s"] = jnp.eye(5),
-    s_order:int = 5
+    x0_trend: Float[Array, "m"] = jnp.zeros(2),
+    r: Float = 20,
+    s2_trend: Float = 0.01,
+    s2_speed: Float = 0.1,
+    alpha: Float = 0.1,
+    omega2: Float = 0.01,
+    n: int = 100,
+    x0_seasonal: Float[Array, "s"] = jnp.zeros(5),
+    s2_seasonal: Float = 0.1,
+    Sigma0_seasonal: Float[Array, "s s"] = .1 * jnp.eye(5),
+    s_order: int = 5,
 ) -> PGSSM:
     model = nb_pgssm(
-        add_seasonal(
-            mv_ar1(x0_trend, Tau, alpha, omega2, n),
-            x0_seasonal, s2_seasonal, Sigma0_seasonal, s_order
+        stsm(
+            jnp.concatenate((x0_trend, x0_seasonal)),
+            s2_trend,
+            s2_speed,
+            s2_seasonal,
+            n,
+            jsla.block_diag(0.01 * jnp.eye(2), Sigma0_seasonal),  # start at 0,0
+            omega2,
+            s_order,
+            alpha,
         ),
-        r
+        r,
     )
-
     return model
 
-# %% ../nbs/20_lcssm.ipynb 14
+# %% ../nbs/20_lcssm.ipynb 13
 def log_probs_y(
     x: Float[Array, "n+1 m"],  # states
     y: Float[Array, "n+1 p"],  # observations

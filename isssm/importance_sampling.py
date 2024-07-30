@@ -74,7 +74,6 @@ def lcssm_importance_sampling(
 
     key, subkey = jrn.split(key)
     s = simulation_smoother(glssm, z, N, subkey)
-    #samples = FFBS(z, glssm, N, subkey)
 
     lw = v_log_weights(s, y, dist, xi, z, Omega)
 

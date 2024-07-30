@@ -16,7 +16,7 @@ from jaxtyping import Array, Float, PRNGKeyArray
 from .typing import GLSSM, FilterResult, Observations, SmootherResult
 from .util import MVN_degenerate as MVN, vmatmul
 
-# %% ../nbs/10_kalman_filter_smoother.ipynb 8
+# %% ../nbs/10_kalman_filter_smoother.ipynb 7
 def _predict(
     x_filt: Float[Array, "m"], # $X_{t|t}$
     Xi_filt: Float[Array, "m m"], # $\Xi_{t|t}
@@ -78,7 +78,7 @@ def kalman(
 
     return FilterResult(x_filt, Xi_filt, x_pred, Xi_pred)
 
-# %% ../nbs/10_kalman_filter_smoother.ipynb 13
+# %% ../nbs/10_kalman_filter_smoother.ipynb 12
 State = Float[Array, "m"]
 StateCov = Float[Array, "m m"]
 StateTransition = Float[Array, "m m"]
@@ -127,7 +127,7 @@ def smoother(
 
     return SmootherResult(x_smooth, Xi_smooth)
 
-# %% ../nbs/10_kalman_filter_smoother.ipynb 18
+# %% ../nbs/10_kalman_filter_smoother.ipynb 17
 def _simulate_smoothed_FW1994(
     x_filt: Float[Array, "n+1 m"],
     Xi_filt: Float[Array, "n+1 m m"],
@@ -179,7 +179,7 @@ def FFBS(
     key, subkey = jrn.split(key)
     return _simulate_smoothed_FW1994(x_filt, Xi_filt, Xi_pred, model.A, N, subkey)
 
-# %% ../nbs/10_kalman_filter_smoother.ipynb 23
+# %% ../nbs/10_kalman_filter_smoother.ipynb 22
 def disturbance_smoother(
     filtered: FilterResult, # filter result
     y: Observations, # observations
@@ -224,6 +224,9 @@ def smoothed_signals(
     return y - eta_smooth
 
 # %% ../nbs/10_kalman_filter_smoother.ipynb 28
+from tensorflow_probability.substrates.jax.distributions import Chi2
+from .util import degenerate_cholesky
+
 def _sim_from_innovations_disturbances(
     model: GLSSM, eps: Float[Array, "N n+1 m"], eta: Float[Array, "N n+1 p"]
 ) -> Float[Array, "N n+1 p"]:
@@ -254,6 +257,7 @@ def simulation_smoother(
     y: Observations,  # observations
     N: int,  # number of samples to draw
     key: PRNGKeyArray,  # random number seed
+    antithetics: bool= True # whether to use location and scale antithetics
 ) -> Float[Array, "N n+1 m"]:  # N samples from the smoothing distribution of signals
     """Simulate from the smoothing distribution of signals"""
     np1, p, m = model.B.shape
@@ -263,9 +267,14 @@ def simulation_smoother(
         return smoothed_signals(kalman(y, model), y, model)
 
     key, subkey = jrn.split(key)
-    eps = MVN(jnp.zeros((np1, m)), model.Sigma).sample(N, subkey)
+    u_eps = MVN(jnp.zeros((np1, m)), jnp.eye(m)[None]).sample(N, subkey)
+    chol_Sigma = degenerate_cholesky(model.Sigma)
+    eps = vmap(vmap(jnp.matmul), (None, 0))(chol_Sigma, u_eps)
+
     key, subkey = jrn.split(key)
-    eta = MVN(jnp.zeros((np1, p)), model.Omega).sample(N, subkey)
+    u_eta = MVN(jnp.zeros((np1, p)), jnp.eye(p)[None]).sample(N, subkey)
+    chol_Omega = degenerate_cholesky(model.Omega)
+    eta = vmap(vmap(jnp.matmul), (None, 0))(chol_Omega, u_eta)
 
     y_sim = _sim_from_innovations_disturbances(model, eps, eta)
 
@@ -273,4 +282,19 @@ def simulation_smoother(
     sim_signals = y_sim - eta
     sim_signals_smooth = vmap(signal_filter_smoother, (0, None))(y_sim, model)
 
-    return (sim_signals - sim_signals_smooth) + signals_smooth[None]
+    samples = signals_smooth[None] + (sim_signals - sim_signals_smooth)
+    location_antithetics = signals_smooth[None] - (sim_signals - sim_signals_smooth)
+
+    
+    # todo: rescale eps, eta
+    c = jnp.linalg.norm(jnp.concatenate((u_eps, u_eta), axis=-1), axis=(1,2)) ** 2
+    # ensure dtype is Float64
+    chi_dist = Chi2(np1 * (m + p) * jnp.ones(1))    
+    c_prime = chi_dist.quantile(1.0 - chi_dist.cdf(c))
+
+    scale_antithetics = signals_smooth[None] + jnp.sqrt(c_prime / c)[:,None,None] * (sim_signals - sim_signals_smooth)
+    loc_scale_antithetics = signals_smooth[None] - jnp.sqrt(c_prime / c)[:,None,None] * (sim_signals - sim_signals_smooth)
+
+    full_samples = jnp.concatenate((samples, location_antithetics, scale_antithetics, loc_scale_antithetics), axis=0)
+
+    return full_samples

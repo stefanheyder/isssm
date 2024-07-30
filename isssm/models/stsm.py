@@ -20,9 +20,10 @@ def stsm(
     Sigma_init: Float[Array, "m m"], # initial state covariance
     o2: Float, # variance of observation noise
     s_order: int, # order of seasonal component
+    alpha_velocity: Float = 1., # dampening factor for velocity
 ) -> GLSSM:
 
-    A = jnp.array([[1, 1], [0, 1]])
+    A = jnp.array([[1, 1], [0, alpha_velocity]])
     B = jnp.array([[1, 0]])
 
     Sigma = jnp.diag(jnp.array([s2_mu, s2_nu]))
