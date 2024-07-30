@@ -9,7 +9,7 @@ import jax.numpy as jnp
 import jax.random as jrn
 import jax.scipy.linalg as jsla
 import tensorflow_probability.substrates.jax.distributions as tfd
-from jax import vmap
+from jax import vmap, jit
 from jax.lax import scan
 from jaxtyping import Array, Float, PRNGKeyArray
 
@@ -203,16 +203,16 @@ def disturbance_smoother(
 
         r_prev = B.T @ Psi_pred_pinv @ y_tilde + L.T @ r
 
-        return (r_prev,), eta_smooth
+        return (r_prev,), (eta_smooth, Psi_pred_pinv, K,L)
 
     y_tilde = y - vmap(jnp.matmul)(B, x_pred)
 
     A_ext = jnp.concatenate((A, jnp.eye(m)[jnp.newaxis]), axis=0)
-    _, eta_smooth = scan(
+    _, (eta_smooth, Psi_pred_pinv, K, L) = scan(
         step, (jnp.zeros(m),), (y_tilde, A_ext, B, Omega, Xi_pred), reverse=True
     )
 
-    return eta_smooth
+    return eta_smooth, (Psi_pred_pinv, K, L)
 
 def smoothed_signals(
     filtered: FilterResult, # filter result
@@ -220,38 +220,45 @@ def smoothed_signals(
     model: GLSSM # model
 ) -> Float[Array, "n+1 m"]: # smoothed signals
     """compute smoothed signals from filter result"""
-    eta_smooth = disturbance_smoother(filtered, y, model)
+    eta_smooth, _ = disturbance_smoother(filtered, y, model)
     return y - eta_smooth
 
 # %% ../nbs/10_kalman_filter_smoother.ipynb 28
-def _sim_from_innovations_disturbances(model:GLSSM, eps: Float[Array, "N n+1 m"], eta: Float[Array, "N n+1 p"]) -> Float[Array, "N n+1 p"]:
+def _sim_from_innovations_disturbances(
+    model: GLSSM, eps: Float[Array, "N n+1 m"], eta: Float[Array, "N n+1 p"]
+) -> Float[Array, "N n+1 p"]:
     x0, A, Sigma, B, Omega = model
     N, np1, m = eps.shape
     A_ext = jnp.concatenate((jnp.eye(m)[None], A), axis=0)
 
-
     def step(carry, inputs):
-        x, = carry
+        (x,) = carry
         A, B, eps, eta = inputs
 
-        x_next = (A @ x[...,None])[...,0] + eps
-        y_next = (B @ x[...,None])[...,0] + eta
+        x_next = (A @ x[..., None])[..., 0] + eps
+        y_next = (B @ x[..., None])[..., 0] + eta
 
         return (x_next,), y_next
-    (x, ), y = scan(
+
+    (x,), y = scan(
         step,
-        (jnp.broadcast_to(x0, (N, m)),), (A_ext, B, eps.transpose((1,0,2)), eta.transpose(1,0,2))
+        (jnp.broadcast_to(x0, (N, m)),),
+        (A_ext, B, eps.transpose((1, 0, 2)), eta.transpose(1, 0, 2)),
     )
 
     return y.transpose((1, 0, 2))
 
-def simulation_smoother(model: GLSSM, y: Observations, N: int, key: PRNGKeyArray) -> Float[Array, "N n+1 m"]:
 
-    x_filt, Xi_filt, _, Xi_pred = kalman(y, model)
-    key, subkey = jrn.split(key)
-
+def simulation_smoother(
+    model: GLSSM,  # model
+    y: Observations,  # observations
+    N: int,  # number of samples to draw
+    key: PRNGKeyArray,  # random number seed
+) -> Float[Array, "N n+1 m"]:  # N samples from the smoothing distribution of signals
+    """Simulate from the smoothing distribution of signals"""
     np1, p, m = model.B.shape
 
+    @jit
     def signal_filter_smoother(y, model):
         return smoothed_signals(kalman(y, model), y, model)
 
@@ -267,4 +274,3 @@ def simulation_smoother(model: GLSSM, y: Observations, N: int, key: PRNGKeyArray
     sim_signals_smooth = vmap(signal_filter_smoother, (0, None))(y_sim, model)
 
     return (sim_signals - sim_signals_smooth) + signals_smooth[None]
-
