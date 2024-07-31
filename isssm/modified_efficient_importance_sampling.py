@@ -14,9 +14,9 @@ from functools import partial
 from jax.lax import while_loop
 from .kalman import kalman, simulation_smoother
 from jax.lax import scan
-from .util import MVN_degenerate as MVN
+from .util import MVN_degenerate as MVN, mm_sim
 
-from .glssm import vmatmul
+from .glssm import mm_sim
 from .typing import GLSSM, PGSSM
 
 @jit
@@ -76,7 +76,7 @@ def modified_efficient_importance_sampling_old(
 
 
         def eis_parameters(B_t, xi_t, y_t, z_t, Omega_t, samples):
-            signal_t = vmatmul(B_t, samples)
+            signal_t = mm_sim(B_t, samples)
             log_p_t = dist(signal_t, xi_t).log_prob(y_t).sum(axis=-1)
             log_w_t = vmap(lambda s_t: log_weights_t(s_t, y_t, xi_t, dist, z_t, Omega_t))(signal_t)
             w_t_norm = normalize_weights(log_w_t)
@@ -91,7 +91,7 @@ def modified_efficient_importance_sampling_old(
             # sampling
             G_t = Xi_filt_t @ A_t.T @ jnp.linalg.pinv(Xi_pred_t)
 
-            cond_expectation = x_filt_t + vmatmul(G_t, previous_samples - (A_t @ x_filt_t)[None])
+            cond_expectation = x_filt_t + mm_sim(G_t, previous_samples - (A_t @ x_filt_t)[None])
             cond_covariance = Xi_filt_t - G_t @ Xi_pred_t @ G_t.T
 
             key, subkey = jrn.split(key)

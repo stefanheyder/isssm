@@ -14,7 +14,7 @@ from jax.lax import scan
 from jaxtyping import Array, Float, PRNGKeyArray
 
 from .typing import GLSSM, FilterResult, Observations, SmootherResult
-from .util import MVN_degenerate as MVN, vmatmul
+from .util import MVN_degenerate as MVN, mm_sim
 
 # %% ../nbs/10_kalman_filter_smoother.ipynb 7
 def _predict(
@@ -78,7 +78,7 @@ def kalman(
 
     return FilterResult(x_filt, Xi_filt, x_pred, Xi_pred)
 
-# %% ../nbs/10_kalman_filter_smoother.ipynb 12
+# %% ../nbs/10_kalman_filter_smoother.ipynb 13
 State = Float[Array, "m"]
 StateCov = Float[Array, "m m"]
 StateTransition = Float[Array, "m m"]
@@ -127,7 +127,7 @@ def smoother(
 
     return SmootherResult(x_smooth, Xi_smooth)
 
-# %% ../nbs/10_kalman_filter_smoother.ipynb 17
+# %% ../nbs/10_kalman_filter_smoother.ipynb 18
 def _simulate_smoothed_FW1994(
     x_filt: Float[Array, "n+1 m"],
     Xi_filt: Float[Array, "n+1 m m"],
@@ -147,7 +147,7 @@ def _simulate_smoothed_FW1994(
 
         G = Xi_filt @ jnp.linalg.solve(Xi_pred, A).T
 
-        cond_expectation = x_filt + vmatmul(G, X_smooth_next - (A @ x_filt)[None])
+        cond_expectation = x_filt + mm_sim(G, X_smooth_next - (A @ x_filt)[None])
         cond_covariance = Xi_filt - G @ Xi_pred @ G.T
 
         key, subkey = jrn.split(key)
@@ -179,7 +179,7 @@ def FFBS(
     key, subkey = jrn.split(key)
     return _simulate_smoothed_FW1994(x_filt, Xi_filt, Xi_pred, model.A, N, subkey)
 
-# %% ../nbs/10_kalman_filter_smoother.ipynb 22
+# %% ../nbs/10_kalman_filter_smoother.ipynb 23
 def disturbance_smoother(
     filtered: FilterResult, # filter result
     y: Observations, # observations

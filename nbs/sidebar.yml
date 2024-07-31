@@ -5,7 +5,7 @@ website:
       - 00_glssm.ipynb
       - 10_kalman_filter_smoother.ipynb
       - 20_lcssm.ipynb
-      - 30_mode_estimation.ipynb
+      - 30_laplace_approximation.ipynb
       - 40_importance_sampling.ipynb
       - 45_cross_entropy_method.ipynb
       - 50_modified_efficient_importance_sampling.ipynb

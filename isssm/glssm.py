@@ -13,7 +13,7 @@ from jaxtyping import Array, Float, PRNGKeyArray
 from .kalman import kalman
 from .typing import (GLSSM, GLSSMObservationModel, GLSSMState,
                           Observations, States)
-from .util import MVN_degenerate as MVN, vmatmul
+from .util import MVN_degenerate as MVN, mm_sim
 
 # %% ../nbs/00_glssm.ipynb 6
 def simulate_states(
@@ -28,7 +28,7 @@ def simulate_states(
         x_prev, key = carry
         A, Sigma = inputs
 
-        next_loc = vmatmul(A, x_prev)
+        next_loc = mm_sim(A, x_prev)
 
         key, subkey = jrn.split(key)
         samples = MVN(next_loc, Sigma).sample(seed=subkey)
@@ -56,7 +56,7 @@ def simulate_glssm(
     key, subkey = jrn.split(key)
     X = simulate_states(GLSSMState(x0, A, Sigma), N, subkey).transpose((1, 0, 2))
 
-    S = vmap(vmatmul, (0, 0))(B, X)
+    S = vmap(mm_sim, (0, 0))(B, X)
 
     # samples x time x space
     X = X.transpose((1, 0, 2))
