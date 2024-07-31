@@ -4,7 +4,7 @@ website:
       - index.ipynb
       - 00_glssm.ipynb
       - 10_kalman_filter_smoother.ipynb
-      - 20_lcssm.ipynb
+      - 20_pgssm.ipynb
       - 30_laplace_approximation.ipynb
       - 40_importance_sampling.ipynb
       - 45_cross_entropy_method.ipynb
@@ -12,8 +12,8 @@ website:
       - 60_maximum_likelihood_estimation.ipynb
       - 99_typings.ipynb
       - 99_util.ipynb
-      - section: models
+      - section: Models
         contents:
-          - models/00_gaussian_models.ipynb
-          - models/10_stsm.ipynb
-          - models/20_pgssm.ipynb
+          - Models/00_gaussian_models.ipynb
+          - Models/10_stsm.ipynb
+          - Models/20_pgssm.ipynb

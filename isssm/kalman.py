@@ -226,6 +226,7 @@ def smoothed_signals(
 # %% ../nbs/10_kalman_filter_smoother.ipynb 28
 from tensorflow_probability.substrates.jax.distributions import Chi2
 from .util import degenerate_cholesky
+from .util import location_antithetic, scale_antithethic
 
 def _sim_from_innovations_disturbances(
     model: GLSSM, eps: Float[Array, "N n+1 m"], eta: Float[Array, "N n+1 p"]
@@ -257,7 +258,6 @@ def simulation_smoother(
     y: Observations,  # observations
     N: int,  # number of samples to draw
     key: PRNGKeyArray,  # random number seed
-    antithetics: bool= True # whether to use location and scale antithetics
 ) -> Float[Array, "N n+1 m"]:  # N samples from the smoothing distribution of signals
     """Simulate from the smoothing distribution of signals"""
     np1, p, m = model.B.shape
@@ -283,18 +283,18 @@ def simulation_smoother(
     sim_signals_smooth = vmap(signal_filter_smoother, (0, None))(y_sim, model)
 
     samples = signals_smooth[None] + (sim_signals - sim_signals_smooth)
-    location_antithetics = signals_smooth[None] - (sim_signals - sim_signals_smooth)
 
-    
-    # todo: rescale eps, eta
-    c = jnp.linalg.norm(jnp.concatenate((u_eps, u_eta), axis=-1), axis=(1,2)) ** 2
-    # ensure dtype is Float64
-    chi_dist = Chi2(np1 * (m + p) * jnp.ones(1))    
-    c_prime = chi_dist.quantile(1.0 - chi_dist.cdf(c))
+    u = jnp.concatenate((u_eps, u_eta), axis=-1)
 
-    scale_antithetics = signals_smooth[None] + jnp.sqrt(c_prime / c)[:,None,None] * (sim_signals - sim_signals_smooth)
-    loc_scale_antithetics = signals_smooth[None] - jnp.sqrt(c_prime / c)[:,None,None] * (sim_signals - sim_signals_smooth)
+    l_samples = location_antithetic(samples, signals_smooth)
+    s_samples = scale_antithethic(u, samples, signals_smooth)
+    ls_samples = scale_antithethic(u, l_samples, signals_smooth)
 
-    full_samples = jnp.concatenate((samples, location_antithetics, scale_antithetics, loc_scale_antithetics), axis=0)
+    full_samples = jnp.concatenate((
+        samples,
+        l_samples,
+        s_samples,
+        ls_samples
+    ), axis=0)
 
     return full_samples

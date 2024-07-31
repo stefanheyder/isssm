@@ -3,7 +3,7 @@
 # %% auto 0
 __all__ = ['optimal_parameters', 'modified_efficient_importance_sampling_old', 'modified_efficient_importance_sampling']
 
-# %% ../nbs/50_modified_efficient_importance_sampling.ipynb 4
+# %% ../nbs/50_modified_efficient_importance_sampling.ipynb 5
 import jax.numpy as jnp
 import jax.random as jrn
 from jaxtyping import Float, Array, PRNGKeyArray
