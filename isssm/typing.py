@@ -2,12 +2,12 @@
 
 # %% auto 0
 __all__ = ['InitialState', 'Observations', 'States', 'GLSSMState', 'GLSSMObservationModel', 'GLSSM', 'FilterResult',
-           'SmootherResult', 'PGSSM', 'MarkovProcessCholeskyComponents']
+           'SmootherResult', 'PGSSM', 'GLSSMProposal', 'to_glssm', 'ConvergenceInformation', 'MarkovProposal']
 
 # %% ../nbs/99_typings.ipynb 2
 from typing import NamedTuple
 import tensorflow_probability.substrates.jax.distributions as tfd
-from jaxtyping import Float, Array
+from jaxtyping import Float, Array, Bool
 
 # %% ../nbs/99_typings.ipynb 3
 InitialState = Float[Array, "m"]
@@ -52,6 +52,25 @@ class PGSSM(NamedTuple):
     xi: Float[Array, "n+1 m"]
 
 # %% ../nbs/99_typings.ipynb 11
-class MarkovProcessCholeskyComponents(NamedTuple):
-    diagonals: Float[Array, "n+1 m m"]
-    off_diagonals: Float[Array, "n m m"]
+class GLSSMProposal(NamedTuple):
+    x0: Float[Array, "m"]
+    A: Float[Array, "n m m"]
+    Sigma: Float[Array, "n+1 m m"]
+    B: Float[Array, "n+1 p m"]
+    Omega: Float[Array, "n+1 p p"]
+    z: Float[Array, "n+1 p"]
+
+def to_glssm(proposal: GLSSMProposal) -> GLSSM:
+    return GLSSM(proposal.x0, proposal.A, proposal.Sigma, proposal.B, proposal.Omega)
+
+class ConvergenceInformation(NamedTuple):
+    converged: Bool
+    n_iter: int
+    delta: Float
+
+# %% ../nbs/99_typings.ipynb 13
+class MarkovProposal(NamedTuple):
+    mean: Float[Array, "n+1 m"]
+    R: Float[Array, "n+1 m m"]
+    J_tt: Float[Array, "n m m"]  # lower triangular
+    J_tp1t: Float[Array, "n m m"]

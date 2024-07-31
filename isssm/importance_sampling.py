@@ -28,8 +28,6 @@ def log_weights_t(
     """Log weight for a single time point."""
     p_ys = dist(s_t, xi_t).log_prob(y_t).sum()
 
-    #g_zs = MVN(s_t, Omega_t).log_prob(z_t).sum()
-    # avoid triangular solve problems
     omega_t = jnp.sqrt(jnp.diag(Omega_t))
     g_zs = MVN_diag(s_t, omega_t).log_prob(z_t).sum()
 
@@ -46,7 +44,6 @@ def log_weights(
 ) -> Float[Array, "n+1"]:  # log weights
     """Log weights for all time points"""
     p_ys = dist(s, xi).log_prob(y).sum()
-    #g_zs = MVN(s, Omega).log_prob(z).sum()
     omega = jnp.sqrt(vmap(jnp.diag)(Omega))
     # avoid triangulra solve problems
     g_zs = MVN_diag(s, omega).log_prob(z).sum()
