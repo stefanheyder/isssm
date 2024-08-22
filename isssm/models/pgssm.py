@@ -7,22 +7,28 @@ __all__ = ['nb_pgssm', 'poisson_pgssm']
 import jax.numpy as jnp
 from jaxtyping import Float
 from ..typing import GLSSM, PGSSM
-from tensorflow_probability.substrates.jax.distributions import NegativeBinomial as NBinom, Poisson
+from tensorflow_probability.substrates.jax.distributions import (
+    NegativeBinomial as NBinom,
+    Poisson,
+)
 
-def nb_pgssm(glssm:GLSSM, r: Float):
+
+def nb_pgssm(glssm: GLSSM, r: Float):
     np1, p, m = glssm.B.shape
     xi = jnp.full((np1, p), r)
 
     def dist_nb(log_mu, xi):
         mu = jnp.exp(log_mu)
-        return NBinom(r, probs = mu/(xi + mu))
-    return PGSSM(glssm.x0, glssm.A, glssm.Sigma, glssm.B, dist_nb, xi)
+        return NBinom(r, probs=mu / (xi + mu))
+
+    return PGSSM(glssm.u, glssm.A, glssm.Sigma, glssm.v, glssm.B, dist_nb, xi)
+
 
 def poisson_pgssm(glssm: GLSSM):
     np1, p, m = glssm.B.shape
     xi = jnp.empty((np1, p))
 
     def dist_poisson(log_mu, xi):
-        return Poisson(log_rate = log_mu)
-    
-    return PGSSM(glssm.x0, glssm.A, glssm.Sigma, glssm.B, dist_poisson, xi)
+        return Poisson(log_rate=log_mu)
+
+    return PGSSM(glssm.u, glssm.A, glssm.Sigma, glssm.v, glssm.B, dist_poisson, xi)

@@ -8,8 +8,9 @@ import jax.numpy as jnp
 import jax.random as jrn
 from jax import lax, vmap
 from jaxtyping import Array, Float, PRNGKeyArray
-from tensorflow_probability.substrates.jax.distributions import \
-    NegativeBinomial as NBinom
+from tensorflow_probability.substrates.jax.distributions import (
+    NegativeBinomial as NBinom,
+)
 from tensorflow_probability.substrates.jax.distributions import Poisson
 
 from .glssm import log_probs_x, simulate_states
@@ -24,10 +25,10 @@ def simulate_pgssm(
 ) -> tuple[
     Float[Array, "N n+1 m"], Float[Array, "N n+1 p"]
 ]:  # simulated states and observations
-    x0, A, Sigma, B, dist, xi = pgssm
+    u, A, Sigma, v, B, dist, xi = pgssm
     key, subkey = jrn.split(key)
-    X = simulate_states(GLSSMState(x0, A, Sigma), N, subkey)
-    S = mm_time_sim(B, X)
+    X = simulate_states(GLSSMState(u, A, Sigma), N, subkey)
+    S = v + mm_time_sim(B, X)
 
     Y = dist(S, xi).sample(seed=subkey)
 
@@ -49,9 +50,9 @@ def nb_pgssm_runnning_example(
     n: int = 100,
     x0_seasonal: Float[Array, "s"] = jnp.zeros(5),
     s2_seasonal: Float = 0.1,
-    Sigma0_seasonal: Float[Array, "s s"] = .1 * jnp.eye(5),
+    Sigma0_seasonal: Float[Array, "s s"] = 0.1 * jnp.eye(5),
     s_order: int = 5,
-) -> PGSSM: # the running example for this package
+) -> PGSSM:  # the running example for this package
     """a structural time series model with NBinom observations"""
     Sigma0 = jsla.block_diag(0.01 * jnp.eye(2), Sigma0_seasonal)
     x0 = jnp.concatenate((x0_trend, x0_seasonal))
@@ -76,19 +77,21 @@ def nb_pgssm_runnning_example(
 def log_probs_y(
     x: Float[Array, "n+1 m"],  # states
     y: Float[Array, "n+1 p"],  # observations
+    v: Float[Array, "n+1 p"],  # signal biases
     B: Float[Array, "n+1 p m"],  # signal matrices
     dist,  # observation distribution
-    xi, # observation parameters
+    xi,  # observation parameters
 ):
-    s = (B @ x[:,:,None])[:,:,0]
+    s = v + (B @ x[:, :, None])[:, :, 0]
     return dist(s, xi).log_prob(y).sum(axis=1)
+
 
 def log_prob(
     x: Float[Array, "n+1 m"],  # states
     y: Float[Array, "n+1 p"],  # observations
-    model: PGSSM
+    model: PGSSM,
 ):
-    x0, A, Sigma, B, dist, xi = model
-    px = log_probs_x(x, GLSSMState(x0, A, Sigma)).sum()
-    py = log_probs_y(x, y, B, dist, xi).sum()
+    u, A, Sigma, v, B, dist, xi = model
+    px = log_probs_x(x, GLSSMState(u, A, Sigma)).sum()
+    py = log_probs_y(x, y, v, B, dist, xi).sum()
     return px + py

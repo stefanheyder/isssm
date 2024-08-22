@@ -20,11 +20,12 @@ from .util import MVN_degenerate as MVN, mm_sim
 def _predict(
     x_filt: Float[Array, "m"],  # $X_{t|t}$
     Xi_filt: Float[Array, "m m"],  # $\Xi_{t|t}
+    u: Float[Array, "m"],  # $u_{t + 1}$
     A: Float[Array, "m m"],  # $A_t$
     Sigma: Float[Array, "m m"],  # $\Sigma_{t + 1}
 ):
     """perform a single prediction step"""
-    x_pred = A @ x_filt
+    x_pred = A @ x_filt + u
     Xi_pred = A @ Xi_filt @ A.T + Sigma
 
     return x_pred, Xi_pred
@@ -34,11 +35,12 @@ def _filter(
     x_pred: Float[Array, "m"],
     Xi_pred: Float[Array, "m m"],
     y: Float[Array, "p"],
+    v: Float[Array, "p"],
     B: Float[Array, "p m"],
     Omega: Float[Array, "p p"],
 ):
     """perform a single filtering step"""
-    y_pred = B @ x_pred
+    y_pred = v + B @ x_pred
     Psi_pred = B @ Xi_pred @ B.T + Omega
     K = Xi_pred @ B.T @ jnp.linalg.pinv(Psi_pred)  # jsla.solve(Psi_pred, B).T
     x_filt = x_pred + K @ (y - y_pred)
@@ -52,15 +54,15 @@ def kalman(
     glssm: GLSSM,  # model
 ) -> FilterResult:  # filtered & predicted states and covariances
     """Perform the Kalman filter"""
-    x0, A, Sigma, B, Omega = glssm
-    (m,) = x0.shape
+    u, A, Sigma, v, B, Omega = glssm
+    np1, p, m = B.shape
 
     def step(carry, inputs):
         x_filt, Xi_filt = carry
-        y, Sigma, Omega, A, B = inputs
+        y, u, A, Sigma, v, B, Omega = inputs
 
-        x_pred, Xi_pred = _predict(x_filt, Xi_filt, A, Sigma)
-        x_filt_next, Xi_filt_next = _filter(x_pred, Xi_pred, y, B, Omega)
+        x_pred, Xi_pred = _predict(x_filt, Xi_filt, u, A, Sigma)
+        x_filt_next, Xi_filt_next = _filter(x_pred, Xi_pred, y, v, B, Omega)
 
         return (x_filt_next, Xi_filt_next), (x_filt_next, Xi_filt_next, x_pred, Xi_pred)
 
@@ -70,8 +72,10 @@ def kalman(
     # this avoids having to compute a separate filtering step beforehand
     A_ext = jnp.concatenate((jnp.eye(m)[jnp.newaxis], A))
 
+    init = jnp.zeros((m,)), jnp.zeros((m, m))
+
     _, (x_filt, Xi_filt, x_pred, Xi_pred) = scan(
-        step, (x0, jnp.zeros_like(Sigma[0])), (y, Sigma, Omega, A_ext, B)
+        step, init, (y, u, A_ext, Sigma, v, B, Omega)
     )
 
     return FilterResult(x_filt, Xi_filt, x_pred, Xi_pred)
@@ -79,17 +83,19 @@ def kalman(
 # %% ../nbs/10_kalman_filter_smoother.ipynb 13
 # y not jittable: boolean indices have to be concrete
 def account_for_nans(model: GLSSM, y: Observations) -> tuple[GLSSM, Observations]:
-    x0, A, Sigma, B, Omega = model
+    u, A, Sigma, v, B, Omega = model
 
     missing_indices = jnp.isnan(y)
 
     y = jnp.nan_to_num(y, nan=0.0)
+
+    v = v.at[missing_indices].set(0.0)
     B = B.at[missing_indices].set(0.0)
     # set rows and columns of Omega to 0.
     Omega = Omega.at[missing_indices].set(0.0)
     Omega = Omega.transpose((0, 2, 1)).at[missing_indices].set(0.0)
 
-    return GLSSM(x0=x0, A=A, Sigma=Sigma, B=B, Omega=Omega), y
+    return GLSSM(u, A, Sigma, v, B, Omega), y
 
 # %% ../nbs/10_kalman_filter_smoother.ipynb 17
 State = Float[Array, "m"]
@@ -104,7 +110,7 @@ def _smooth_step(
     Xi_filt: StateCov,
     Xi_pred_next: StateCov,
     Xi_smooth_next: StateCov,
-    A: StateTransition
+    A: StateTransition,
 ):
     err = x_smooth_next - x_pred_next
     Gain = Xi_filt @ A.T @ jnp.linalg.pinv(Xi_pred_next)
@@ -116,23 +122,26 @@ def _smooth_step(
 
 
 def smoother(
-    filter_result: FilterResult,
-    A: Float[Array, "n m m"] # transition matrices
+    filter_result: FilterResult, A: Float[Array, "n m m"]  # transition matrices
 ) -> SmootherResult:
     """perform the Kalman smoother"""
     x_filt, Xi_filt, x_pred, Xi_pred = filter_result
+
     def step(carry, inputs):
         x_smooth_next, Xi_smooth_next = carry
         x_filt, Xi_filt, x_pred_next, Xi_pred_next, A = inputs
 
         x_smooth, Xi_smooth = _smooth_step(
-            x_filt, x_pred_next, x_smooth_next, Xi_filt, Xi_pred_next, Xi_smooth_next,A
+            x_filt, x_pred_next, x_smooth_next, Xi_filt, Xi_pred_next, Xi_smooth_next, A
         )
 
         return (x_smooth, Xi_smooth), (x_smooth, Xi_smooth)
 
     _, (x_smooth, Xi_smooth) = scan(
-        step, (x_filt[-1], Xi_filt[-1]), (x_filt[:-1], Xi_filt[:-1], x_pred[1:], Xi_pred[1:], A), reverse=True
+        step,
+        (x_filt[-1], Xi_filt[-1]),
+        (x_filt[:-1], Xi_filt[:-1], x_pred[1:], Xi_pred[1:], A),
+        reverse=True,
     )
 
     x_smooth = jnp.concatenate([x_smooth, x_filt[None, -1]])
@@ -142,7 +151,11 @@ def smoother(
 
 # %% ../nbs/10_kalman_filter_smoother.ipynb 22
 from tensorflow_probability.substrates.jax.distributions import Normal
-def filter_intervals(result: FilterResult, alpha: Float=.05) -> Float[Array, "2 n+1 m"]:
+
+
+def filter_intervals(
+    result: FilterResult, alpha: Float = 0.05
+) -> Float[Array, "2 n+1 m"]:
     x_filt, Xi_filt, *_ = result
     marginal_variances = vmap(jnp.diag)(Xi_filt)
     dist = Normal(x_filt, marginal_variances)
@@ -151,7 +164,10 @@ def filter_intervals(result: FilterResult, alpha: Float=.05) -> Float[Array, "2 
 
     return jnp.concatenate((lower[None], upper[None]))
 
-def smoother_intervals(result: SmootherResult, alpha: Float = .05) -> Float[Array, "2 n+1 m"]:
+
+def smoother_intervals(
+    result: SmootherResult, alpha: Float = 0.05
+) -> Float[Array, "2 n+1 m"]:
     x_smooth, Xi_smooth = result
     marginal_variances = vmap(jnp.diag)(Xi_smooth)
     dist = Normal(x_smooth, marginal_variances)
@@ -166,9 +182,9 @@ def _simulate_smoothed_FW1994(
     Xi_filt: Float[Array, "n+1 m m"],
     Xi_pred: Float[Array, "n+1 m m"],
     A: Float[Array, "n m m"],
-    N: int, # number of samples
-    key: PRNGKeyArray # the random states
-) -> Float[Array, "N n+1 m"]: # array of N samples from the smoothing distribution
+    N: int,  # number of samples
+    key: PRNGKeyArray,  # the random states
+) -> Float[Array, "N n+1 m"]:  # array of N samples from the smoothing distribution
     r"""Simulate from smoothing distribution $p(X_0, \dots, X_n|Y_0, \dots, Y_n)$"""
 
     key, subkey = jrn.split(key)
@@ -201,11 +217,11 @@ def _simulate_smoothed_FW1994(
 
 
 def FFBS(
-    y: Observations, # Observations $y$
-    model: GLSSM, # GLSSM
-    N: int, # number of samples 
-    key: PRNGKeyArray # random state
-) -> Float[Array, "N n+1 m"]: # N samples from the smoothing distribution
+    y: Observations,  # Observations $y$
+    model: GLSSM,  # GLSSM
+    N: int,  # number of samples
+    key: PRNGKeyArray,  # random state
+) -> Float[Array, "N n+1 m"]:  # N samples from the smoothing distribution
     r"""The Forward-Filter Backwards-Sampling Algorithm from [@Fruhwirth-Schnatter1994Data]."""
     x_filt, Xi_filt, _, Xi_pred = kalman(y, model)
 
@@ -214,13 +230,13 @@ def FFBS(
 
 # %% ../nbs/10_kalman_filter_smoother.ipynb 30
 def disturbance_smoother(
-    filtered: FilterResult, # filter result
-    y: Observations, # observations
-    model: GLSSM # model
-) -> Float[Array, "n+1 p"]: # smoothed disturbances
+    filtered: FilterResult,  # filter result
+    y: Observations,  # observations
+    model: GLSSM,  # model
+) -> Float[Array, "n+1 p"]:  # smoothed disturbances
     """perform the disturbance smoother for observation disturbances only"""
     x_filt, Xi_filt, x_pred, Xi_pred = filtered
-    x0, A, Sigma, B, Omega = model
+    u, A, Sigma, v, B, Omega = model
     np1, p, m = B.shape
 
     def step(carry, inputs):
@@ -236,7 +252,7 @@ def disturbance_smoother(
 
         r_prev = B.T @ Psi_pred_pinv @ y_tilde + L.T @ r
 
-        return (r_prev,), (eta_smooth, Psi_pred_pinv, K,L)
+        return (r_prev,), (eta_smooth, Psi_pred_pinv, K, L)
 
     y_tilde = y - vmap(jnp.matmul)(B, x_pred)
 
@@ -247,11 +263,12 @@ def disturbance_smoother(
 
     return eta_smooth, (Psi_pred_pinv, K, L)
 
+
 def smoothed_signals(
-    filtered: FilterResult, # filter result
-    y: Observations, # observations
-    model: GLSSM # model
-) -> Float[Array, "n+1 m"]: # smoothed signals
+    filtered: FilterResult,  # filter result
+    y: Observations,  # observations
+    model: GLSSM,  # model
+) -> Float[Array, "n+1 m"]:  # smoothed signals
     """compute smoothed signals from filter result"""
     eta_smooth, _ = disturbance_smoother(filtered, y, model)
     return y - eta_smooth
@@ -261,26 +278,28 @@ from tensorflow_probability.substrates.jax.distributions import Chi2
 from .util import degenerate_cholesky
 from .util import location_antithetic, scale_antithethic
 
+
 def _sim_from_innovations_disturbances(
     model: GLSSM, eps: Float[Array, "N n+1 m"], eta: Float[Array, "N n+1 p"]
 ) -> Float[Array, "N n+1 p"]:
-    x0, A, Sigma, B, Omega = model
+    u, A, Sigma, v, B, Omega = model
     N, np1, m = eps.shape
 
     def step(carry, inputs):
         (x,) = carry
-        A, B, eps, eta = inputs
+        u, A, v, B, eps, eta = inputs
 
-        x_next = (A @ x[..., None])[..., 0] + eps
-        y_next = (B @ x[..., None])[..., 0] + eta
+        x_next = u + (A @ x[..., None])[..., 0] + eps
+        y_next = v + (B @ x[..., None])[..., 0] + eta
 
         return (x_next,), y_next
 
     A_ext = jnp.concatenate((jnp.eye(m)[None], A), axis=0)
+    initial = (jnp.zeros((N, m)),)  # initial state
     (x,), y = scan(
         step,
-        (jnp.broadcast_to(x0, (N, m)),),
-        (A_ext, B, eps.transpose((1, 0, 2)), eta.transpose(1, 0, 2)),
+        initial,
+        (u, A_ext, v, B, eps.transpose((1, 0, 2)), eta.transpose(1, 0, 2)),
     )
 
     return y.transpose((1, 0, 2))
@@ -323,11 +342,6 @@ def simulation_smoother(
     s_samples = scale_antithethic(u, samples, signals_smooth)
     ls_samples = scale_antithethic(u, l_samples, signals_smooth)
 
-    full_samples = jnp.concatenate((
-        samples,
-        l_samples,
-        s_samples,
-        ls_samples
-    ), axis=0)
+    full_samples = jnp.concatenate((samples, l_samples, s_samples, ls_samples), axis=0)
 
     return full_samples

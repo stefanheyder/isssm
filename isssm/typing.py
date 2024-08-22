@@ -16,20 +16,24 @@ States = Float[Array, "n+1 m"]
 
 # %% ../nbs/99_typings.ipynb 5
 class GLSSMState(NamedTuple):
-    x0: Float[Array, "m"] # initial mean 
-    A: Float[Array, "n m m"] # state transition matrix
-    Sigma: Float[Array, "n+1 m m"]
+    u: Float[Array, "n+1 m"]  # state bias
+    A: Float[Array, "n m m"]  # state transition matrix
+    Sigma: Float[Array, "n+1 m m"]  # state covariance matrix
+
 
 class GLSSMObservationModel(NamedTuple):
-    B: Float[Array, "n+1 m m"]
-    Omega: Float[Array, "n+1 m m"]
+    B: Float[Array, "n+1 p m"]  # observation matrix
+    v: Float[Array, "n+1 p"]  # observation bias
+    Omega: Float[Array, "n+1 p p"]  # observation covariance matrix
+
 
 class GLSSM(NamedTuple):
-    x0: Float[Array, "m"]
-    A: Float[Array, "n m m"]
-    Sigma: Float[Array, "n+1 m m"]
-    B: Float[Array, "n+1 m m"]
-    Omega: Float[Array, "n+1 m m"]
+    u: Float[Array, "n+1 m"]  # state bias
+    A: Float[Array, "n m m"]  # state transition matrix
+    Sigma: Float[Array, "n+1 m m"]  # state covariance matrix
+    v: Float[Array, "n+1 p"]  # observation bias
+    B: Float[Array, "n+1 p m"]  # observation matrix
+    Omega: Float[Array, "n+1 p p"]  # observation covariance matrix
 
 # %% ../nbs/99_typings.ipynb 7
 class FilterResult(NamedTuple):
@@ -38,30 +42,37 @@ class FilterResult(NamedTuple):
     x_pred: Float[Array, "n+1 m"]
     Xi_pred: Float[Array, "n+1 m m"]
 
+
 class SmootherResult(NamedTuple):
     x_smooth: Float[Array, "n+1 m"]
     Xi_smooth: Float[Array, "n+1 m m"]
 
 # %% ../nbs/99_typings.ipynb 9
 class PGSSM(NamedTuple):
-    x0: Float[Array, "m"]
+    u: Float[Array, "n+1 m"]
     A: Float[Array, "n m m"]
     Sigma: Float[Array, "n+1 m m"]
-    B: Float[Array, "n+1 m m"]
+    v: Float[Array, "n+1 p"]
+    B: Float[Array, "n+1 p m"]
     dist: tfd.Distribution
-    xi: Float[Array, "n+1 m"]
+    xi: Float[Array, "n+1 p"]
 
 # %% ../nbs/99_typings.ipynb 11
 class GLSSMProposal(NamedTuple):
-    x0: Float[Array, "m"]
+    u: Float[Array, "n+1 m"]
     A: Float[Array, "n m m"]
     Sigma: Float[Array, "n+1 m m"]
+    v: Float[Array, "n+1 p"]
     B: Float[Array, "n+1 p m"]
     Omega: Float[Array, "n+1 p p"]
     z: Float[Array, "n+1 p"]
 
+
 def to_glssm(proposal: GLSSMProposal) -> GLSSM:
-    return GLSSM(proposal.x0, proposal.A, proposal.Sigma, proposal.B, proposal.Omega)
+    return GLSSM(
+        proposal.u, proposal.A, proposal.Sigma, proposal.v, proposal.B, proposal.Omega
+    )
+
 
 class ConvergenceInformation(NamedTuple):
     converged: Bool

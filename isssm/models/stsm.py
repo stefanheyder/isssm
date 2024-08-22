@@ -12,15 +12,15 @@ import jax.scipy as jsp
 
 # %% ../../nbs/Models/10_stsm.ipynb 5
 def stsm(
-    x0: Float[Array, "m"], # initial state
-    s2_mu: Float, # variance of trend innovations
-    s2_nu: Float, # variance of velocity innovations
-    s2_seasonal: Float, # variance of velocity innovations
-    n: int, # number of time points
-    Sigma_init: Float[Array, "m m"], # initial state covariance
-    o2: Float, # variance of observation noise
-    s_order: int, # order of seasonal component
-    alpha_velocity: Float = 1., # dampening factor for velocity
+    x0: Float[Array, "m"],  # initial state
+    s2_mu: Float,  # variance of trend innovations
+    s2_nu: Float,  # variance of velocity innovations
+    s2_seasonal: Float,  # variance of velocity innovations
+    n: int,  # number of time points
+    Sigma_init: Float[Array, "m m"],  # initial state covariance
+    o2: Float,  # variance of observation noise
+    s_order: int,  # order of seasonal component
+    alpha_velocity: Float = 1.0,  # dampening factor for velocity
 ) -> GLSSM:
 
     A = jnp.array([[1, 1], [0, alpha_velocity]])
@@ -28,58 +28,71 @@ def stsm(
 
     Sigma = jnp.diag(jnp.array([s2_mu, s2_nu]))
 
-
     if s_order >= 2:
-        A_seasonal = jnp.block([
-            [-jnp.ones((1,s_order - 1)), -jnp.ones((1,1))],
-            [jnp.eye(s_order - 1), jnp.zeros((s_order - 1,1))]
-        ])
-        B_seasonal = (jnp.eye(s_order)[0])[None,:]
+        A_seasonal = jnp.block(
+            [
+                [-jnp.ones((1, s_order - 1)), -jnp.ones((1, 1))],
+                [jnp.eye(s_order - 1), jnp.zeros((s_order - 1, 1))],
+            ]
+        )
+        B_seasonal = (jnp.eye(s_order)[0])[None, :]
         Sigma_seasonal = jnp.diag(jnp.eye(s_order)[0] * s2_seasonal)
 
         A = jsp.linalg.block_diag(A, A_seasonal)
         B = jnp.concatenate((B, B_seasonal), axis=1)
         Sigma = jsp.linalg.block_diag(Sigma, Sigma_seasonal)
-        
-    
-    A = jnp.broadcast_to(A, (n, s_order + 2, s_order + 2))
-    B = jnp.broadcast_to(B, (n+1, 1, s_order + 2))
-    Sigma = jnp.broadcast_to(Sigma, (n, s_order + 2, s_order + 2))
+
+    m = s_order + 2
+    p = 1
+
+    A = jnp.broadcast_to(A, (n, m, m))
+    B = jnp.broadcast_to(B, (n + 1, p, m))
+    Sigma = jnp.broadcast_to(Sigma, (n, m, m))
     Sigma = jnp.concatenate((Sigma_init[None, :, :], Sigma), axis=0)
 
-    Omega = jnp.broadcast_to(jnp.diag(jnp.array([o2])), (n + 1, 1, 1))
+    Omega = jnp.broadcast_to(jnp.diag(jnp.array([o2])), (n + 1, p, p))
 
-    return GLSSM(x0, A, Sigma, B, Omega)
+    u = jnp.zeros((n + 1, m)).at[0].set(x0)
+    v = jnp.zeros((n + 1, p))
+
+    return GLSSM(u, A, Sigma, v, B, Omega)
 
 # %% ../../nbs/Models/10_stsm.ipynb 8
 from jax import vmap
 
+
 def add_seasonal(
     model: GLSSM,
-    x0_seasonal: Float[Array, "m"], # initial state
-    s2_seasonal: Float, # variance of sesaonal innovations
-    Sigma_init_seasonal: Float[Array, "m m"], # initial state covariance
-    s_order: int, # order of seasonal component
+    x0_seasonal: Float[Array, "m"],  # initial state
+    s2_seasonal: Float,  # variance of sesaonal innovations
+    Sigma_init_seasonal: Float[Array, "m m"],  # initial state covariance
+    s_order: int,  # order of seasonal component
 ) -> GLSSM:
 
-    x0, A, Sigma, B, Omega = model
+    u, A, Sigma, v, B, Omega = model
     np1, p, m = B.shape
     n = np1 - 1
 
     if s_order >= 2:
-        A_seasonal = jnp.block([
-            [-jnp.ones((1,s_order - 1)), -jnp.ones((1,1))],
-            [jnp.eye(s_order - 1), jnp.zeros((s_order - 1,1))]
-        ])
+        A_seasonal = jnp.block(
+            [
+                [-jnp.ones((1, s_order - 1)), -jnp.ones((1, 1))],
+                [jnp.eye(s_order - 1), jnp.zeros((s_order - 1, 1))],
+            ]
+        )
         B_seasonal = jnp.broadcast_to(jnp.eye(s_order)[0], (p, s_order))
 
         Sigma_seasonal = jnp.diag(jnp.eye(s_order)[0] * s2_seasonal)
         Sigma_seasonal = jnp.broadcast_to(Sigma_seasonal, (n, s_order, s_order))
-        Sigma_seasonal = jnp.concatenate((Sigma_init_seasonal[None], Sigma_seasonal), axis=0)
+        Sigma_seasonal = jnp.concatenate(
+            (Sigma_init_seasonal[None], Sigma_seasonal), axis=0
+        )
 
-        x0 = jnp.concatenate((x0, x0_seasonal), axis=0)
         A = vmap(jsp.linalg.block_diag, (0, None))(A, A_seasonal)
-        B = vmap(lambda M : jnp.concatenate((M, B_seasonal), axis = 1))(B)
+        B = vmap(lambda M: jnp.concatenate((M, B_seasonal), axis=1))(B)
         Sigma = vmap(jsp.linalg.block_diag)(Sigma, Sigma_seasonal)
-        
-    return GLSSM(x0, A, Sigma, B, Omega)
+
+    u = jnp.concatenate((u, jnp.zeros((n + 1, s_order))), axis=1)
+    u = u.at[0, m:].set(x0_seasonal)
+
+    return GLSSM(u, A, Sigma, v, B, Omega)

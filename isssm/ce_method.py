@@ -163,17 +163,17 @@ from .typing import GLSSM
 
 
 def cross_entropy_method(
-    model: PGSSM, # model
-    y: Observations, # observations
-    N: int, # number of samples to use in the CEM
-    key: PRNGKeyArray, # random number seed
-    n_iter: int, # number of iterations
-) -> MarkovProposal: # the CEM proposal
+    model: PGSSM,  # model
+    y: Observations,  # observations
+    N: int,  # number of samples to use in the CEM
+    key: PRNGKeyArray,  # random number seed
+    n_iter: int,  # number of iterations
+) -> MarkovProposal:  # the CEM proposal
     """iteratively perform the CEM to find an optimal proposal"""
     key, subkey_crn = jrn.split(key)
 
     proposal, info = laplace_approximation(y, model, n_iter)
-    glssm_la = GLSSM(model.x0, model.A, model.Sigma, model.B, proposal.Omega)
+    glssm_la = GLSSM(model.u, model.A, model.Sigma, model.v, model.B, proposal.Omega)
     initial = posterior_markov_proposal(proposal.z, glssm_la)
 
     def _iteration(i, vals):

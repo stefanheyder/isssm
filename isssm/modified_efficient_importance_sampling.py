@@ -19,32 +19,54 @@ from .util import MVN_degenerate as MVN, mm_sim
 from .glssm import mm_sim
 from .typing import GLSSM, PGSSM
 
+
 @jit
-def optimal_parameters(signal: Float[Array, "N p"], weights: Float[Array, "N"], log_p: Float[Array, "N"]):
-    ones = jnp.ones_like(weights)[:,None]
-    w_inner_prod = lambda a, b: jnp.einsum('i,ij,ik->jk',weights, a, b)
-    
-    X_T_W_X = jnp.block([
-        [w_inner_prod(ones, ones), w_inner_prod(ones, signal), w_inner_prod(ones, -.5 * signal**2)],
-        [w_inner_prod(signal, ones), w_inner_prod(signal, signal), w_inner_prod(signal, -.5 * signal**2)],
-        [w_inner_prod(-.5 * signal**2, ones), w_inner_prod(-.5 * signal**2, signal), w_inner_prod(-.5 * signal**2, -.5 * signal**2)]
-    ])
-    X_T_W_y = jnp.concatenate([
-        w_inner_prod(ones, log_p[:,None]), w_inner_prod(signal, log_p[:, None]), w_inner_prod(-.5 * signal**2, log_p[:, None])
-    ])
-    
-    beta = jnp.linalg.solve(X_T_W_X, X_T_W_y[:,0])
-    return beta 
+def optimal_parameters(
+    signal: Float[Array, "N p"], weights: Float[Array, "N"], log_p: Float[Array, "N"]
+):
+    ones = jnp.ones_like(weights)[:, None]
+    w_inner_prod = lambda a, b: jnp.einsum("i,ij,ik->jk", weights, a, b)
+
+    X_T_W_X = jnp.block(
+        [
+            [
+                w_inner_prod(ones, ones),
+                w_inner_prod(ones, signal),
+                w_inner_prod(ones, -0.5 * signal**2),
+            ],
+            [
+                w_inner_prod(signal, ones),
+                w_inner_prod(signal, signal),
+                w_inner_prod(signal, -0.5 * signal**2),
+            ],
+            [
+                w_inner_prod(-0.5 * signal**2, ones),
+                w_inner_prod(-0.5 * signal**2, signal),
+                w_inner_prod(-0.5 * signal**2, -0.5 * signal**2),
+            ],
+        ]
+    )
+    X_T_W_y = jnp.concatenate(
+        [
+            w_inner_prod(ones, log_p[:, None]),
+            w_inner_prod(signal, log_p[:, None]),
+            w_inner_prod(-0.5 * signal**2, log_p[:, None]),
+        ]
+    )
+
+    beta = jnp.linalg.solve(X_T_W_X, X_T_W_y[:, 0])
+    return beta
+
 
 def modified_efficient_importance_sampling(
-    y: Float[Array, "n+1 p"], # observations
-    model: PGSSM, # model
-    z_init: Float[Array, "n+1 p"], # initial z estimate
-    Omega_init: Float[Array, "n+1 p p"], # initial Omega estimate
-    n_iter: int, # number of iterations
-    N: int, # number of samples
-    key: PRNGKeyArray, # random key
-    eps: Float = 1e-5, # convergence threshold
+    y: Float[Array, "n+1 p"],  # observations
+    model: PGSSM,  # model
+    z_init: Float[Array, "n+1 p"],  # initial z estimate
+    Omega_init: Float[Array, "n+1 p p"],  # initial Omega estimate
+    n_iter: int,  # number of iterations
+    N: int,  # number of samples
+    key: PRNGKeyArray,  # random key
+    eps: Float = 1e-5,  # convergence threshold
 ):
     z, Omega = z_init, Omega_init
 
@@ -54,7 +76,10 @@ def modified_efficient_importance_sampling(
 
     v_norm_w = vmap(normalize_weights)
     dist = model.dist
-    lw_t = vmap(vmap(lambda s, y, xi, z, Omega: log_weights_t(s, y, xi, dist, z, Omega)), (0, None, None, None, None))
+    lw_t = vmap(
+        vmap(lambda s, y, xi, z, Omega: log_weights_t(s, y, xi, dist, z, Omega)),
+        (0, None, None, None, None),
+    )
 
     def _break(val):
         i, z, Omega, z_old, Omega_old = val
@@ -67,14 +92,17 @@ def modified_efficient_importance_sampling(
         return jnp.logical_or(
             jnp.logical_and(z_converged, Omega_converged), iteration_limit_reached
         )
+
     def _iteration(val):
         i, z, Omega, _, _ = val
-        glssm_approx = GLSSM(model.x0, model.A, model.Sigma, model.B, Omega)
+        glssm_approx = GLSSM(model.u, model.A, model.Sigma, model.v, model.B, Omega)
         sim_signal = simulation_smoother(glssm_approx, z, N, crn_key)
 
         log_weights = lw_t(sim_signal, y, model.xi, z, Omega)
         log_p = dist(sim_signal, model.xi).log_prob(y).sum(axis=-1)
-        wls_estimate = vmap(optimal_parameters, (1,1,1), 0)(sim_signal, v_norm_w(log_weights), log_p)
+        wls_estimate = vmap(optimal_parameters, (1, 1, 1), 0)(
+            sim_signal, v_norm_w(log_weights), log_p
+        )
 
         a = wls_estimate[:, 0]
         b = wls_estimate[:, 1 : (p + 1)]
@@ -84,13 +112,13 @@ def modified_efficient_importance_sampling(
         Omega_new = vmap(jnp.diag)(1 / c)
 
         return i + 1, z_new, Omega_new, z, Omega
-    
+
     _keep_going = lambda *args: jnp.logical_not(_break(*args))
 
     n_iters, z, Omega, _, _ = while_loop(
-        _keep_going, _iteration, 
-        (0, z_init, Omega_init, jnp.empty_like(z_init), jnp.empty_like(Omega_init))
+        _keep_going,
+        _iteration,
+        (0, z_init, Omega_init, jnp.empty_like(z_init), jnp.empty_like(Omega_init)),
     )
 
     return z, Omega
-

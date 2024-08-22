@@ -32,14 +32,17 @@ SmoothState = Float[Array, "n+1 m"]
 PseudoObs = Float[Array, "n+1 p"]
 PseudoObsCov = Float[Array, "n+1 p p"]
 
-default_link = lambda y: jnp.log(y + 1.)
+default_link = lambda y: jnp.log(y + 1.0)
+
 
 def _initial_guess(xi_ti, y_ti, dist, link=default_link):
     result = minimize(
         lambda s_ti: dist(s_ti, xi_ti).log_prob(y_ti).sum(),
-        jnp.atleast_1d(default_link(y_ti)), method='BFGS'
+        jnp.atleast_1d(default_link(y_ti)),
+        method="BFGS",
     )
     return jnp.squeeze(result.x)
+
 
 def laplace_approximation(
     y: Float[Array, "n+1 p"],  # observation
@@ -49,12 +52,12 @@ def laplace_approximation(
     d_log_lik=None,  # derivative of log likelihood function
     dd_log_lik=None,  # second derivative of log likelihood function
     eps: Float = 1e-5,  # precision of iterations
-    link = default_link, # default link to use in initial guess
+    link=default_link,  # default link to use in initial guess
 ) -> tuple[SmoothState, PseudoObs, PseudoObsCov]:
-    x0, A, Sigma, B, dist, xi = model
+    u, A, Sigma, v, B, dist, xi = model
     np1, p, m = B.shape
 
-    s_init = vvmap(partial(_initial_guess, dist=dist, link=link))(xi,y)
+    s_init = vvmap(partial(_initial_guess, dist=dist, link=link))(xi, y)
 
     def default_log_lik(s_ti, xi_ti, y_ti):
         return dist(s_ti, xi_ti).log_prob(y_ti).sum()
@@ -90,7 +93,7 @@ def laplace_approximation(
         Omega = vdiag(1.0 / Gamma)
 
         z = s + grad / Gamma
-        approx_glssm = GLSSM(x0, A, Sigma, B, Omega)
+        approx_glssm = GLSSM(u, A, Sigma, v, B, Omega)
 
         filtered = kalman(z, approx_glssm)
         s_new = smoothed_signals(filtered, z, approx_glssm)
@@ -104,17 +107,19 @@ def laplace_approximation(
     _keep_going = lambda *args: jnp.logical_not(_break(*args))
     _, n_iters, z, Omega, z_old, Omega_old = while_loop(_keep_going, _iteration, init)
 
-    final_proposal = GLSSMProposal(x0, A, Sigma, B, Omega, z)
+    final_proposal = GLSSMProposal(u, A, Sigma, v, B, Omega, z)
     delta_z = jnp.max(jnp.abs(z - z_old))
     delta_Omega = jnp.max(jnp.abs(Omega - Omega_old))
     information = ConvergenceInformation(
-        converged = jnp.logical_and(converged(z, z_old, eps), converged(Omega, Omega_old, eps)),
-        n_iter = n_iters,
-        delta = jnp.max(jnp.array([delta_z, delta_Omega])),
+        converged=jnp.logical_and(
+            converged(z, z_old, eps), converged(Omega, Omega_old, eps)
+        ),
+        n_iter=n_iters,
+        delta=jnp.max(jnp.array([delta_z, delta_Omega])),
     )
     return final_proposal, information
+
 
 def posterior_mode(proposal: GLSSMProposal) -> Float[Array, "n+1 p"]:
     glssm = to_glssm(proposal)
     return smoothed_signals(kalman(proposal.z, glssm), proposal.z, glssm)
-

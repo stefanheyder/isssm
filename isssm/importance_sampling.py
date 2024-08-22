@@ -15,7 +15,6 @@ from functools import partial
 from .typing import PGSSM
 
 
-
 def log_weights_t(
     s_t: Float[Array, "p"],  # signal
     y_t: Float[Array, "p"],  # observation
@@ -57,16 +56,19 @@ import jax.random as jrn
 from functools import partial
 from .typing import GLSSM, PGSSM
 
+
 def pgssm_importance_sampling(
     y: Float[Array, "n+1 p"],  # observations
-    model: PGSSM, # model
+    model: PGSSM,  # model
     z: Float[Array, "n+1 p"],  # synthetic observations
     Omega: Float[Array, "n+1 p p"],  # covariance of synthetic observations
     N: int,  # number of samples
-    key: PRNGKeyArray  # random key
-) -> tuple[Float[Array, "N n+1 m"], Float[Array, "N"]]:  # importance samples and weights
-    x0, A, Sigma, B, dist, xi = model
-    glssm = GLSSM(x0, A, Sigma, B, Omega)
+    key: PRNGKeyArray,  # random key
+) -> tuple[
+    Float[Array, "N n+1 m"], Float[Array, "N"]
+]:  # importance samples and weights
+    u, A, Sigma, v, B, dist, xi = model
+    glssm = GLSSM(u, A, Sigma, v, B, Omega)
 
     key, subkey = jrn.split(key)
     s = simulation_smoother(glssm, z, N, subkey)
@@ -110,8 +112,9 @@ def ess_lw(
     """Compute the effective sample size of a set of log weights"""
     return ess(normalize_weights(log_weights))
 
+
 def ess_pct(
     log_weights: Float[Array, "N"]  # log weights
-) -> Float: # the effective sample size in percent, also called efficiency factor
-    N, = log_weights.shape
-    return ess_lw(log_weights) / N * 100 
+) -> Float:  # the effective sample size in percent, also called efficiency factor
+    (N,) = log_weights.shape
+    return ess_lw(log_weights) / N * 100

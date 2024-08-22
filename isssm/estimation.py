@@ -11,13 +11,16 @@ from jaxtyping import Float, Array, PRNGKeyArray
 from .kalman import kalman
 from jax import jit
 from scipy.optimize import minimize as minimize_scipy
-from .laplace_approximation import laplace_approximation 
-from .modified_efficient_importance_sampling import modified_efficient_importance_sampling 
+from .laplace_approximation import laplace_approximation
+from isssm.modified_efficient_importance_sampling import (
+    modified_efficient_importance_sampling,
+)
 from .importance_sampling import normalize_weights
 from .typing import GLSSM, PGSSM
 
 # %% ../nbs/60_maximum_likelihood_estimation.ipynb 5
 from .util import MVN_degenerate as MVN
+
 vmm = vmap(jnp.matmul, (0, 0))
 
 
@@ -35,11 +38,9 @@ def gnll(
 
     return -MVN(y_pred, Psi_pred).log_prob(y).sum()
 
+
 @jit
-def gnll_full(
-    y: Float[Array, "n+1 p"],  # observations $y_t$
-    model: GLSSM
-):
+def gnll_full(y: Float[Array, "n+1 p"], model: GLSSM):  # observations $y_t$
     filtered = kalman(y, model)
     return gnll(y, filtered.x_pred, filtered.Xi_pred, model.B, model.Omega)
 
@@ -49,14 +50,16 @@ from jax.scipy.optimize import minimize as minimize_jax
 from scipy.optimize import OptimizeResult
 from jax.scipy.optimize import OptimizeResults
 
+
 def mle_glssm(
     y: Float[Array, "n+1 p"],  # observations $y_t$
     model_fn,  # parameterize GLSSM
     theta0: Float[Array, "k"],  # initial parameter guess
     aux,  # auxiliary data for the model
-    options=None, # options for the optimizer
+    options=None,  # options for the optimizer
 ) -> OptimizeResult:  # result of MLE optimization
     """Maximum likelihood estimation for GLSSM"""
+
     @jit
     def f(theta: Float[Array, "k"]) -> Float:
         model = model_fn(theta, aux)
@@ -64,15 +67,16 @@ def mle_glssm(
 
     return minimize_scipy(f, theta0, method="BFGS", options=options)
 
+
 def mle_glssm_ad(
     y: Float[Array, "n+1 p"],  # observations $y_t$
     model_fn,  # parameterize GLSSM
     theta0: Float[Array, "k"],  # initial parameter guess
     aux,  # auxiliary data for the model
-    options=None, # options for the optimizer
+    options=None,  # options for the optimizer
 ) -> OptimizeResults:  # result of MLE optimization
     """Maximum likelihood estimation for GLSSM using automatic differentiation"""
-    
+
     def f(theta: Float[Array, "k"]) -> Float:
         model = model_fn(theta, aux)
         return gnll_full(y, model)
@@ -95,7 +99,9 @@ def _pgnll(
     """Internal Log-Concave Negative Log-Likelihood"""
     (N,) = unnormalized_log_weights.shape
     weights = normalize_weights(unnormalized_log_weights)
-    return gnll - logsumexp(unnormalized_log_weights) + jnp.log(N) #- (jnp.var(weights) / (2 * N * jnp.mean(weights) ** 2))
+    return (
+        gnll - logsumexp(unnormalized_log_weights) + jnp.log(N)
+    )  # - (jnp.var(weights) / (2 * N * jnp.mean(weights) ** 2))
 
 
 def pgnll(
@@ -113,37 +119,43 @@ def pgnll(
     _, log_weights = pgssm_importance_sampling(y, model, z, Omega, N, subkey)
 
     return _pgnll(
-        gnll_full(z, GLSSM(model.x0, model.A, model.Sigma, model.B, Omega)), log_weights
+        gnll_full(z, GLSSM(model.u, model.A, model.Sigma, model.v, model.B, Omega)),
+        log_weights,
     )
 
 # %% ../nbs/60_maximum_likelihood_estimation.ipynb 18
 from .importance_sampling import log_weights
 from .laplace_approximation import posterior_mode
 
+
 def initial_theta(
     y: Float[Array, "n+1 p"],  # observations $y_t$
     model_fn,  # parameterized PGSSM
     theta0: Float[Array, "k"],  # initial parameter guess
     aux,  # auxiliary data for the model
-    n_iter_la: int, # number of LA iterations
-    options=None, # options for the optimizer
+    n_iter_la: int,  # number of LA iterations
+    options=None,  # options for the optimizer
 ):
     """Initial value for Maximum Likelihood Estimation for PGSSMs"""
+
     @jit
     def f(theta):
         model = model_fn(theta, aux)
-        
+
         proposal, info = laplace_approximation(y, model, n_iter_la)
 
-        x0, A, Sigma, B, Omega, z = proposal
-        glssm_la = GLSSM(x0, A, Sigma, B, Omega)
+        u, A, Sigma, v, B, Omega, z = proposal
+        glssm_la = GLSSM(u, A, Sigma, v, B, Omega)
 
         signal = posterior_mode(proposal)
         _, _, x_pred, Xi_pred = kalman(z, glssm_la)
 
-        negloglik = gnll(z, x_pred, Xi_pred, B, Omega) - log_weights(signal, y, model.dist, model.xi, z, Omega).sum()
+        negloglik = (
+            gnll(z, x_pred, Xi_pred, B, Omega)
+            - log_weights(signal, y, model.dist, model.xi, z, Omega).sum()
+        )
         return negloglik
-    
+
     result = minimize_scipy(f, theta0, method="BFGS", options=options)
     return result
 
@@ -153,25 +165,27 @@ def mle_pgssm(
     model_fn,  # parameterized LCSSM
     theta0: Float[Array, "k"],  # initial parameter guess
     aux,  # auxiliary data for the model
-    n_iter_la: int, # number of LA iterations
-    N: int, # number of importance samples
-    key: Array, # random key
-    options=None, # options for the optimizer
-) -> Float[Array, "k"]: # MLE
+    n_iter_la: int,  # number of LA iterations
+    N: int,  # number of importance samples
+    key: Array,  # random key
+    options=None,  # options for the optimizer
+) -> Float[Array, "k"]:  # MLE
     """Maximum Likelihood Estimation for PGSSMs"""
 
     @jit
     def f(theta, key):
         model = model_fn(theta, aux)
-        
+
         proposal, info = laplace_approximation(y, model, n_iter_la)
 
-        key, subkey = jrn.split(key)    
-        z, Omega = modified_efficient_importance_sampling(y, model, proposal.z, proposal.Omega, n_iter_la, N, subkey)
+        key, subkey = jrn.split(key)
+        z, Omega = modified_efficient_importance_sampling(
+            y, model, proposal.z, proposal.Omega, n_iter_la, N, subkey
+        )
 
-        key, subkey = jrn.split(key)    
+        key, subkey = jrn.split(key)
         return pgnll(y, model, z, Omega, N, subkey)
-    
+
     key, subkey = jrn.split(key)
     result = minimize_scipy(f, theta0, method="BFGS", options=options, args=(subkey,))
-    return result 
+    return result
