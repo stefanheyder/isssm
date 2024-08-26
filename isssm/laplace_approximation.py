@@ -37,7 +37,7 @@ default_link = lambda y: jnp.log(y + 1.0)
 
 def _initial_guess(xi_ti, y_ti, dist, link=default_link):
     result = minimize(
-        lambda s_ti: dist(s_ti, xi_ti).log_prob(y_ti).sum(),
+        lambda s_ti: -dist(s_ti, xi_ti).log_prob(y_ti).sum(),
         jnp.atleast_1d(default_link(y_ti)),
         method="BFGS",
     )

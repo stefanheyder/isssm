@@ -166,15 +166,14 @@ def initial_theta(
         signal = posterior_mode(proposal)
         _, _, x_pred, Xi_pred = kalman(z, glssm_la)
 
-        negloglik = (
-            gnll(z, x_pred, Xi_pred, B, Omega)
-            - log_weights(signal, y, model.dist, model.xi, z, Omega).sum()
+        negloglik = gnll(z, x_pred, Xi_pred, B, Omega) - log_weights(
+            signal, y, model.dist, model.xi, z, Omega
         )
         # improve numerical stability by dividing by number of observations
         n_obs = y.size
         return negloglik / n_obs
 
-    result = minimize_scipy(f, theta0, method="BFGS", options=options)
+    result = minimize_scipy(f, theta0, method="BFGS", jac="3-point", options=options)
     return result
 
 # %% ../nbs/60_maximum_likelihood_estimation.ipynb 22
@@ -194,11 +193,11 @@ def mle_pgssm(
     def f(theta, key):
         model = model_fn(theta, aux)
 
-        propsal_la, _ = laplace_approximation(y, model, n_iter_la)
+        proposal_la, _ = laplace_approximation(y, model, n_iter_la)
 
         key, subkey = jrn.split(key)
         proposal_meis, _ = modified_efficient_importance_sampling(
-            y, model, propsal_la.z, propsal_la.Omega, n_iter_la, N, subkey
+            y, model, proposal_la.z, proposal_la.Omega, n_iter_la, N, subkey
         )
 
         key, subkey = jrn.split(key)
@@ -207,5 +206,7 @@ def mle_pgssm(
         return pgnll(y, model, proposal_meis.z, proposal_meis.Omega, N, subkey) / n_obs
 
     key, subkey = jrn.split(key)
-    result = minimize_scipy(f, theta0, method="BFGS", options=options, args=(subkey,))
+    result = minimize_scipy(
+        f, theta0, method="BFGS", jac="3-point", options=options, args=(subkey,)
+    )
     return result

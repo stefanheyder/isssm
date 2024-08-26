@@ -6,7 +6,6 @@ __all__ = ['log_weights_t', 'log_weights', 'pgssm_importance_sampling', 'normali
 # %% ../nbs/40_importance_sampling.ipynb 4
 from tensorflow_probability.substrates.jax.distributions import (
     MultivariateNormalFullCovariance as MVN,
-    MultivariateNormalDiag as MVN_diag,
 )
 import jax.numpy as jnp
 from jaxtyping import Float, Array
@@ -40,7 +39,7 @@ def log_weights(
     xi: Float[Array, "n+1 p"],  # observation parameters
     z: Float[Array, "n+1 p"],  # synthetic observations
     Omega: Float[Array, "n+1 p p"],  # synthetic observation covariances:
-) -> Float[Array, "n+1"]:  # log weights
+) -> Float:  # log weights
     """Log weights for all time points"""
     p_ys = dist(s, xi).log_prob(y).sum()
 

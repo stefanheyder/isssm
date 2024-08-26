@@ -238,6 +238,9 @@ def FFBS(
     return _simulate_smoothed_FW1994(x_filt, Xi_filt, Xi_pred, model.A, N, subkey)
 
 # %% ../nbs/10_kalman_filter_smoother.ipynb 30
+from .util import mm_time
+
+
 def disturbance_smoother(
     filtered: FilterResult,  # filter result
     y: Observations,  # observations
@@ -250,27 +253,35 @@ def disturbance_smoother(
 
     def step(carry, inputs):
         (r,) = carry
-        y_tilde, A, B, Omega, Xi_pred = inputs
+        O_Pinv_y, O_KT_AT, BT_Pinv_y, L = inputs
 
-        Psi_pred = B @ Xi_pred @ B.T + Omega
-        Psi_pred_pinv = jnp.linalg.pinv(Psi_pred)
-        K = Xi_pred @ B.T @ Psi_pred_pinv
+        eta_smooth = O_Pinv_y - O_KT_AT @ r
+        r_prev = BT_Pinv_y + L.T @ r
 
-        eta_smooth = Omega @ (Psi_pred_pinv @ y_tilde - K.T @ A.T @ r)
-        L = A @ (jnp.eye(m) - K @ B)
-
-        r_prev = B.T @ Psi_pred_pinv @ y_tilde + L.T @ r
-
-        return (r_prev,), (eta_smooth, Psi_pred_pinv, K, L)
-
-    y_tilde = y - vmap(jnp.matmul)(B, x_pred)
+        return (r_prev,), eta_smooth
 
     A_ext = jnp.concatenate((A, jnp.eye(m)[jnp.newaxis]), axis=0)
-    _, (eta_smooth, Psi_pred_pinv, K, L) = scan(
-        step, (jnp.zeros(m),), (y_tilde, A_ext, B, Omega, Xi_pred), reverse=True
+    BT = B.transpose((0, 2, 1))
+
+    # offline computation is faster
+    y_tilde = y - mm_time(B, x_pred)
+    Psi_pred = B @ Xi_pred @ BT + Omega
+    Psi_pred_pinv = jnp.linalg.pinv(Psi_pred)
+    O_Pinv_y = mm_time(Omega @ Psi_pred_pinv, y_tilde)
+    K = Xi_pred @ BT @ Psi_pred_pinv
+
+    KT = K.transpose((0, 2, 1))
+    AT = A_ext.transpose((0, 2, 1))
+    O_KT_AT = Omega @ KT @ AT
+    BT_Pinv_y = mm_time(BT @ Psi_pred_pinv, y_tilde)
+
+    L = A_ext @ (jnp.eye(m)[None] - K @ B)
+
+    _, eta_smooth = scan(
+        step, (jnp.zeros(m),), (O_Pinv_y, O_KT_AT, BT_Pinv_y, L), reverse=True
     )
 
-    return eta_smooth, (Psi_pred_pinv, K, L)
+    return eta_smooth
 
 
 def smoothed_signals(
@@ -279,7 +290,7 @@ def smoothed_signals(
     model: GLSSM,  # model
 ) -> Float[Array, "n+1 m"]:  # smoothed signals
     """compute smoothed signals from filter result"""
-    eta_smooth, _ = disturbance_smoother(filtered, y, model)
+    eta_smooth = disturbance_smoother(filtered, y, model)
     return y - eta_smooth
 
 # %% ../nbs/10_kalman_filter_smoother.ipynb 35
