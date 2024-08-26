@@ -194,17 +194,17 @@ def mle_pgssm(
     def f(theta, key):
         model = model_fn(theta, aux)
 
-        proposal, info = laplace_approximation(y, model, n_iter_la)
+        propsal_la, _ = laplace_approximation(y, model, n_iter_la)
 
         key, subkey = jrn.split(key)
-        z, Omega = modified_efficient_importance_sampling(
-            y, model, proposal.z, proposal.Omega, n_iter_la, N, subkey
+        proposal_meis, _ = modified_efficient_importance_sampling(
+            y, model, propsal_la.z, propsal_la.Omega, n_iter_la, N, subkey
         )
 
         key, subkey = jrn.split(key)
         # improve numerical stability by dividing by number of observations
         n_obs = y.size
-        return pgnll(y, model, z, Omega, N, subkey) / n_obs
+        return pgnll(y, model, proposal_meis.z, proposal_meis.Omega, N, subkey) / n_obs
 
     key, subkey = jrn.split(key)
     result = minimize_scipy(f, theta0, method="BFGS", options=options, args=(subkey,))

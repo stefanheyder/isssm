@@ -17,7 +17,7 @@ from jax.lax import scan
 from .util import MVN_degenerate as MVN, mm_sim
 
 from .glssm import mm_sim
-from .typing import GLSSM, PGSSM
+from .typing import GLSSM, PGSSM, GLSSMProposal, ConvergenceInformation
 
 
 @jit
@@ -67,7 +67,7 @@ def modified_efficient_importance_sampling(
     N: int,  # number of samples
     key: PRNGKeyArray,  # random key
     eps: Float = 1e-5,  # convergence threshold
-):
+) -> tuple[GLSSMProposal, ConvergenceInformation]:
     z, Omega = z_init, Omega_init
 
     np1, p, m = model.B.shape
@@ -124,10 +124,32 @@ def modified_efficient_importance_sampling(
 
     _keep_going = lambda *args: jnp.logical_not(_break(*args))
 
-    n_iters, z, Omega, _, _ = while_loop(
+    n_iters, z, Omega, z_old, Omega_old = while_loop(
         _keep_going,
         _iteration,
         (0, z_init, Omega_init, jnp.empty_like(z_init), jnp.empty_like(Omega_init)),
     )
 
-    return z, Omega
+    proposal = GLSSMProposal(
+        u=model.u,
+        A=model.A,
+        D=model.D,
+        Sigma0=model.Sigma0,
+        Sigma=model.Sigma,
+        v=model.v,
+        B=model.B,
+        Omega=Omega,
+        z=z,
+    )
+
+    delta_z = jnp.max(jnp.abs(z - z_old))
+    delta_Omega = jnp.max(jnp.abs(Omega - Omega_old))
+    information = ConvergenceInformation(
+        converged=jnp.logical_and(
+            converged(z, z_old, eps), converged(Omega, Omega_old, eps)
+        ),
+        n_iter=n_iters,
+        delta=jnp.max(jnp.array([delta_z, delta_Omega])),
+    )
+
+    return proposal, information
