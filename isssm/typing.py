@@ -2,7 +2,8 @@
 
 # %% auto 0
 __all__ = ['InitialState', 'Observations', 'States', 'GLSSMState', 'GLSSMObservationModel', 'GLSSM', 'FilterResult',
-           'SmootherResult', 'PGSSM', 'GLSSMProposal', 'to_glssm', 'ConvergenceInformation', 'MarkovProposal']
+           'SmootherResult', 'PGSSM', 'to_states', 'to_observation_model', 'GLSSMProposal', 'to_glssm',
+           'ConvergenceInformation', 'MarkovProposal']
 
 # %% ../nbs/99_typings.ipynb 2
 from typing import NamedTuple
@@ -18,19 +19,23 @@ States = Float[Array, "n+1 m"]
 class GLSSMState(NamedTuple):
     u: Float[Array, "n+1 m"]  # state bias
     A: Float[Array, "n m m"]  # state transition matrix
-    Sigma: Float[Array, "n+1 m m"]  # state covariance matrix
+    D: Float[Array, "n m l"]  # noise embedding matrix
+    Sigma0: Float[Array, "m m"]  # initial state covariance matrix
+    Sigma: Float[Array, "n l l"]  # state covariance matrix
 
 
 class GLSSMObservationModel(NamedTuple):
-    B: Float[Array, "n+1 p m"]  # observation matrix
     v: Float[Array, "n+1 p"]  # observation bias
+    B: Float[Array, "n+1 p m"]  # observation matrix
     Omega: Float[Array, "n+1 p p"]  # observation covariance matrix
 
 
 class GLSSM(NamedTuple):
     u: Float[Array, "n+1 m"]  # state bias
     A: Float[Array, "n m m"]  # state transition matrix
-    Sigma: Float[Array, "n+1 m m"]  # state covariance matrix
+    D: Float[Array, "n m l"]  # noise embedding matrix
+    Sigma0: Float[Array, "m m"]  # initial state covariance matrix
+    Sigma: Float[Array, "n l l"]  # state covariance matrix
     v: Float[Array, "n+1 p"]  # observation bias
     B: Float[Array, "n+1 p m"]  # observation matrix
     Omega: Float[Array, "n+1 p p"]  # observation covariance matrix
@@ -51,17 +56,32 @@ class SmootherResult(NamedTuple):
 class PGSSM(NamedTuple):
     u: Float[Array, "n+1 m"]
     A: Float[Array, "n m m"]
-    Sigma: Float[Array, "n+1 m m"]
+    D: Float[Array, "n m l"]
+    Sigma0: Float[Array, "m m"]
+    Sigma: Float[Array, "n l l"]
     v: Float[Array, "n+1 p"]
     B: Float[Array, "n+1 p m"]
     dist: tfd.Distribution
     xi: Float[Array, "n+1 p"]
 
+
+def to_states(model: GLSSM | PGSSM) -> GLSSMState:
+    return GLSSMState(
+        u=model.u, A=model.A, D=model.D, Sigma0=model.Sigma0, Sigma=model.Sigma
+    )
+
+
+def to_observation_model(model: GLSSM) -> GLSSMObservationModel:
+    return GLSSMObservationModel(v=model.v, B=model.B, Omega=model.Omega)
+
+
 # %% ../nbs/99_typings.ipynb 11
 class GLSSMProposal(NamedTuple):
     u: Float[Array, "n+1 m"]
     A: Float[Array, "n m m"]
-    Sigma: Float[Array, "n+1 m m"]
+    D: Float[Array, "n m l"]
+    Sigma0: Float[Array, "m m"]
+    Sigma: Float[Array, "n l l"]
     v: Float[Array, "n+1 p"]
     B: Float[Array, "n+1 p m"]
     Omega: Float[Array, "n+1 p p"]
@@ -70,7 +90,14 @@ class GLSSMProposal(NamedTuple):
 
 def to_glssm(proposal: GLSSMProposal) -> GLSSM:
     return GLSSM(
-        proposal.u, proposal.A, proposal.Sigma, proposal.v, proposal.B, proposal.Omega
+        proposal.u,
+        proposal.A,
+        proposal.D,
+        proposal.Sigma0,
+        proposal.Sigma,
+        proposal.v,
+        proposal.B,
+        proposal.Omega,
     )
 
 

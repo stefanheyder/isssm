@@ -21,31 +21,36 @@ def simulate_states(
     key: PRNGKeyArray,  # the random state
 ) -> Float[Array, "N n+1 m"]:  # array of N samples from the state distribution
     """Simulate states of a GLSSM"""
-    u, A, Sigma = state
+    u, A, D, Sigma0, Sigma = state
 
-    np1, m = u.shape
+    _, _, l = D.shape
 
     def sim_next_states(carry, inputs):
         x_prev, key = carry
-        u, A, Sigma = inputs
-
-        next_loc = u + mm_sim(A, x_prev)
+        u, A, D, Sigma = inputs
 
         key, subkey = jrn.split(key)
-        samples = MVN(next_loc, Sigma).sample(seed=subkey)
+        eps = MVN(jnp.zeros(l), Sigma).sample(N, seed=subkey)
+
+        samples = u + mm_sim(A, x_prev) + mm_sim(D, eps)
 
         return (samples, key), samples
 
-    A_ext = jnp.concatenate((jnp.eye(m)[jnp.newaxis], A))
-
     key, subkey = jrn.split(key)
-    init = (jnp.zeros((N, m)), subkey)
+    x0 = MVN(u[0], Sigma0).sample(N, subkey)
+    key, subkey = jrn.split(key)
+    init = (x0, subkey)
 
-    _, X = scan(sim_next_states, init, (u, A_ext, Sigma))
+    _, X = scan(sim_next_states, init, (u[1:], A, D, Sigma))
+
+    X = jnp.concatenate([x0[None], X], axis=0)
 
     return X.transpose((1, 0, 2))
 
 # %% ../nbs/00_glssm.ipynb 7
+from .typing import to_states, to_observation_model
+
+
 def simulate_glssm(
     glssm: GLSSM,
     N: int,  # number of sample paths
@@ -56,9 +61,9 @@ def simulate_glssm(
 ):  # tuple of two arrays each with of N samples from the state/observation distribution
     """Simulate states and observations of a GLSSM"""
 
-    u, A, Sigma, v, B, Omega = glssm
+    v, B, Omega = to_observation_model(glssm)
     key, subkey = jrn.split(key)
-    X = simulate_states(GLSSMState(u, A, Sigma), N, subkey).transpose((1, 0, 2))
+    X = simulate_states(to_states(glssm), N, subkey).transpose((1, 0, 2))
 
     S = v[:, None, :] + vmap(mm_sim, (0, 0))(B, X)
 
@@ -73,16 +78,26 @@ def simulate_glssm(
     return X, Y
 
 # %% ../nbs/00_glssm.ipynb 15
+from .util import mm_time, append_to_front
+
+
 def log_probs_x(
     x: States, state: GLSSMState  # the states  # the state model
 ) -> Float[Array, "n+1"]:  # log probabilities $\log p(x_t \vert x_{t-1})$
     """log probabilities $\\log p(x_t | x_{t-1})$"""
-    u, A, Sigma = state
-    np1, m = u.shape
-    A_ext = jnp.concatenate((jnp.eye(m)[jnp.newaxis], A))
-    x_prev = jnp.concatenate((jnp.zeros((1, m)), x[:-1]))
-    x_pred = u + (A_ext @ x_prev[:, :, None])[:, :, 0]
-    return MVN(x_pred, Sigma).log_prob(x)
+    u, A, D, Sigma0, Sigma = state
+    _, _, l = D.shape
+    log_p0 = MVN(u[0], Sigma0).log_prob(x[0])
+    x_prev = x[:-1]
+
+    DT = D.transpose((0, 2, 1))
+
+    eps = mm_time(
+        DT, x[1:] - u[1:] - (A @ x_prev[:, :, None])[:, :, 0]
+    )
+
+    log_p = MVN(jnp.zeros(l), Sigma).log_prob(eps)
+    return append_to_front(log_p0, log_p)
 
 
 def log_probs_y(
@@ -98,7 +113,6 @@ def log_probs_y(
 
 def log_prob(x: States, y: Observations, glssm: GLSSM) -> Float:  # $\log p(x,y)$
     """joint log probability of states and observations"""
-    u, A, Sigma, v, B, Omega = glssm
-    log_p_x = jnp.sum(log_probs_x(x, GLSSMState(u, A, Sigma)))
-    log_p_y_given_x = jnp.sum(log_probs_y(y, x, GLSSMObservationModel(v, B, Omega)))
+    log_p_x = jnp.sum(log_probs_x(x, to_states(glssm)))
+    log_p_y_given_x = jnp.sum(log_probs_y(y, x, to_observation_model(glssm)))
     return log_p_x + log_p_y_given_x

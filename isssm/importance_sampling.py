@@ -26,8 +26,9 @@ def log_weights_t(
     """Log weight for a single time point."""
     p_ys = dist(s_t, xi_t).log_prob(y_t).sum()
 
-    omega_t = jnp.sqrt(jnp.diag(Omega_t))
-    g_zs = MVN_diag(s_t, omega_t).log_prob(z_t).sum()
+    # omega_t = jnp.sqrt(jnp.diag(Omega_t))
+    # g_zs = MVN_diag(s_t, omega_t).log_prob(z_t).sum()
+    g_zs = MVN(s_t, Omega_t).log_prob(z_t).sum()
 
     return p_ys - g_zs
 
@@ -44,8 +45,9 @@ def log_weights(
     p_ys = dist(s, xi).log_prob(y).sum()
 
     # avoid triangular solve problems
-    omega = jnp.sqrt(vmap(jnp.diag)(Omega))
-    g_zs = MVN_diag(s, omega).log_prob(z).sum()
+    # omega = jnp.sqrt(vmap(jnp.diag)(Omega))
+    # g_zs = MVN_diag(s, omega).log_prob(z).sum()
+    g_zs = MVN(s, Omega).log_prob(z).sum()
 
     return p_ys - g_zs
 
@@ -67,8 +69,8 @@ def pgssm_importance_sampling(
 ) -> tuple[
     Float[Array, "N n+1 m"], Float[Array, "N"]
 ]:  # importance samples and weights
-    u, A, Sigma, v, B, dist, xi = model
-    glssm = GLSSM(u, A, Sigma, v, B, Omega)
+    u, A, D, Sigma0, Sigma, v, B, dist, xi = model
+    glssm = GLSSM(u, A, D, Sigma0, Sigma, v, B, Omega)
 
     key, subkey = jrn.split(key)
     s = simulation_smoother(glssm, z, N, subkey)
@@ -79,7 +81,7 @@ def pgssm_importance_sampling(
 
     return s, lw
 
-# %% ../nbs/40_importance_sampling.ipynb 12
+# %% ../nbs/40_importance_sampling.ipynb 13
 from jaxtyping import Float, Array
 
 
@@ -95,7 +97,7 @@ def normalize_weights(
 
     return weights / weights.sum()
 
-# %% ../nbs/40_importance_sampling.ipynb 15
+# %% ../nbs/40_importance_sampling.ipynb 16
 from jaxtyping import Float, Array
 
 

@@ -95,7 +95,16 @@ def modified_efficient_importance_sampling(
 
     def _iteration(val):
         i, z, Omega, _, _ = val
-        glssm_approx = GLSSM(model.u, model.A, model.Sigma, model.v, model.B, Omega)
+        glssm_approx = GLSSM(
+            model.u,
+            model.A,
+            model.D,
+            model.Sigma0,
+            model.Sigma,
+            model.v,
+            model.B,
+            Omega,
+        )
         sim_signal = simulation_smoother(glssm_approx, z, N, crn_key)
 
         log_weights = lw_t(sim_signal, y, model.xi, z, Omega)

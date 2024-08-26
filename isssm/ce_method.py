@@ -91,6 +91,7 @@ def simulate_cem(
     mean = proposal.mean
     samples = x.transpose((1, 0, 2)) + proposal.mean
 
+    u = u.reshape((N, -1))
     l_samples = location_antithetic(samples, mean)
     s_samples = scale_antithethic(u, samples, mean)
     ls_samples = scale_antithethic(u, l_samples, mean)
@@ -173,7 +174,16 @@ def cross_entropy_method(
     key, subkey_crn = jrn.split(key)
 
     proposal, info = laplace_approximation(y, model, n_iter)
-    glssm_la = GLSSM(model.u, model.A, model.Sigma, model.v, model.B, proposal.Omega)
+    glssm_la = GLSSM(
+        model.u,
+        model.A,
+        model.D,
+        model.Sigma0,
+        model.Sigma,
+        model.v,
+        model.B,
+        proposal.Omega,
+    )
     initial = posterior_markov_proposal(proposal.z, glssm_la)
 
     def _iteration(i, vals):

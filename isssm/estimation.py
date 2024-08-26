@@ -63,7 +63,9 @@ def mle_glssm(
     @jit
     def f(theta: Float[Array, "k"]) -> Float:
         model = model_fn(theta, aux)
-        return gnll_full(y, model)
+        # improve numerical stability by dividing by number of observations
+        n_obs = y.size
+        return gnll_full(y, model) / n_obs
 
     return minimize_scipy(f, theta0, method="BFGS", options=options)
 
@@ -79,7 +81,9 @@ def mle_glssm_ad(
 
     def f(theta: Float[Array, "k"]) -> Float:
         model = model_fn(theta, aux)
-        return gnll_full(y, model)
+        # improve numerical stability by dividing by number of observations
+        n_obs = y.size
+        return gnll_full(y, model) / n_obs
 
     return minimize_jax(f, theta0, method="BFGS", options=options)
 
@@ -119,7 +123,19 @@ def pgnll(
     _, log_weights = pgssm_importance_sampling(y, model, z, Omega, N, subkey)
 
     return _pgnll(
-        gnll_full(z, GLSSM(model.u, model.A, model.Sigma, model.v, model.B, Omega)),
+        gnll_full(
+            z,
+            GLSSM(
+                model.u,
+                model.A,
+                model.D,
+                model.Sigma0,
+                model.Sigma,
+                model.v,
+                model.B,
+                Omega,
+            ),
+        ),
         log_weights,
     )
 
@@ -144,8 +160,8 @@ def initial_theta(
 
         proposal, info = laplace_approximation(y, model, n_iter_la)
 
-        u, A, Sigma, v, B, Omega, z = proposal
-        glssm_la = GLSSM(u, A, Sigma, v, B, Omega)
+        u, A, D, Sigma0, Sigma, v, B, Omega, z = proposal
+        glssm_la = GLSSM(u, A, D, Sigma0, Sigma, v, B, Omega)
 
         signal = posterior_mode(proposal)
         _, _, x_pred, Xi_pred = kalman(z, glssm_la)
@@ -154,7 +170,9 @@ def initial_theta(
             gnll(z, x_pred, Xi_pred, B, Omega)
             - log_weights(signal, y, model.dist, model.xi, z, Omega).sum()
         )
-        return negloglik
+        # improve numerical stability by dividing by number of observations
+        n_obs = y.size
+        return negloglik / n_obs
 
     result = minimize_scipy(f, theta0, method="BFGS", options=options)
     return result
@@ -184,7 +202,9 @@ def mle_pgssm(
         )
 
         key, subkey = jrn.split(key)
-        return pgnll(y, model, z, Omega, N, subkey)
+        # improve numerical stability by dividing by number of observations
+        n_obs = y.size
+        return pgnll(y, model, z, Omega, N, subkey) / n_obs
 
     key, subkey = jrn.split(key)
     result = minimize_scipy(f, theta0, method="BFGS", options=options, args=(subkey,))

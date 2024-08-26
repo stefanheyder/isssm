@@ -53,8 +53,8 @@ def laplace_approximation(
     dd_log_lik=None,  # second derivative of log likelihood function
     eps: Float = 1e-5,  # precision of iterations
     link=default_link,  # default link to use in initial guess
-) -> tuple[SmoothState, PseudoObs, PseudoObsCov]:
-    u, A, Sigma, v, B, dist, xi = model
+) -> tuple[GLSSMProposal, ConvergenceInformation]:
+    u, A, D, Sigma0, Sigma, v, B, dist, xi = model
     np1, p, m = B.shape
 
     s_init = vvmap(partial(_initial_guess, dist=dist, link=link))(xi, y)
@@ -93,7 +93,7 @@ def laplace_approximation(
         Omega = vdiag(1.0 / Gamma)
 
         z = s + grad / Gamma
-        approx_glssm = GLSSM(u, A, Sigma, v, B, Omega)
+        approx_glssm = GLSSM(u, A, D, Sigma0, Sigma, v, B, Omega)
 
         filtered = kalman(z, approx_glssm)
         s_new = smoothed_signals(filtered, z, approx_glssm)
@@ -107,7 +107,7 @@ def laplace_approximation(
     _keep_going = lambda *args: jnp.logical_not(_break(*args))
     _, n_iters, z, Omega, z_old, Omega_old = while_loop(_keep_going, _iteration, init)
 
-    final_proposal = GLSSMProposal(u, A, Sigma, v, B, Omega, z)
+    final_proposal = GLSSMProposal(u, A, D, Sigma0, Sigma, v, B, Omega, z)
     delta_z = jnp.max(jnp.abs(z - z_old))
     delta_Omega = jnp.max(jnp.abs(Omega - Omega_old))
     information = ConvergenceInformation(

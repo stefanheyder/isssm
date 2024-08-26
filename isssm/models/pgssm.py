@@ -19,9 +19,19 @@ def nb_pgssm(glssm: GLSSM, r: Float):
 
     def dist_nb(log_mu, xi):
         mu = jnp.exp(log_mu)
-        return NBinom(r, probs=mu / (xi + mu))
+        return NBinom(xi, probs=mu / (xi + mu))
 
-    return PGSSM(glssm.u, glssm.A, glssm.Sigma, glssm.v, glssm.B, dist_nb, xi)
+    return PGSSM(
+        glssm.u,
+        glssm.A,
+        glssm.D,
+        glssm.Sigma0,
+        glssm.Sigma,
+        glssm.v,
+        glssm.B,
+        dist_nb,
+        xi,
+    )
 
 
 def poisson_pgssm(glssm: GLSSM):
@@ -31,4 +41,14 @@ def poisson_pgssm(glssm: GLSSM):
     def dist_poisson(log_mu, xi):
         return Poisson(log_rate=log_mu)
 
-    return PGSSM(glssm.u, glssm.A, glssm.Sigma, glssm.v, glssm.B, dist_poisson, xi)
+    return PGSSM(
+        glssm.u,
+        glssm.A,
+        glssm.D,
+        glssm.Sigma0,
+        glssm.Sigma,
+        glssm.v,
+        glssm.B,
+        dist_poisson,
+        xi,
+    )

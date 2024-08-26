@@ -2,31 +2,37 @@
 
 # %% auto 0
 __all__ = ['LOFM', 'LOLT', 'mm_sim', 'mm_time', 'mm_time_sim', 'degenerate_cholesky', 'MVN_degenerate', 'converged',
-           'location_antithetic', 'scale_antithethic']
+           'append_to_front', 'location_antithetic', 'scale_antithethic']
 
 # %% ../nbs/99_util.ipynb 2
 import jax.numpy as jnp
 from jax import vmap
 from jaxtyping import Array, Float, Bool
 import tensorflow_probability.substrates.jax as tfp
-from tensorflow_probability.substrates.jax.distributions import MultivariateNormalLinearOperator as MVNLO
-
+from tensorflow_probability.substrates.jax.distributions import (
+    MultivariateNormalLinearOperator as MVNLO,
+)
 
 # %% ../nbs/99_util.ipynb 6
 LOFM = tfp.tf2jax.linalg.LinearOperatorFullMatrix
 LOLT = tfp.tf2jax.linalg.LinearOperatorLowerTriangular
-def degenerate_cholesky(Sigma): 
+
+
+def degenerate_cholesky(Sigma):
     evals, evecs = jnp.linalg.eigh(Sigma)
     # transpose for QR
     # ensure positive eigenvalues
-    sqrt_cov = jnp.einsum('...ij,...j->...ji', evecs, jnp.sqrt(jnp.abs(evals)))
-    Q, R = jnp.linalg.qr(sqrt_cov, mode='complete')
+    sqrt_cov = jnp.einsum("...ij,...j->...ji", evecs, jnp.sqrt(jnp.abs(evals)))
+    Q, R = jnp.linalg.qr(sqrt_cov, mode="complete")
     # ensure positive diagonal
-    R = R * jnp.sign(jnp.einsum('...ii->...i', R)[..., None])
+    R = R * jnp.sign(jnp.einsum("...ii->...i", R)[..., None])
     L = R.swapaxes(-1, -2)
     return L
 
-def MVN_degenerate(loc: Array, cov: Array) -> tfp.distributions.MultivariateNormalLinearOperator:
+
+def MVN_degenerate(
+    loc: Array, cov: Array
+) -> tfp.distributions.MultivariateNormalLinearOperator:
     L = degenerate_cholesky(cov)
     return MVNLO(loc=loc, scale=LOLT(L))
 
@@ -49,25 +55,29 @@ mm_time = vmap(jnp.matmul, (0, 0))
 # matmul with $(B_t)_{t}$ and $(X^i_t)_{i,t}$
 mm_time_sim = vmap(mm_time, (None, 0))
 
-# %% ../nbs/99_util.ipynb 17
+# %% ../nbs/99_util.ipynb 16
+def append_to_front(a0: Float[Array, "..."], a: Float[Array, "n ..."]):
+    return jnp.concatenate([a0[None], a], axis=0)
+
+# %% ../nbs/99_util.ipynb 19
 from tensorflow_probability.substrates.jax.distributions import Chi2
-def location_antithetic(
-    samples: Float[Array, "N ..."], 
-    mean: Float[Array, "N ..."]
-):
+
+
+def location_antithetic(samples: Float[Array, "N ..."], mean: Float[Array, "N ..."]):
     return 2 * mean[None] - samples
 
+
 def scale_antithethic(
-        u: Float[Array, "N n+1 k"],
-        samples: Float[Array, "N n+1 p"],
-        mean: Float[Array, "p"]
-    ):
+    u: Float[Array, "N n+1 k"],
+    samples: Float[Array, "N n+1 p"],
+    mean: Float[Array, "n+1 p"],
+):
 
-    N, np1, k = u.shape
+    N, l = u.shape
     # ensure dtype is Float64
-    chi_dist = Chi2(np1 * k * jnp.ones(1))    
+    chi_dist = Chi2(l * jnp.ones(1))
 
-    c = jnp.linalg.norm(u, axis=(1,2)) ** 2
+    c = jnp.linalg.norm(u, axis=1) ** 2
     c_prime = chi_dist.quantile(1.0 - chi_dist.cdf(c))
 
-    return mean[None] + jnp.sqrt(c_prime / c)[:,None,None] * (samples - mean[None])
+    return mean[None] + jnp.sqrt(c_prime / c)[:, None, None] * (samples - mean[None])
