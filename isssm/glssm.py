@@ -92,9 +92,7 @@ def log_probs_x(
 
     DT = D.transpose((0, 2, 1))
 
-    eps = mm_time(
-        DT, x[1:] - u[1:] - (A @ x_prev[:, :, None])[:, :, 0]
-    )
+    eps = mm_time(DT, x[1:] - u[1:] - (A @ x_prev[:, :, None])[:, :, 0])
 
     log_p = MVN(jnp.zeros(l), Sigma).log_prob(eps)
     return append_to_front(log_p0, log_p)
