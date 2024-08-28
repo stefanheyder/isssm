@@ -1,0 +1,1870 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
+
+<meta charset="utf-8">
+<meta name="generator" content="quarto-1.5.56">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+
+<meta name="description" content="See also the corresponding section in my thesis">
+
+<title>Maximum Likelihood Estimation – isssm</title>
+<style>
+code{white-space: pre-wrap;}
+span.smallcaps{font-variant: small-caps;}
+div.columns{display: flex; gap: min(4vw, 1.5em);}
+div.column{flex: auto; overflow-x: auto;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+ul.task-list li input[type="checkbox"] {
+  width: 0.8em;
+  margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
+  vertical-align: middle;
+}
+/* CSS for syntax highlighting */
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { display: inline-block; text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+  { counter-reset: source-line 0; }
+pre.numberSource code > span
+  { position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+  { content: counter(source-line);
+    position: relative; left: -1em; text-align: right; vertical-align: baseline;
+    border: none; display: inline-block;
+    -webkit-touch-callout: none; -webkit-user-select: none;
+    -khtml-user-select: none; -moz-user-select: none;
+    -ms-user-select: none; user-select: none;
+    padding: 0 4px; width: 4em;
+  }
+pre.numberSource { margin-left: 3em;  padding-left: 4px; }
+div.sourceCode
+  {   }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+/* CSS for citations */
+div.csl-bib-body { }
+div.csl-entry {
+  clear: both;
+  margin-bottom: 0em;
+}
+.hanging-indent div.csl-entry {
+  margin-left:2em;
+  text-indent:-2em;
+}
+div.csl-left-margin {
+  min-width:2em;
+  float:left;
+}
+div.csl-right-inline {
+  margin-left:2em;
+  padding-left:1em;
+}
+div.csl-indent {
+  margin-left: 2em;
+}</style>
+
+
+<script src="site_libs/quarto-nav/quarto-nav.js"></script>
+<script src="site_libs/quarto-nav/headroom.min.js"></script>
+<script src="site_libs/clipboard/clipboard.min.js"></script>
+<script src="site_libs/quarto-search/autocomplete.umd.js"></script>
+<script src="site_libs/quarto-search/fuse.min.js"></script>
+<script src="site_libs/quarto-search/quarto-search.js"></script>
+<meta name="quarto:offset" content="./">
+<script src="site_libs/quarto-html/quarto.js"></script>
+<script src="site_libs/quarto-html/popper.min.js"></script>
+<script src="site_libs/quarto-html/tippy.umd.min.js"></script>
+<script src="site_libs/quarto-html/anchor.min.js"></script>
+<link href="site_libs/quarto-html/tippy.css" rel="stylesheet">
+<link href="site_libs/quarto-html/quarto-syntax-highlighting.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<script src="site_libs/bootstrap/bootstrap.min.js"></script>
+<link href="site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
+<link href="site_libs/bootstrap/bootstrap.min.css" rel="stylesheet" id="quarto-bootstrap" data-mode="light">
+<script id="quarto-search-options" type="application/json">{
+  "location": "navbar",
+  "copy-button": false,
+  "collapse-after": 3,
+  "panel-placement": "end",
+  "type": "overlay",
+  "limit": 50,
+  "keyboard-shortcut": [
+    "f",
+    "/",
+    "s"
+  ],
+  "show-item-context": false,
+  "language": {
+    "search-no-results-text": "No results",
+    "search-matching-documents-text": "matching documents",
+    "search-copy-link-title": "Copy link to search",
+    "search-hide-matches-text": "Hide additional matches",
+    "search-more-match-text": "more match in this document",
+    "search-more-matches-text": "more matches in this document",
+    "search-clear-button-title": "Clear",
+    "search-text-placeholder": "",
+    "search-detached-cancel-button-title": "Cancel",
+    "search-submit-button-title": "Submit",
+    "search-label": "Search"
+  }
+}</script>
+
+  <script src="https://cdnjs.cloudflare.com/polyfill/v3/polyfill.min.js?features=es6"></script>
+  <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml-full.js" type="text/javascript"></script>
+
+<script type="text/javascript">
+const typesetMath = (el) => {
+  if (window.MathJax) {
+    // MathJax Typeset
+    window.MathJax.typeset([el]);
+  } else if (window.katex) {
+    // KaTeX Render
+    var mathElements = el.getElementsByClassName("math");
+    var macros = [];
+    for (var i = 0; i < mathElements.length; i++) {
+      var texText = mathElements[i].firstChild;
+      if (mathElements[i].tagName == "SPAN") {
+        window.katex.render(texText.data, mathElements[i], {
+          displayMode: mathElements[i].classList.contains('display'),
+          throwOnError: false,
+          macros: macros,
+          fleqn: false
+        });
+      }
+    }
+  }
+}
+window.Quarto = {
+  typesetMath
+};
+</script>
+
+<link rel="stylesheet" href="styles.css">
+<meta property="og:title" content="Maximum Likelihood Estimation – isssm">
+<meta property="og:description" content="See also the corresponding section in my thesis">
+<meta property="og:site_name" content="isssm">
+<meta name="twitter:title" content="Maximum Likelihood Estimation – isssm">
+<meta name="twitter:description" content="See also the corresponding section in my thesis">
+<meta name="twitter:card" content="summary">
+</head>
+
+<body class="nav-sidebar floating nav-fixed">
+
+<div id="quarto-search-results"></div>
+  <header id="quarto-header" class="headroom fixed-top">
+    <nav class="navbar navbar-expand-lg " data-bs-theme="dark">
+      <div class="navbar-container container-fluid">
+      <div class="navbar-brand-container mx-auto">
+    <a class="navbar-brand" href="./index.html">
+    <span class="navbar-title">isssm</span>
+    </a>
+  </div>
+        <div class="quarto-navbar-tools tools-end">
+</div>
+          <div id="quarto-search" class="" title="Search"></div>
+      </div> <!-- /container-fluid -->
+    </nav>
+  <nav class="quarto-secondary-nav">
+    <div class="container-fluid d-flex">
+      <button type="button" class="quarto-btn-toggle btn" data-bs-toggle="collapse" role="button" data-bs-target=".quarto-sidebar-collapse-item" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">
+        <i class="bi bi-layout-text-sidebar-reverse"></i>
+      </button>
+        <nav class="quarto-page-breadcrumbs" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="./maximum_likelihood_estimation.html">Maximum Likelihood Estimation</a></li></ol></nav>
+        <a class="flex-grow-1" role="navigation" data-bs-toggle="collapse" data-bs-target=".quarto-sidebar-collapse-item" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">      
+        </a>
+    </div>
+  </nav>
+</header>
+<!-- content -->
+<div id="quarto-content" class="quarto-container page-columns page-rows-contents page-layout-article page-navbar">
+<!-- sidebar -->
+  <nav id="quarto-sidebar" class="sidebar collapse collapse-horizontal quarto-sidebar-collapse-item sidebar-navigation floating overflow-auto">
+    <div class="sidebar-menu-container"> 
+    <ul class="list-unstyled mt-1">
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./index.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Importance Sampling for State Space Models (isssm)</span></a>
+  </div>
+</li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./glssm.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Gaussian Linear State Space Models</span></a>
+  </div>
+</li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./kalman_filter_smoother.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Kalman filter and smoother variants in JAX</span></a>
+  </div>
+</li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./pgssm.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Partially Gaussian State Space Models with linear Signal</span></a>
+  </div>
+</li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./laplace_approximation.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Laplace approximation for log-concave state space models</span></a>
+  </div>
+</li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./importance_sampling.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Importance Sampling for Partially Gaussian State Space Models</span></a>
+  </div>
+</li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./cross_entropy_method.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Cross-Entropy method</span></a>
+  </div>
+</li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./modified_efficient_importance_sampling.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Modified Efficient Importance Sampling</span></a>
+  </div>
+</li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./maximum_likelihood_estimation.html" class="sidebar-item-text sidebar-link active">
+ <span class="menu-text">Maximum Likelihood Estimation</span></a>
+  </div>
+</li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./typings.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Typings</span></a>
+  </div>
+</li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./util.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Utilities</span></a>
+  </div>
+</li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-1" role="navigation" aria-expanded="true">
+ <span class="menu-text">Models</span></a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-1" role="navigation" aria-expanded="true" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-1" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./Models/gaussian_models.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Example gaussian models</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./Models/stsm.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Basic Structural Time Series Model</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./Models/pgssm.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Partially Gaussian State Space Models with linear Signal</span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-2" role="navigation" aria-expanded="true">
+ <span class="menu-text">models</span></a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-2" role="navigation" aria-expanded="true" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-2" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./models/gaussian_models.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Example gaussian models</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./models/stsm.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Basic Structural Time Series Model</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./models/pgssm.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Partially Gaussian State Space Models with linear Signal</span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+    </ul>
+    </div>
+</nav>
+<div id="quarto-sidebar-glass" class="quarto-sidebar-collapse-item" data-bs-toggle="collapse" data-bs-target=".quarto-sidebar-collapse-item"></div>
+<!-- margin-sidebar -->
+    <div id="quarto-margin-sidebar" class="sidebar margin-sidebar">
+        <nav id="TOC" role="doc-toc" class="toc-active">
+    <h2 id="toc-title">On this page</h2>
+   
+  <ul>
+  <li><a href="#gaussian-linear-models" id="toc-gaussian-linear-models" class="nav-link active" data-scroll-target="#gaussian-linear-models">Gaussian linear models</a>
+  <ul class="collapse">
+  <li><a href="#gnll_full" id="toc-gnll_full" class="nav-link" data-scroll-target="#gnll_full">gnll_full</a></li>
+  <li><a href="#gnll" id="toc-gnll" class="nav-link" data-scroll-target="#gnll">gnll</a></li>
+  </ul></li>
+  <li><a href="#mle-in-glssms" id="toc-mle-in-glssms" class="nav-link" data-scroll-target="#mle-in-glssms">MLE in GLSSMs</a>
+  <ul class="collapse">
+  <li><a href="#mle_glssm_ad" id="toc-mle_glssm_ad" class="nav-link" data-scroll-target="#mle_glssm_ad">mle_glssm_ad</a></li>
+  <li><a href="#mle_glssm" id="toc-mle_glssm" class="nav-link" data-scroll-target="#mle_glssm">mle_glssm</a></li>
+  </ul></li>
+  <li><a href="#inference-for-log-concave-state-space-models" id="toc-inference-for-log-concave-state-space-models" class="nav-link" data-scroll-target="#inference-for-log-concave-state-space-models">Inference for Log-Concave State Space Models</a>
+  <ul class="collapse">
+  <li><a href="#pgnll" id="toc-pgnll" class="nav-link" data-scroll-target="#pgnll">pgnll</a></li>
+  <li><a href="#initial_theta" id="toc-initial_theta" class="nav-link" data-scroll-target="#initial_theta">initial_theta</a></li>
+  <li><a href="#mle_pgssm" id="toc-mle_pgssm" class="nav-link" data-scroll-target="#mle_pgssm">mle_pgssm</a></li>
+  </ul></li>
+  </ul>
+<div class="toc-actions"><ul><li><a href="https://github.com/stefanheyder/isssm/issues/new" class="toc-action"><i class="bi bi-github"></i>Report an issue</a></li></ul></div></nav>
+    </div>
+<!-- main -->
+<main class="content" id="quarto-document-content">
+
+<header id="title-block-header" class="quarto-title-block default">
+<div class="quarto-title">
+<h1 class="title">Maximum Likelihood Estimation</h1>
+</div>
+
+<div>
+  <div class="description">
+    See also the corresponding <a href="https://stefanheyder.github.io/dissertation/thesis.pdf#nameddest=section.3.7">section in my thesis</a>
+  </div>
+</div>
+
+
+<div class="quarto-title-meta">
+
+    
+  
+    
+  </div>
+  
+
+
+</header>
+
+
+<!-- WARNING: THIS FILE WAS AUTOGENERATED! DO NOT EDIT! -->
+<section id="gaussian-linear-models" class="level2">
+<h2 class="anchored" data-anchor-id="gaussian-linear-models">Gaussian linear models</h2>
+<p>For <a href="./glssm.html">GLSSMs</a> we can evaluate the likelihood analytically with a single pass of the Kalman filter. Based on the predictions <span class="math inline">\(\hat Y_{t| t - 1}\)</span> and associated covariance matrices <span class="math inline">\(\Psi_{t + 1 | t}\)</span> for <span class="math inline">\(t = 0, \dots n\)</span> produced by the Kalman filter we can derive the gaussian negative log- likelihood which is given by the gaussian distribution with that mean and covariance matrix and observation <span class="math inline">\(Y_t\)</span>.</p>
+<hr>
+<p><a href="https://github.com/stefanheyder/isssm/blob/main/isssm/estimation.py#L43" target="_blank" style="float:right; font-size:smaller">source</a></p>
+<section id="gnll_full" class="level3">
+<h3 class="anchored" data-anchor-id="gnll_full">gnll_full</h3>
+<blockquote class="blockquote">
+<pre><code> gnll_full (y:jaxtyping.Float[Array,'n+1p'], model:isssm.typing.GLSSM)</code></pre>
+</blockquote>
+<table class="caption-top table">
+<thead>
+<tr class="header">
+<th></th>
+<th><strong>Type</strong></th>
+<th><strong>Details</strong></th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>y</td>
+<td>Float[Array, ‘n+1 p’]</td>
+<td></td>
+</tr>
+<tr class="even">
+<td>model</td>
+<td>GLSSM</td>
+<td>observations <span class="math inline">\(y_t\)</span></td>
+</tr>
+</tbody>
+</table>
+<hr>
+<p><a href="https://github.com/stefanheyder/isssm/blob/main/isssm/estimation.py#L28" target="_blank" style="float:right; font-size:smaller">source</a></p>
+</section>
+<section id="gnll" class="level3">
+<h3 class="anchored" data-anchor-id="gnll">gnll</h3>
+<blockquote class="blockquote">
+<pre><code> gnll (y:jaxtyping.Float[Array,'n+1p'],
+       x_pred:jaxtyping.Float[Array,'n+1m'],
+       Xi_pred:jaxtyping.Float[Array,'n+1mm'],
+       B:jaxtyping.Float[Array,'n+1pm'],
+       Omega:jaxtyping.Float[Array,'n+1pp'])</code></pre>
+</blockquote>
+<p><em>Gaussian negative log-likelihood</em></p>
+<table class="caption-top table">
+<colgroup>
+<col style="width: 9%">
+<col style="width: 38%">
+<col style="width: 52%">
+</colgroup>
+<thead>
+<tr class="header">
+<th></th>
+<th><strong>Type</strong></th>
+<th><strong>Details</strong></th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>y</td>
+<td>Float[Array, ‘n+1 p’]</td>
+<td>observations <span class="math inline">\(y_t\)</span></td>
+</tr>
+<tr class="even">
+<td>x_pred</td>
+<td>Float[Array, ‘n+1 m’]</td>
+<td>predicted states <span class="math inline">\(\hat X_{t+1\bar t}\)</span></td>
+</tr>
+<tr class="odd">
+<td>Xi_pred</td>
+<td>Float[Array, ‘n+1 m m’]</td>
+<td>predicted state covariances <span class="math inline">\(\Xi_{t+1\bar t}\)</span></td>
+</tr>
+<tr class="even">
+<td>B</td>
+<td>Float[Array, ‘n+1 p m’]</td>
+<td>state observation matrices <span class="math inline">\(B_{t}\)</span></td>
+</tr>
+<tr class="odd">
+<td>Omega</td>
+<td>Float[Array, ‘n+1 p p’]</td>
+<td>observation covariances <span class="math inline">\(\Omega_{t}\)</span></td>
+</tr>
+<tr class="even">
+<td><strong>Returns</strong></td>
+<td><strong>Float</strong></td>
+<td><strong>gaussian negative log-likelihood</strong></td>
+</tr>
+</tbody>
+</table>
+</section>
+</section>
+<section id="mle-in-glssms" class="level2">
+<h2 class="anchored" data-anchor-id="mle-in-glssms">MLE in GLSSMs</h2>
+<p>For a parametrized GLSSM, that is a model that depends on parameters <span class="math inline">\(\theta\)</span>, we can use numerical optimization to find the maximum likelihood estimatior.</p>
+<div class="callout callout-style-default callout-caution callout-titled">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+Caution
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<p>With these methods, the user has to take care that they provide a parametrization that is unconstrained, i.e.&nbsp;using <span class="math inline">\(\log\)</span> transformations for positive parameters.</p>
+</div>
+</div>
+<div class="callout callout-style-default callout-note callout-titled">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+Implementation Details
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<ol type="1">
+<li>For low dimensional state space models obtaining the gradient of the negative log likelihood may be feasible by automatic differentiation, in this case use the <a href="https://stefanheyder.github.io/isssm/maximum_likelihood_estimation.html#mle_glssm_ad"><code>mle_glssm_ad</code></a> method. Otherwise the derivative free Nelder-Mead method in <a href="https://stefanheyder.github.io/isssm/maximum_likelihood_estimation.html#mle_glssm"><code>mle_glssm</code></a> may be favorable.</li>
+<li>To stabilize numerical results we minimize <span class="math inline">\(\frac{1}{(n + 1)p} \log_{\theta} p(y)\)</span> instead of <span class="math inline">\(\log p_\theta (y)\)</span>.</li>
+</ol>
+</div>
+</div>
+<hr>
+<p><a href="https://github.com/stefanheyder/isssm/blob/main/isssm/estimation.py#L73" target="_blank" style="float:right; font-size:smaller">source</a></p>
+<section id="mle_glssm_ad" class="level3">
+<h3 class="anchored" data-anchor-id="mle_glssm_ad">mle_glssm_ad</h3>
+<blockquote class="blockquote">
+<pre><code> mle_glssm_ad (y:jaxtyping.Float[Array,'n+1p'], model_fn,
+               theta0:jaxtyping.Float[Array,'k'], aux, options=None)</code></pre>
+</blockquote>
+<p><em>Maximum likelihood estimation for GLSSM using automatic differentiation</em></p>
+<table class="caption-top table">
+<colgroup>
+<col style="width: 6%">
+<col style="width: 25%">
+<col style="width: 34%">
+<col style="width: 34%">
+</colgroup>
+<thead>
+<tr class="header">
+<th></th>
+<th><strong>Type</strong></th>
+<th><strong>Default</strong></th>
+<th><strong>Details</strong></th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>y</td>
+<td>Float[Array, ‘n+1 p’]</td>
+<td></td>
+<td>observations <span class="math inline">\(y_t\)</span></td>
+</tr>
+<tr class="even">
+<td>model_fn</td>
+<td></td>
+<td></td>
+<td>parameterize GLSSM</td>
+</tr>
+<tr class="odd">
+<td>theta0</td>
+<td>Float[Array, ‘k’]</td>
+<td></td>
+<td>initial parameter guess</td>
+</tr>
+<tr class="even">
+<td>aux</td>
+<td></td>
+<td></td>
+<td>auxiliary data for the model</td>
+</tr>
+<tr class="odd">
+<td>options</td>
+<td>NoneType</td>
+<td>None</td>
+<td>options for the optimizer</td>
+</tr>
+<tr class="even">
+<td><strong>Returns</strong></td>
+<td><strong>OptimizeResults</strong></td>
+<td></td>
+<td><strong>result of MLE optimization</strong></td>
+</tr>
+</tbody>
+</table>
+<hr>
+<p><a href="https://github.com/stefanheyder/isssm/blob/main/isssm/estimation.py#L54" target="_blank" style="float:right; font-size:smaller">source</a></p>
+</section>
+<section id="mle_glssm" class="level3">
+<h3 class="anchored" data-anchor-id="mle_glssm">mle_glssm</h3>
+<blockquote class="blockquote">
+<pre><code> mle_glssm (y:jaxtyping.Float[Array,'n+1p'], model_fn,
+            theta0:jaxtyping.Float[Array,'k'], aux, options=None)</code></pre>
+</blockquote>
+<p><em>Maximum likelihood estimation for GLSSM</em></p>
+<table class="caption-top table">
+<thead>
+<tr class="header">
+<th></th>
+<th><strong>Type</strong></th>
+<th><strong>Default</strong></th>
+<th><strong>Details</strong></th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>y</td>
+<td>Float[Array, ‘n+1 p’]</td>
+<td></td>
+<td>observations <span class="math inline">\(y_t\)</span></td>
+</tr>
+<tr class="even">
+<td>model_fn</td>
+<td></td>
+<td></td>
+<td>parameterize GLSSM</td>
+</tr>
+<tr class="odd">
+<td>theta0</td>
+<td>Float[Array, ‘k’]</td>
+<td></td>
+<td>initial parameter guess</td>
+</tr>
+<tr class="even">
+<td>aux</td>
+<td></td>
+<td></td>
+<td>auxiliary data for the model</td>
+</tr>
+<tr class="odd">
+<td>options</td>
+<td>NoneType</td>
+<td>None</td>
+<td>options for the optimizer</td>
+</tr>
+<tr class="even">
+<td><strong>Returns</strong></td>
+<td><strong>OptimizeResult</strong></td>
+<td></td>
+<td><strong>result of MLE optimization</strong></td>
+</tr>
+</tbody>
+</table>
+<div id="cell-8" class="cell" data-execution_count="13">
+<div class="sourceCode cell-code" id="cb5"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> parameterized_lcm(theta, aux):</span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a>    log_s2_eps, log_s2_eta <span class="op">=</span> theta</span>
+<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a>    n, x0, s2_x0 <span class="op">=</span> aux</span>
+<span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-5"><a href="#cb5-5" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> lcm(n, x0, s2_x0, jnp.exp(log_s2_eps), jnp.exp(log_s2_eta))</span>
+<span id="cb5-6"><a href="#cb5-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-7"><a href="#cb5-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-8"><a href="#cb5-8" aria-hidden="true" tabindex="-1"></a>theta <span class="op">=</span> jnp.log(jnp.array([<span class="fl">2.0</span>, <span class="fl">3.0</span>]))</span>
+<span id="cb5-9"><a href="#cb5-9" aria-hidden="true" tabindex="-1"></a>aux <span class="op">=</span> (<span class="dv">100</span>, <span class="fl">0.0</span>, <span class="fl">1.0</span>)</span>
+<span id="cb5-10"><a href="#cb5-10" aria-hidden="true" tabindex="-1"></a>true_model <span class="op">=</span> parameterized_lcm(theta, aux)</span>
+<span id="cb5-11"><a href="#cb5-11" aria-hidden="true" tabindex="-1"></a>_, (y,) <span class="op">=</span> simulate_glssm(true_model, <span class="dv">1</span>, jrn.PRNGKey(<span class="dv">15435324</span>))</span>
+<span id="cb5-12"><a href="#cb5-12" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-13"><a href="#cb5-13" aria-hidden="true" tabindex="-1"></a><span class="co"># start far away from true parameter</span></span>
+<span id="cb5-14"><a href="#cb5-14" aria-hidden="true" tabindex="-1"></a>result_bfgs <span class="op">=</span> mle_glssm(</span>
+<span id="cb5-15"><a href="#cb5-15" aria-hidden="true" tabindex="-1"></a>    y, parameterized_lcm, <span class="dv">2</span> <span class="op">*</span> jnp.ones(<span class="dv">2</span>), aux, options<span class="op">=</span>{<span class="st">"return_all"</span>: <span class="va">True</span>}</span>
+<span id="cb5-16"><a href="#cb5-16" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb5-17"><a href="#cb5-17" aria-hidden="true" tabindex="-1"></a>result_ad <span class="op">=</span> mle_glssm_ad(y, parameterized_lcm, <span class="dv">2</span> <span class="op">*</span> jnp.ones(<span class="dv">2</span>), aux)</span>
+<span id="cb5-18"><a href="#cb5-18" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-19"><a href="#cb5-19" aria-hidden="true" tabindex="-1"></a>result_bfgs.x <span class="op">-</span> result_ad.x</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display" data-execution_count="13">
+<pre><code>Array([ 1.81930986e-05, -9.67064382e-06], dtype=float64)</code></pre>
+</div>
+</div>
+<p>Numerical differentiation is much faster here, and as accurate as automatic differentiation.</p>
+<div id="cell-10" class="cell" data-execution_count="15">
+<div class="sourceCode cell-code" id="cb7"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> matplotlib.pyplot <span class="im">as</span> plt</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<div id="cell-11" class="cell" data-execution_count="16">
+<div class="sourceCode cell-code" id="cb8"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="co"># 2d grid on the log scale</span></span>
+<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a>k <span class="op">=</span> <span class="dv">21</span>  <span class="co"># number of evaluations in each dimension</span></span>
+<span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a>log_s2_eps, log_s2_eta <span class="op">=</span> jnp.meshgrid(</span>
+<span id="cb8-4"><a href="#cb8-4" aria-hidden="true" tabindex="-1"></a>    jnp.linspace(<span class="op">-</span><span class="dv">3</span>, <span class="dv">3</span>, k) <span class="op">+</span> theta[<span class="dv">0</span>], jnp.linspace(<span class="op">-</span><span class="dv">3</span>, <span class="dv">3</span>, k) <span class="op">+</span> theta[<span class="dv">1</span>]</span>
+<span id="cb8-5"><a href="#cb8-5" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb8-6"><a href="#cb8-6" aria-hidden="true" tabindex="-1"></a><span class="co"># flatten</span></span>
+<span id="cb8-7"><a href="#cb8-7" aria-hidden="true" tabindex="-1"></a>thetas <span class="op">=</span> jnp.vstack([log_s2_eps.ravel(), log_s2_eta.ravel()]).T</span>
+<span id="cb8-8"><a href="#cb8-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-9"><a href="#cb8-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-10"><a href="#cb8-10" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> gnll_theta(theta):</span>
+<span id="cb8-11"><a href="#cb8-11" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> gnll_full(y, parameterized_lcm(theta, aux))</span>
+<span id="cb8-12"><a href="#cb8-12" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-13"><a href="#cb8-13" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-14"><a href="#cb8-14" aria-hidden="true" tabindex="-1"></a>nlls <span class="op">=</span> vmap(gnll_theta)(thetas)</span>
+<span id="cb8-15"><a href="#cb8-15" aria-hidden="true" tabindex="-1"></a><span class="co"># location of minium in nlls</span></span>
+<span id="cb8-16"><a href="#cb8-16" aria-hidden="true" tabindex="-1"></a>i <span class="op">=</span> jnp.argmin(nlls)</span>
+<span id="cb8-17"><a href="#cb8-17" aria-hidden="true" tabindex="-1"></a><span class="co"># location of minimum in the grid</span></span>
+<span id="cb8-18"><a href="#cb8-18" aria-hidden="true" tabindex="-1"></a>i_eps, i_eta <span class="op">=</span> i <span class="op">//</span> <span class="dv">21</span>, i <span class="op">%</span> <span class="dv">21</span></span>
+<span id="cb8-19"><a href="#cb8-19" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-20"><a href="#cb8-20" aria-hidden="true" tabindex="-1"></a>plt.contourf(log_s2_eps, log_s2_eta, nlls.reshape(k, k), alpha<span class="op">=</span><span class="fl">0.5</span>)</span>
+<span id="cb8-21"><a href="#cb8-21" aria-hidden="true" tabindex="-1"></a>plt.scatter(</span>
+<span id="cb8-22"><a href="#cb8-22" aria-hidden="true" tabindex="-1"></a>    log_s2_eps[i_eps, i_eta],</span>
+<span id="cb8-23"><a href="#cb8-23" aria-hidden="true" tabindex="-1"></a>    log_s2_eta[i_eps, i_eta],</span>
+<span id="cb8-24"><a href="#cb8-24" aria-hidden="true" tabindex="-1"></a>    c<span class="op">=</span><span class="st">"white"</span>,</span>
+<span id="cb8-25"><a href="#cb8-25" aria-hidden="true" tabindex="-1"></a>    marker<span class="op">=</span><span class="st">"x"</span>,</span>
+<span id="cb8-26"><a href="#cb8-26" aria-hidden="true" tabindex="-1"></a>    label<span class="op">=</span><span class="st">"min_grid"</span>,</span>
+<span id="cb8-27"><a href="#cb8-27" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb8-28"><a href="#cb8-28" aria-hidden="true" tabindex="-1"></a>plt.scatter(theta[<span class="dv">0</span>], theta[<span class="dv">1</span>], c<span class="op">=</span><span class="st">"r"</span>, marker<span class="op">=</span><span class="st">"x"</span>, label<span class="op">=</span><span class="st">"true"</span>)</span>
+<span id="cb8-29"><a href="#cb8-29" aria-hidden="true" tabindex="-1"></a>plt.scatter(<span class="op">*</span>result_bfgs.x, c<span class="op">=</span><span class="st">"g"</span>, marker<span class="op">=</span><span class="st">"x"</span>, label<span class="op">=</span><span class="st">"$</span><span class="ch">\\</span><span class="st">hat</span><span class="ch">\\</span><span class="st">theta$"</span>)</span>
+<span id="cb8-30"><a href="#cb8-30" aria-hidden="true" tabindex="-1"></a>plt.legend()</span>
+<span id="cb8-31"><a href="#cb8-31" aria-hidden="true" tabindex="-1"></a>plt.xlabel(<span class="st">"$</span><span class="ch">\\</span><span class="st">log(</span><span class="ch">\\</span><span class="st">sigma^2_</span><span class="ch">\\</span><span class="st">varepsilon)$"</span>)</span>
+<span id="cb8-32"><a href="#cb8-32" aria-hidden="true" tabindex="-1"></a>plt.ylabel(<span class="st">"$</span><span class="ch">\\</span><span class="st">log(</span><span class="ch">\\</span><span class="st">sigma^2_</span><span class="ch">\\</span><span class="st">eta)$"</span>)</span>
+<span id="cb8-33"><a href="#cb8-33" aria-hidden="true" tabindex="-1"></a>plt.colorbar()</span>
+<span id="cb8-34"><a href="#cb8-34" aria-hidden="true" tabindex="-1"></a>plt.show()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="60_maximum_likelihood_estimation_files/figure-html/cell-8-output-1.png" class="img-fluid figure-img"></p>
+</figure>
+</div>
+</div>
+</div>
+</section>
+</section>
+<section id="inference-for-log-concave-state-space-models" class="level2">
+<h2 class="anchored" data-anchor-id="inference-for-log-concave-state-space-models">Inference for Log-Concave State Space Models</h2>
+<p>For non-gaussian state space models we cannot evaluate the likelihood analytically but resort to simulation methods, more specifically <a href="./importance_sampling.html">importance sampling</a>.</p>
+<p>Importance Sampling is performed using a surrogate gaussian model that shares the state density <span class="math inline">\(g(x) = p(x)\)</span> and is parameterized by synthetic observations <span class="math inline">\(z\)</span> and their covariance matrices <span class="math inline">\(\Omega\)</span>. In this surrogate model the likeilhood <span class="math inline">\(\ell_g = g(z)\)</span> and posterior distribution <span class="math inline">\(g(x|z)\)</span> are tractable and we can <a href="10_kalman_filter_smoother#Sampling_from_the_smoothing_distribution">simulate from the posterior</a>.</p>
+<p>Having obtained <span class="math inline">\(N\)</span> independent samples <span class="math inline">\(X^i, i= 1, \dots, N\)</span> from this surrogate posterior we can evaluate the likelihood <span class="math inline">\(\ell\)</span> by Monte-Carlo integration:</p>
+<p><span class="math display">\[
+\begin{align*}
+p(y) &amp;= \int p(x, y) \,\mathrm dx \\
+    &amp;=\int \frac{p(x,y)}{g(x|z)} g(x|z) \,\mathrm dx \\
+    &amp;= g(z) \int \frac{p(y|x)}{g(z|x)} g(x|z)\,\mathrm dx \\
+    &amp;\approx g(z) \frac 1 N \sum_{i =1}^N w(X^i)
+\end{align*}
+\]</span></p>
+<p>where <span class="math inline">\(w(X^i) = \frac{p\left(y|X^i\right)}{g\left(z|X^i\right)}\)</span> are the unnormalized importance sampling weights. Additionally, we use the bias correction term $ $ from <span class="citation" data-cites="Durbin1997Monte">(<a href="#ref-Durbin1997Monte" role="doc-biblioref">Durbin and Koopman 1997</a>)</span>, where <span class="math inline">\(s^2_w\)</span> is the empirical variance of the weights and <span class="math inline">\(\bar w\)</span> is their mean.</p>
+<p>In total we estimate the negative log-likelihood by</p>
+<p><span class="math display">\[
+- \log p(y) \approx \ell_g - \log \left(\sum_{i=1}^N w(X^i) \right) + \log N - \frac{s^{2}_{w}}{2 N \bar w^{2}}
+\]</span></p>
+<div class="callout callout-style-default callout-note callout-titled">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+Implementation Details
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<ol type="1">
+<li>Similar to MLE in GLSSMs, we minimize <span class="math inline">\(-\frac{1}{(n + 1)p} \log p(y)\)</span> instead of <span class="math inline">\(-\log p(y)\)</span>.</li>
+</ol>
+</div>
+</div>
+<hr>
+<p><a href="https://github.com/stefanheyder/isssm/blob/main/isssm/estimation.py#L111" target="_blank" style="float:right; font-size:smaller">source</a></p>
+<section id="pgnll" class="level3">
+<h3 class="anchored" data-anchor-id="pgnll">pgnll</h3>
+<blockquote class="blockquote">
+<pre><code> pgnll (y:jaxtyping.Float[Array,'n+1p'], model:isssm.typing.PGSSM,
+        z:jaxtyping.Float[Array,'n+1p'],
+        Omega:jaxtyping.Float[Array,'n+1pp'], N:int,
+        key:Union[jaxtyping.Key[Array,''],jaxtyping.UInt32[Array,'2']])</code></pre>
+</blockquote>
+<p><em>Log-Concave Negative Log-Likelihood</em></p>
+<table class="caption-top table">
+<colgroup>
+<col style="width: 9%">
+<col style="width: 38%">
+<col style="width: 52%">
+</colgroup>
+<thead>
+<tr class="header">
+<th></th>
+<th><strong>Type</strong></th>
+<th><strong>Details</strong></th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>y</td>
+<td>Float[Array, ‘n+1 p’]</td>
+<td>observations</td>
+</tr>
+<tr class="even">
+<td>model</td>
+<td>PGSSM</td>
+<td>the model</td>
+</tr>
+<tr class="odd">
+<td>z</td>
+<td>Float[Array, ‘n+1 p’]</td>
+<td>synthetic observations</td>
+</tr>
+<tr class="even">
+<td>Omega</td>
+<td>Float[Array, ‘n+1 p p’]</td>
+<td>covariance of synthetic observations</td>
+</tr>
+<tr class="odd">
+<td>N</td>
+<td>int</td>
+<td>number of samples</td>
+</tr>
+<tr class="even">
+<td>key</td>
+<td>Union</td>
+<td>random key</td>
+</tr>
+<tr class="odd">
+<td><strong>Returns</strong></td>
+<td><strong>Float</strong></td>
+<td><strong>the approximate negative log-likelihood</strong></td>
+</tr>
+</tbody>
+</table>
+<p>To perform maximum likelihood estimation in a parameterized log-concave state space model we have to evaluate the likelihood several times. For evaluating the likelihood at <span class="math inline">\(\theta\)</span> we have to perform the following:</p>
+<ol type="1">
+<li>Find a surrogate Gaussian model <span class="math inline">\(g(x,z)\)</span> for <span class="math inline">\(p_\theta(x,y)\)</span> (e.g.&nbsp;<a href="./laplace_approximation.html">Laplace approximation</a> or <a href="./modified_efficient_importance_sampling.html">efficient importance sampling</a>).</li>
+<li>Generate <a href="./importance_sampling.html">importance samples</a> from these models using the <a href="./kalman_filter_smoother.html">Kalman smoother</a>.</li>
+<li>Approximate the negative log likelihood using the methods of this module.</li>
+</ol>
+<p>This makes maximum likelihood an intensive task for these kinds of models.</p>
+<p>For an initial guess we optimize the approximatie loglikelihood with the weights component fixed at the mode, see Eq. (21) in<span class="citation" data-cites="Durbin1997Monte">(<a href="#ref-Durbin1997Monte" role="doc-biblioref">Durbin and Koopman 1997</a>)</span> for further details.</p>
+<hr>
+<p><a href="https://github.com/stefanheyder/isssm/blob/main/isssm/estimation.py#L147" target="_blank" style="float:right; font-size:smaller">source</a></p>
+</section>
+<section id="initial_theta" class="level3">
+<h3 class="anchored" data-anchor-id="initial_theta">initial_theta</h3>
+<blockquote class="blockquote">
+<pre><code> initial_theta (y:jaxtyping.Float[Array,'n+1p'], model_fn,
+                theta0:jaxtyping.Float[Array,'k'], aux, n_iter_la:int,
+                options=None)</code></pre>
+</blockquote>
+<p><em>Initial value for Maximum Likelihood Estimation for PGSSMs</em></p>
+<table class="caption-top table">
+<thead>
+<tr class="header">
+<th></th>
+<th><strong>Type</strong></th>
+<th><strong>Default</strong></th>
+<th><strong>Details</strong></th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>y</td>
+<td>Float[Array, ‘n+1 p’]</td>
+<td></td>
+<td>observations <span class="math inline">\(y_t\)</span></td>
+</tr>
+<tr class="even">
+<td>model_fn</td>
+<td></td>
+<td></td>
+<td>parameterized PGSSM</td>
+</tr>
+<tr class="odd">
+<td>theta0</td>
+<td>Float[Array, ‘k’]</td>
+<td></td>
+<td>initial parameter guess</td>
+</tr>
+<tr class="even">
+<td>aux</td>
+<td></td>
+<td></td>
+<td>auxiliary data for the model</td>
+</tr>
+<tr class="odd">
+<td>n_iter_la</td>
+<td>int</td>
+<td></td>
+<td>number of LA iterations</td>
+</tr>
+<tr class="even">
+<td>options</td>
+<td>NoneType</td>
+<td>None</td>
+<td>options for the optimizer</td>
+</tr>
+</tbody>
+</table>
+<p>As an example consider a parameterized version of the <a href="20_lcssm.ipynb#running">running example</a> with unknown parameters <span class="math inline">\(\sigma^2_\varepsilon\)</span> and <span class="math inline">\(r\)</span>.</p>
+<div id="cell-17" class="cell" data-execution_count="23">
+<div class="sourceCode cell-code" id="cb11"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> model_fn(theta, aux) <span class="op">-&gt;</span> PGSSM:</span>
+<span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a>    log_s2_eps, log_r <span class="op">=</span> theta</span>
+<span id="cb11-3"><a href="#cb11-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-4"><a href="#cb11-4" aria-hidden="true" tabindex="-1"></a>    n, x0 <span class="op">=</span> aux</span>
+<span id="cb11-5"><a href="#cb11-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-6"><a href="#cb11-6" aria-hidden="true" tabindex="-1"></a>    r <span class="op">=</span> jnp.exp(log_r)</span>
+<span id="cb11-7"><a href="#cb11-7" aria-hidden="true" tabindex="-1"></a>    s2_eps <span class="op">=</span> jnp.exp(log_s2_eps)</span>
+<span id="cb11-8"><a href="#cb11-8" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> nb_pgssm_running_example(</span>
+<span id="cb11-9"><a href="#cb11-9" aria-hidden="true" tabindex="-1"></a>        s_order<span class="op">=</span><span class="dv">0</span>,</span>
+<span id="cb11-10"><a href="#cb11-10" aria-hidden="true" tabindex="-1"></a>        Sigma0_seasonal<span class="op">=</span>jnp.eye(<span class="dv">0</span>),</span>
+<span id="cb11-11"><a href="#cb11-11" aria-hidden="true" tabindex="-1"></a>        x0_seasonal<span class="op">=</span>jnp.zeros(<span class="dv">0</span>),</span>
+<span id="cb11-12"><a href="#cb11-12" aria-hidden="true" tabindex="-1"></a>        s2_speed<span class="op">=</span>s2_eps,</span>
+<span id="cb11-13"><a href="#cb11-13" aria-hidden="true" tabindex="-1"></a>        r<span class="op">=</span>r,</span>
+<span id="cb11-14"><a href="#cb11-14" aria-hidden="true" tabindex="-1"></a>        n<span class="op">=</span>n,</span>
+<span id="cb11-15"><a href="#cb11-15" aria-hidden="true" tabindex="-1"></a>    )</span>
+<span id="cb11-16"><a href="#cb11-16" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-17"><a href="#cb11-17" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-18"><a href="#cb11-18" aria-hidden="true" tabindex="-1"></a>n <span class="op">=</span> <span class="dv">100</span></span>
+<span id="cb11-19"><a href="#cb11-19" aria-hidden="true" tabindex="-1"></a>theta_lc <span class="op">=</span> jnp.array([jnp.log(<span class="dv">1</span>), jnp.log(<span class="fl">20.0</span>)])</span>
+<span id="cb11-20"><a href="#cb11-20" aria-hidden="true" tabindex="-1"></a>aux <span class="op">=</span> (n, jnp.ones(<span class="dv">2</span>))</span>
+<span id="cb11-21"><a href="#cb11-21" aria-hidden="true" tabindex="-1"></a>model <span class="op">=</span> model_fn(theta_lc, aux)</span>
+<span id="cb11-22"><a href="#cb11-22" aria-hidden="true" tabindex="-1"></a>key <span class="op">=</span> jrn.PRNGKey(<span class="dv">512</span>)</span>
+<span id="cb11-23"><a href="#cb11-23" aria-hidden="true" tabindex="-1"></a>key, subkey <span class="op">=</span> jrn.split(key)</span>
+<span id="cb11-24"><a href="#cb11-24" aria-hidden="true" tabindex="-1"></a>_, (y,) <span class="op">=</span> simulate_pgssm(model, <span class="dv">1</span>, subkey)</span>
+<span id="cb11-25"><a href="#cb11-25" aria-hidden="true" tabindex="-1"></a>theta_lc</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display" data-execution_count="23">
+<pre><code>Array([0.        , 2.99573227], dtype=float64)</code></pre>
+</div>
+</div>
+<div id="cell-18" class="cell" data-execution_count="24">
+<div class="sourceCode cell-code" id="cb13"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a>initial_result <span class="op">=</span> initial_theta(y, model_fn, theta_lc, aux, <span class="dv">10</span>)</span>
+<span id="cb13-2"><a href="#cb13-2" aria-hidden="true" tabindex="-1"></a>theta0 <span class="op">=</span> initial_result.x</span>
+<span id="cb13-3"><a href="#cb13-3" aria-hidden="true" tabindex="-1"></a>initial_result</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-error">
+<div class="ansi-escaped-output">
+<pre><span class="ansi-red-fg">---------------------------------------------------------------------------</span>
+<span class="ansi-red-fg">KeyboardInterrupt</span>                         Traceback (most recent call last)
+Cell <span class="ansi-green-fg">In[24], line 1</span>
+<span class="ansi-green-fg">----&gt; 1</span> initial_result <span style="color:rgb(98,98,98)">=</span> initial_theta(y, model_fn, theta_lc, aux, <span style="color:rgb(98,98,98)">10</span>)
+<span class="ansi-green-fg ansi-bold">      2</span> theta0 <span style="color:rgb(98,98,98)">=</span> initial_result<span style="color:rgb(98,98,98)">.</span>x
+<span class="ansi-green-fg ansi-bold">      3</span> initial_result
+
+Cell <span class="ansi-green-fg">In[22], line 34</span>, in <span class="ansi-cyan-fg">initial_theta</span><span class="ansi-blue-fg">(y, model_fn, theta0, aux, n_iter_la, options)</span>
+<span class="ansi-green-fg ansi-bold">     31</span>     n_obs <span style="color:rgb(98,98,98)">=</span> y<span style="color:rgb(98,98,98)">.</span>size
+<span class="ansi-green-fg ansi-bold">     32</span>     <span style="font-weight:bold;color:rgb(0,135,0)">return</span> negloglik <span style="color:rgb(98,98,98)">/</span> n_obs
+<span class="ansi-green-fg">---&gt; 34</span> result <span style="color:rgb(98,98,98)">=</span> minimize_scipy(f, theta0, method<span style="color:rgb(98,98,98)">=</span><span style="color:rgb(175,0,0)">"</span><span style="color:rgb(175,0,0)">BFGS</span><span style="color:rgb(175,0,0)">"</span>, jac<span style="color:rgb(98,98,98)">=</span><span style="color:rgb(175,0,0)">"</span><span style="color:rgb(175,0,0)">3-point</span><span style="color:rgb(175,0,0)">"</span>, options<span style="color:rgb(98,98,98)">=</span>options)
+<span class="ansi-green-fg ansi-bold">     35</span> <span style="font-weight:bold;color:rgb(0,135,0)">return</span> result
+
+File <span class="ansi-green-fg">~/.conda/envs/research/lib/python3.11/site-packages/scipy/optimize/_minimize.py:705</span>, in <span class="ansi-cyan-fg">minimize</span><span class="ansi-blue-fg">(fun, x0, args, method, jac, hess, hessp, bounds, constraints, tol, callback, options)</span>
+<span class="ansi-green-fg ansi-bold">    703</span>     res <span style="color:rgb(98,98,98)">=</span> _minimize_cg(fun, x0, args, jac, callback, <span style="color:rgb(98,98,98)">*</span><span style="color:rgb(98,98,98)">*</span>options)
+<span class="ansi-green-fg ansi-bold">    704</span> <span style="font-weight:bold;color:rgb(0,135,0)">elif</span> meth <span style="color:rgb(98,98,98)">==</span> <span style="color:rgb(175,0,0)">'</span><span style="color:rgb(175,0,0)">bfgs</span><span style="color:rgb(175,0,0)">'</span>:
+<span class="ansi-green-fg">--&gt; 705</span>     res <span style="color:rgb(98,98,98)">=</span> _minimize_bfgs(fun, x0, args, jac, callback, <span style="color:rgb(98,98,98)">*</span><span style="color:rgb(98,98,98)">*</span>options)
+<span class="ansi-green-fg ansi-bold">    706</span> <span style="font-weight:bold;color:rgb(0,135,0)">elif</span> meth <span style="color:rgb(98,98,98)">==</span> <span style="color:rgb(175,0,0)">'</span><span style="color:rgb(175,0,0)">newton-cg</span><span style="color:rgb(175,0,0)">'</span>:
+<span class="ansi-green-fg ansi-bold">    707</span>     res <span style="color:rgb(98,98,98)">=</span> _minimize_newtoncg(fun, x0, args, jac, hess, hessp, callback,
+<span class="ansi-green-fg ansi-bold">    708</span>                              <span style="color:rgb(98,98,98)">*</span><span style="color:rgb(98,98,98)">*</span>options)
+
+File <span class="ansi-green-fg">~/.conda/envs/research/lib/python3.11/site-packages/scipy/optimize/_optimize.py:1445</span>, in <span class="ansi-cyan-fg">_minimize_bfgs</span><span class="ansi-blue-fg">(fun, x0, args, jac, callback, gtol, norm, eps, maxiter, disp, return_all, finite_diff_rel_step, xrtol, **unknown_options)</span>
+<span class="ansi-green-fg ansi-bold">   1442</span> pk <span style="color:rgb(98,98,98)">=</span> <span style="color:rgb(98,98,98)">-</span>np<span style="color:rgb(98,98,98)">.</span>dot(Hk, gfk)
+<span class="ansi-green-fg ansi-bold">   1443</span> <span style="font-weight:bold;color:rgb(0,135,0)">try</span>:
+<span class="ansi-green-fg ansi-bold">   1444</span>     alpha_k, fc, gc, old_fval, old_old_fval, gfkp1 <span style="color:rgb(98,98,98)">=</span> \
+<span class="ansi-green-fg">-&gt; 1445</span>              _line_search_wolfe12(f, myfprime, xk, pk, gfk,
+<span class="ansi-green-fg ansi-bold">   1446</span>                                   old_fval, old_old_fval, amin<span style="color:rgb(98,98,98)">=</span><span style="color:rgb(98,98,98)">1e-100</span>, amax<span style="color:rgb(98,98,98)">=</span><span style="color:rgb(98,98,98)">1e100</span>)
+<span class="ansi-green-fg ansi-bold">   1447</span> <span style="font-weight:bold;color:rgb(0,135,0)">except</span> _LineSearchError:
+<span class="ansi-green-fg ansi-bold">   1448</span>     <span style="font-style:italic;color:rgb(95,135,135)"># Line search failed to find a better solution.</span>
+<span class="ansi-green-fg ansi-bold">   1449</span>     warnflag <span style="color:rgb(98,98,98)">=</span> <span style="color:rgb(98,98,98)">2</span>
+
+File <span class="ansi-green-fg">~/.conda/envs/research/lib/python3.11/site-packages/scipy/optimize/_optimize.py:1215</span>, in <span class="ansi-cyan-fg">_line_search_wolfe12</span><span class="ansi-blue-fg">(f, fprime, xk, pk, gfk, old_fval, old_old_fval, **kwargs)</span>
+<span class="ansi-green-fg ansi-bold">   1201</span> <span style="font-style:italic;color:rgb(175,0,0)">"""</span>
+<span class="ansi-green-fg ansi-bold">   1202</span> <span style="font-style:italic;color:rgb(175,0,0)">Same as line_search_wolfe1, but fall back to line_search_wolfe2 if</span>
+<span class="ansi-green-fg ansi-bold">   1203</span> <span style="font-style:italic;color:rgb(175,0,0)">suitable step length is not found, and raise an exception if a</span>
+<span class="ansi-green-fg">   (...)</span>
+<span class="ansi-green-fg ansi-bold">   1210</span> 
+<span class="ansi-green-fg ansi-bold">   1211</span> <span style="font-style:italic;color:rgb(175,0,0)">"""</span>
+<span class="ansi-green-fg ansi-bold">   1213</span> extra_condition <span style="color:rgb(98,98,98)">=</span> kwargs<span style="color:rgb(98,98,98)">.</span>pop(<span style="color:rgb(175,0,0)">'</span><span style="color:rgb(175,0,0)">extra_condition</span><span style="color:rgb(175,0,0)">'</span>, <span style="font-weight:bold;color:rgb(0,135,0)">None</span>)
+<span class="ansi-green-fg">-&gt; 1215</span> ret <span style="color:rgb(98,98,98)">=</span> line_search_wolfe1(f, fprime, xk, pk, gfk,
+<span class="ansi-green-fg ansi-bold">   1216</span>                          old_fval, old_old_fval,
+<span class="ansi-green-fg ansi-bold">   1217</span>                          <span style="color:rgb(98,98,98)">*</span><span style="color:rgb(98,98,98)">*</span>kwargs)
+<span class="ansi-green-fg ansi-bold">   1219</span> <span style="font-weight:bold;color:rgb(0,135,0)">if</span> ret[<span style="color:rgb(98,98,98)">0</span>] <span style="font-weight:bold;color:rgb(175,0,255)">is</span> <span style="font-weight:bold;color:rgb(175,0,255)">not</span> <span style="font-weight:bold;color:rgb(0,135,0)">None</span> <span style="font-weight:bold;color:rgb(175,0,255)">and</span> extra_condition <span style="font-weight:bold;color:rgb(175,0,255)">is</span> <span style="font-weight:bold;color:rgb(175,0,255)">not</span> <span style="font-weight:bold;color:rgb(0,135,0)">None</span>:
+<span class="ansi-green-fg ansi-bold">   1220</span>     xp1 <span style="color:rgb(98,98,98)">=</span> xk <span style="color:rgb(98,98,98)">+</span> ret[<span style="color:rgb(98,98,98)">0</span>] <span style="color:rgb(98,98,98)">*</span> pk
+
+File <span class="ansi-green-fg">~/.conda/envs/research/lib/python3.11/site-packages/scipy/optimize/_linesearch.py:84</span>, in <span class="ansi-cyan-fg">line_search_wolfe1</span><span class="ansi-blue-fg">(f, fprime, xk, pk, gfk, old_fval, old_old_fval, args, c1, c2, amax, amin, xtol)</span>
+<span class="ansi-green-fg ansi-bold">     80</span>     <span style="font-weight:bold;color:rgb(0,135,0)">return</span> np<span style="color:rgb(98,98,98)">.</span>dot(gval[<span style="color:rgb(98,98,98)">0</span>], pk)
+<span class="ansi-green-fg ansi-bold">     82</span> derphi0 <span style="color:rgb(98,98,98)">=</span> np<span style="color:rgb(98,98,98)">.</span>dot(gfk, pk)
+<span class="ansi-green-fg">---&gt; 84</span> stp, fval, old_fval <span style="color:rgb(98,98,98)">=</span> scalar_search_wolfe1(
+<span class="ansi-green-fg ansi-bold">     85</span>         phi, derphi, old_fval, old_old_fval, derphi0,
+<span class="ansi-green-fg ansi-bold">     86</span>         c1<span style="color:rgb(98,98,98)">=</span>c1, c2<span style="color:rgb(98,98,98)">=</span>c2, amax<span style="color:rgb(98,98,98)">=</span>amax, amin<span style="color:rgb(98,98,98)">=</span>amin, xtol<span style="color:rgb(98,98,98)">=</span>xtol)
+<span class="ansi-green-fg ansi-bold">     88</span> <span style="font-weight:bold;color:rgb(0,135,0)">return</span> stp, fc[<span style="color:rgb(98,98,98)">0</span>], gc[<span style="color:rgb(98,98,98)">0</span>], fval, old_fval, gval[<span style="color:rgb(98,98,98)">0</span>]
+
+File <span class="ansi-green-fg">~/.conda/envs/research/lib/python3.11/site-packages/scipy/optimize/_linesearch.py:161</span>, in <span class="ansi-cyan-fg">scalar_search_wolfe1</span><span class="ansi-blue-fg">(phi, derphi, phi0, old_phi0, derphi0, c1, c2, amax, amin, xtol)</span>
+<span class="ansi-green-fg ansi-bold">    159</span>     alpha1 <span style="color:rgb(98,98,98)">=</span> stp
+<span class="ansi-green-fg ansi-bold">    160</span>     phi1 <span style="color:rgb(98,98,98)">=</span> phi(stp)
+<span class="ansi-green-fg">--&gt; 161</span>     derphi1 <span style="color:rgb(98,98,98)">=</span> derphi(stp)
+<span class="ansi-green-fg ansi-bold">    162</span> <span style="font-weight:bold;color:rgb(0,135,0)">else</span>:
+<span class="ansi-green-fg ansi-bold">    163</span>     <span style="font-weight:bold;color:rgb(0,135,0)">break</span>
+
+File <span class="ansi-green-fg">~/.conda/envs/research/lib/python3.11/site-packages/scipy/optimize/_linesearch.py:78</span>, in <span class="ansi-cyan-fg">line_search_wolfe1.&lt;locals&gt;.derphi</span><span class="ansi-blue-fg">(s)</span>
+<span class="ansi-green-fg ansi-bold">     77</span> <span style="font-weight:bold;color:rgb(0,135,0)">def</span> <span style="color:rgb(0,0,255)">derphi</span>(s):
+<span class="ansi-green-fg">---&gt; 78</span>     gval[<span style="color:rgb(98,98,98)">0</span>] <span style="color:rgb(98,98,98)">=</span> fprime(xk <span style="color:rgb(98,98,98)">+</span> s<span style="color:rgb(98,98,98)">*</span>pk, <span style="color:rgb(98,98,98)">*</span>args)
+<span class="ansi-green-fg ansi-bold">     79</span>     gc[<span style="color:rgb(98,98,98)">0</span>] <span style="color:rgb(98,98,98)">+</span><span style="color:rgb(98,98,98)">=</span> <span style="color:rgb(98,98,98)">1</span>
+<span class="ansi-green-fg ansi-bold">     80</span>     <span style="font-weight:bold;color:rgb(0,135,0)">return</span> np<span style="color:rgb(98,98,98)">.</span>dot(gval[<span style="color:rgb(98,98,98)">0</span>], pk)
+
+File <span class="ansi-green-fg">~/.conda/envs/research/lib/python3.11/site-packages/scipy/optimize/_differentiable_functions.py:273</span>, in <span class="ansi-cyan-fg">ScalarFunction.grad</span><span class="ansi-blue-fg">(self, x)</span>
+<span class="ansi-green-fg ansi-bold">    271</span> <span style="font-weight:bold;color:rgb(0,135,0)">if</span> <span style="font-weight:bold;color:rgb(175,0,255)">not</span> np<span style="color:rgb(98,98,98)">.</span>array_equal(x, <span style="color:rgb(0,135,0)">self</span><span style="color:rgb(98,98,98)">.</span>x):
+<span class="ansi-green-fg ansi-bold">    272</span>     <span style="color:rgb(0,135,0)">self</span><span style="color:rgb(98,98,98)">.</span>_update_x_impl(x)
+<span class="ansi-green-fg">--&gt; 273</span> <span style="color:rgb(0,135,0)">self</span><span style="color:rgb(98,98,98)">.</span>_update_grad()
+<span class="ansi-green-fg ansi-bold">    274</span> <span style="font-weight:bold;color:rgb(0,135,0)">return</span> <span style="color:rgb(0,135,0)">self</span><span style="color:rgb(98,98,98)">.</span>g
+
+File <span class="ansi-green-fg">~/.conda/envs/research/lib/python3.11/site-packages/scipy/optimize/_differentiable_functions.py:256</span>, in <span class="ansi-cyan-fg">ScalarFunction._update_grad</span><span class="ansi-blue-fg">(self)</span>
+<span class="ansi-green-fg ansi-bold">    254</span> <span style="font-weight:bold;color:rgb(0,135,0)">def</span> <span style="color:rgb(0,0,255)">_update_grad</span>(<span style="color:rgb(0,135,0)">self</span>):
+<span class="ansi-green-fg ansi-bold">    255</span>     <span style="font-weight:bold;color:rgb(0,135,0)">if</span> <span style="font-weight:bold;color:rgb(175,0,255)">not</span> <span style="color:rgb(0,135,0)">self</span><span style="color:rgb(98,98,98)">.</span>g_updated:
+<span class="ansi-green-fg">--&gt; 256</span>         <span style="color:rgb(0,135,0)">self</span><span style="color:rgb(98,98,98)">.</span>_update_grad_impl()
+<span class="ansi-green-fg ansi-bold">    257</span>         <span style="color:rgb(0,135,0)">self</span><span style="color:rgb(98,98,98)">.</span>g_updated <span style="color:rgb(98,98,98)">=</span> <span style="font-weight:bold;color:rgb(0,135,0)">True</span>
+
+File <span class="ansi-green-fg">~/.conda/envs/research/lib/python3.11/site-packages/scipy/optimize/_differentiable_functions.py:173</span>, in <span class="ansi-cyan-fg">ScalarFunction.__init__.&lt;locals&gt;.update_grad</span><span class="ansi-blue-fg">()</span>
+<span class="ansi-green-fg ansi-bold">    171</span> <span style="color:rgb(0,135,0)">self</span><span style="color:rgb(98,98,98)">.</span>_update_fun()
+<span class="ansi-green-fg ansi-bold">    172</span> <span style="color:rgb(0,135,0)">self</span><span style="color:rgb(98,98,98)">.</span>ngev <span style="color:rgb(98,98,98)">+</span><span style="color:rgb(98,98,98)">=</span> <span style="color:rgb(98,98,98)">1</span>
+<span class="ansi-green-fg">--&gt; 173</span> <span style="color:rgb(0,135,0)">self</span><span style="color:rgb(98,98,98)">.</span>g <span style="color:rgb(98,98,98)">=</span> approx_derivative(fun_wrapped, <span style="color:rgb(0,135,0)">self</span><span style="color:rgb(98,98,98)">.</span>x, f0<span style="color:rgb(98,98,98)">=</span><span style="color:rgb(0,135,0)">self</span><span style="color:rgb(98,98,98)">.</span>f,
+<span class="ansi-green-fg ansi-bold">    174</span>                            <span style="color:rgb(98,98,98)">*</span><span style="color:rgb(98,98,98)">*</span>finite_diff_options)
+
+File <span class="ansi-green-fg">~/.conda/envs/research/lib/python3.11/site-packages/scipy/optimize/_numdiff.py:505</span>, in <span class="ansi-cyan-fg">approx_derivative</span><span class="ansi-blue-fg">(fun, x0, method, rel_step, abs_step, f0, bounds, sparsity, as_linear_operator, args, kwargs)</span>
+<span class="ansi-green-fg ansi-bold">    502</span>     use_one_sided <span style="color:rgb(98,98,98)">=</span> <span style="font-weight:bold;color:rgb(0,135,0)">False</span>
+<span class="ansi-green-fg ansi-bold">    504</span> <span style="font-weight:bold;color:rgb(0,135,0)">if</span> sparsity <span style="font-weight:bold;color:rgb(175,0,255)">is</span> <span style="font-weight:bold;color:rgb(0,135,0)">None</span>:
+<span class="ansi-green-fg">--&gt; 505</span>     <span style="font-weight:bold;color:rgb(0,135,0)">return</span> _dense_difference(fun_wrapped, x0, f0, h,
+<span class="ansi-green-fg ansi-bold">    506</span>                              use_one_sided, method)
+<span class="ansi-green-fg ansi-bold">    507</span> <span style="font-weight:bold;color:rgb(0,135,0)">else</span>:
+<span class="ansi-green-fg ansi-bold">    508</span>     <span style="font-weight:bold;color:rgb(0,135,0)">if</span> <span style="font-weight:bold;color:rgb(175,0,255)">not</span> issparse(sparsity) <span style="font-weight:bold;color:rgb(175,0,255)">and</span> <span style="color:rgb(0,135,0)">len</span>(sparsity) <span style="color:rgb(98,98,98)">==</span> <span style="color:rgb(98,98,98)">2</span>:
+
+File <span class="ansi-green-fg">~/.conda/envs/research/lib/python3.11/site-packages/scipy/optimize/_numdiff.py:588</span>, in <span class="ansi-cyan-fg">_dense_difference</span><span class="ansi-blue-fg">(fun, x0, f0, h, use_one_sided, method)</span>
+<span class="ansi-green-fg ansi-bold">    586</span> x2 <span style="color:rgb(98,98,98)">=</span> x0 <span style="color:rgb(98,98,98)">+</span> h_vecs[i]
+<span class="ansi-green-fg ansi-bold">    587</span> dx <span style="color:rgb(98,98,98)">=</span> x2[i] <span style="color:rgb(98,98,98)">-</span> x1[i]
+<span class="ansi-green-fg">--&gt; 588</span> f1 <span style="color:rgb(98,98,98)">=</span> fun(x1)
+<span class="ansi-green-fg ansi-bold">    589</span> f2 <span style="color:rgb(98,98,98)">=</span> fun(x2)
+<span class="ansi-green-fg ansi-bold">    590</span> df <span style="color:rgb(98,98,98)">=</span> f2 <span style="color:rgb(98,98,98)">-</span> f1
+
+File <span class="ansi-green-fg">~/.conda/envs/research/lib/python3.11/site-packages/scipy/optimize/_numdiff.py:456</span>, in <span class="ansi-cyan-fg">approx_derivative.&lt;locals&gt;.fun_wrapped</span><span class="ansi-blue-fg">(x)</span>
+<span class="ansi-green-fg ansi-bold">    455</span> <span style="font-weight:bold;color:rgb(0,135,0)">def</span> <span style="color:rgb(0,0,255)">fun_wrapped</span>(x):
+<span class="ansi-green-fg">--&gt; 456</span>     f <span style="color:rgb(98,98,98)">=</span> np<span style="color:rgb(98,98,98)">.</span>atleast_1d(fun(x, <span style="color:rgb(98,98,98)">*</span>args, <span style="color:rgb(98,98,98)">*</span><span style="color:rgb(98,98,98)">*</span>kwargs))
+<span class="ansi-green-fg ansi-bold">    457</span>     <span style="font-weight:bold;color:rgb(0,135,0)">if</span> f<span style="color:rgb(98,98,98)">.</span>ndim <span style="color:rgb(98,98,98)">&gt;</span> <span style="color:rgb(98,98,98)">1</span>:
+<span class="ansi-green-fg ansi-bold">    458</span>         <span style="font-weight:bold;color:rgb(0,135,0)">raise</span> <span style="font-weight:bold;color:rgb(215,95,95)">RuntimeError</span>(<span style="color:rgb(175,0,0)">"</span><span style="color:rgb(175,0,0)">`fun` return value has </span><span style="color:rgb(175,0,0)">"</span>
+<span class="ansi-green-fg ansi-bold">    459</span>                            <span style="color:rgb(175,0,0)">"</span><span style="color:rgb(175,0,0)">more than 1 dimension.</span><span style="color:rgb(175,0,0)">"</span>)
+
+File <span class="ansi-green-fg">~/.conda/envs/research/lib/python3.11/site-packages/scipy/optimize/_differentiable_functions.py:137</span>, in <span class="ansi-cyan-fg">ScalarFunction.__init__.&lt;locals&gt;.fun_wrapped</span><span class="ansi-blue-fg">(x)</span>
+<span class="ansi-green-fg ansi-bold">    133</span> <span style="color:rgb(0,135,0)">self</span><span style="color:rgb(98,98,98)">.</span>nfev <span style="color:rgb(98,98,98)">+</span><span style="color:rgb(98,98,98)">=</span> <span style="color:rgb(98,98,98)">1</span>
+<span class="ansi-green-fg ansi-bold">    134</span> <span style="font-style:italic;color:rgb(95,135,135)"># Send a copy because the user may overwrite it.</span>
+<span class="ansi-green-fg ansi-bold">    135</span> <span style="font-style:italic;color:rgb(95,135,135)"># Overwriting results in undefined behaviour because</span>
+<span class="ansi-green-fg ansi-bold">    136</span> <span style="font-style:italic;color:rgb(95,135,135)"># fun(self.x) will change self.x, with the two no longer linked.</span>
+<span class="ansi-green-fg">--&gt; 137</span> fx <span style="color:rgb(98,98,98)">=</span> fun(np<span style="color:rgb(98,98,98)">.</span>copy(x), <span style="color:rgb(98,98,98)">*</span>args)
+<span class="ansi-green-fg ansi-bold">    138</span> <span style="font-style:italic;color:rgb(95,135,135)"># Make sure the function returns a true scalar</span>
+<span class="ansi-green-fg ansi-bold">    139</span> <span style="font-weight:bold;color:rgb(0,135,0)">if</span> <span style="font-weight:bold;color:rgb(175,0,255)">not</span> np<span style="color:rgb(98,98,98)">.</span>isscalar(fx):
+
+Cell <span class="ansi-green-fg">In[22], line 19</span>, in <span class="ansi-cyan-fg">initial_theta.&lt;locals&gt;.f</span><span class="ansi-blue-fg">(theta)</span>
+<span class="ansi-green-fg ansi-bold">     16</span> <span style="font-weight:bold;color:rgb(0,135,0)">def</span> <span style="color:rgb(0,0,255)">f</span>(theta):
+<span class="ansi-green-fg ansi-bold">     17</span>     model <span style="color:rgb(98,98,98)">=</span> model_fn(theta, aux)
+<span class="ansi-green-fg">---&gt; 19</span>     proposal, info <span style="color:rgb(98,98,98)">=</span> laplace_approximation(y, model, n_iter_la)
+<span class="ansi-green-fg ansi-bold">     21</span>     u, A, D, Sigma0, Sigma, v, B, Omega, z <span style="color:rgb(98,98,98)">=</span> proposal
+<span class="ansi-green-fg ansi-bold">     22</span>     glssm_la <span style="color:rgb(98,98,98)">=</span> GLSSM(u, A, D, Sigma0, Sigma, v, B, Omega)
+
+File <span class="ansi-green-fg">~/workspace/work/packages/isssm/isssm/laplace_approximation.py:60</span>, in <span class="ansi-cyan-fg">laplace_approximation</span><span class="ansi-blue-fg">(y, model, n_iter, log_lik, d_log_lik, dd_log_lik, eps, link)</span>
+<span class="ansi-green-fg ansi-bold">     57</span> u, A, D, Sigma0, Sigma, v, B, dist, xi <span style="color:rgb(98,98,98)">=</span> model
+<span class="ansi-green-fg ansi-bold">     58</span> np1, p, m <span style="color:rgb(98,98,98)">=</span> B<span style="color:rgb(98,98,98)">.</span>shape
+<span class="ansi-green-fg">---&gt; 60</span> s_init <span style="color:rgb(98,98,98)">=</span> vvmap(partial(_initial_guess, dist<span style="color:rgb(98,98,98)">=</span>dist, link<span style="color:rgb(98,98,98)">=</span>link))(xi, y)
+<span class="ansi-green-fg ansi-bold">     62</span> <span style="font-weight:bold;color:rgb(0,135,0)">def</span> <span style="color:rgb(0,0,255)">default_log_lik</span>(s_ti, xi_ti, y_ti):
+<span class="ansi-green-fg ansi-bold">     63</span>     <span style="font-weight:bold;color:rgb(0,135,0)">return</span> dist(s_ti, xi_ti)<span style="color:rgb(98,98,98)">.</span>log_prob(y_ti)<span style="color:rgb(98,98,98)">.</span>sum()
+
+    <span class="ansi-red-fg">[... skipping hidden 1 frame]</span>
+
+File <span class="ansi-green-fg">~/.conda/envs/research/lib/python3.11/site-packages/jax/_src/api.py:1249</span>, in <span class="ansi-cyan-fg">vmap.&lt;locals&gt;.vmap_f</span><span class="ansi-blue-fg">(*args, **kwargs)</span>
+<span class="ansi-green-fg ansi-bold">   1246</span> in_axes_flat <span style="color:rgb(98,98,98)">=</span> flatten_axes(<span style="color:rgb(175,0,0)">"</span><span style="color:rgb(175,0,0)">vmap in_axes</span><span style="color:rgb(175,0,0)">"</span>, in_tree, (in_axes, <span style="color:rgb(98,98,98)">0</span>), kws<span style="color:rgb(98,98,98)">=</span><span style="font-weight:bold;color:rgb(0,135,0)">True</span>)
+<span class="ansi-green-fg ansi-bold">   1247</span> axis_size_ <span style="color:rgb(98,98,98)">=</span> (axis_size <span style="font-weight:bold;color:rgb(0,135,0)">if</span> axis_size <span style="font-weight:bold;color:rgb(175,0,255)">is</span> <span style="font-weight:bold;color:rgb(175,0,255)">not</span> <span style="font-weight:bold;color:rgb(0,135,0)">None</span> <span style="font-weight:bold;color:rgb(0,135,0)">else</span>
+<span class="ansi-green-fg ansi-bold">   1248</span>               _mapped_axis_size(fun, in_tree, args_flat, in_axes_flat, <span style="color:rgb(175,0,0)">"</span><span style="color:rgb(175,0,0)">vmap</span><span style="color:rgb(175,0,0)">"</span>))
+<span class="ansi-green-fg">-&gt; 1249</span> out_flat <span style="color:rgb(98,98,98)">=</span> batching<span style="color:rgb(98,98,98)">.</span>batch(
+<span class="ansi-green-fg ansi-bold">   1250</span>     flat_fun, axis_name, axis_size_, in_axes_flat,
+<span class="ansi-green-fg ansi-bold">   1251</span>     <span style="font-weight:bold;color:rgb(0,135,0)">lambda</span>: flatten_axes(<span style="color:rgb(175,0,0)">"</span><span style="color:rgb(175,0,0)">vmap out_axes</span><span style="color:rgb(175,0,0)">"</span>, out_tree(), out_axes),
+<span class="ansi-green-fg ansi-bold">   1252</span>     spmd_axis_name<span style="color:rgb(98,98,98)">=</span>spmd_axis_name
+<span class="ansi-green-fg ansi-bold">   1253</span> )<span style="color:rgb(98,98,98)">.</span>call_wrapped(<span style="color:rgb(98,98,98)">*</span>args_flat)
+<span class="ansi-green-fg ansi-bold">   1254</span> <span style="font-weight:bold;color:rgb(0,135,0)">return</span> tree_unflatten(out_tree(), out_flat)
+
+File <span class="ansi-green-fg">~/.conda/envs/research/lib/python3.11/site-packages/jax/_src/linear_util.py:191</span>, in <span class="ansi-cyan-fg">WrappedFun.call_wrapped</span><span class="ansi-blue-fg">(self, *args, **kwargs)</span>
+<span class="ansi-green-fg ansi-bold">    188</span> gen <span style="color:rgb(98,98,98)">=</span> gen_static_args <span style="color:rgb(98,98,98)">=</span> out_store <span style="color:rgb(98,98,98)">=</span> <span style="font-weight:bold;color:rgb(0,135,0)">None</span>
+<span class="ansi-green-fg ansi-bold">    190</span> <span style="font-weight:bold;color:rgb(0,135,0)">try</span>:
+<span class="ansi-green-fg">--&gt; 191</span>   ans <span style="color:rgb(98,98,98)">=</span> <span style="color:rgb(0,135,0)">self</span><span style="color:rgb(98,98,98)">.</span>f(<span style="color:rgb(98,98,98)">*</span>args, <span style="color:rgb(98,98,98)">*</span><span style="color:rgb(98,98,98)">*</span><span style="color:rgb(0,135,0)">dict</span>(<span style="color:rgb(0,135,0)">self</span><span style="color:rgb(98,98,98)">.</span>params, <span style="color:rgb(98,98,98)">*</span><span style="color:rgb(98,98,98)">*</span>kwargs))
+<span class="ansi-green-fg ansi-bold">    192</span> <span style="font-weight:bold;color:rgb(0,135,0)">except</span>:
+<span class="ansi-green-fg ansi-bold">    193</span>   <span style="font-style:italic;color:rgb(95,135,135)"># Some transformations yield from inside context managers, so we have to</span>
+<span class="ansi-green-fg ansi-bold">    194</span>   <span style="font-style:italic;color:rgb(95,135,135)"># interrupt them before reraising the exception. Otherwise they will only</span>
+<span class="ansi-green-fg ansi-bold">    195</span>   <span style="font-style:italic;color:rgb(95,135,135)"># get garbage-collected at some later time, running their cleanup tasks</span>
+<span class="ansi-green-fg ansi-bold">    196</span>   <span style="font-style:italic;color:rgb(95,135,135)"># only after this exception is handled, which can corrupt the global</span>
+<span class="ansi-green-fg ansi-bold">    197</span>   <span style="font-style:italic;color:rgb(95,135,135)"># state.</span>
+<span class="ansi-green-fg ansi-bold">    198</span>   <span style="font-weight:bold;color:rgb(0,135,0)">while</span> stack:
+
+    <span class="ansi-red-fg">[... skipping hidden 1 frame]</span>
+
+File <span class="ansi-green-fg">~/.conda/envs/research/lib/python3.11/site-packages/jax/_src/api.py:1249</span>, in <span class="ansi-cyan-fg">vmap.&lt;locals&gt;.vmap_f</span><span class="ansi-blue-fg">(*args, **kwargs)</span>
+<span class="ansi-green-fg ansi-bold">   1246</span> in_axes_flat <span style="color:rgb(98,98,98)">=</span> flatten_axes(<span style="color:rgb(175,0,0)">"</span><span style="color:rgb(175,0,0)">vmap in_axes</span><span style="color:rgb(175,0,0)">"</span>, in_tree, (in_axes, <span style="color:rgb(98,98,98)">0</span>), kws<span style="color:rgb(98,98,98)">=</span><span style="font-weight:bold;color:rgb(0,135,0)">True</span>)
+<span class="ansi-green-fg ansi-bold">   1247</span> axis_size_ <span style="color:rgb(98,98,98)">=</span> (axis_size <span style="font-weight:bold;color:rgb(0,135,0)">if</span> axis_size <span style="font-weight:bold;color:rgb(175,0,255)">is</span> <span style="font-weight:bold;color:rgb(175,0,255)">not</span> <span style="font-weight:bold;color:rgb(0,135,0)">None</span> <span style="font-weight:bold;color:rgb(0,135,0)">else</span>
+<span class="ansi-green-fg ansi-bold">   1248</span>               _mapped_axis_size(fun, in_tree, args_flat, in_axes_flat, <span style="color:rgb(175,0,0)">"</span><span style="color:rgb(175,0,0)">vmap</span><span style="color:rgb(175,0,0)">"</span>))
+<span class="ansi-green-fg">-&gt; 1249</span> out_flat <span style="color:rgb(98,98,98)">=</span> batching<span style="color:rgb(98,98,98)">.</span>batch(
+<span class="ansi-green-fg ansi-bold">   1250</span>     flat_fun, axis_name, axis_size_, in_axes_flat,
+<span class="ansi-green-fg ansi-bold">   1251</span>     <span style="font-weight:bold;color:rgb(0,135,0)">lambda</span>: flatten_axes(<span style="color:rgb(175,0,0)">"</span><span style="color:rgb(175,0,0)">vmap out_axes</span><span style="color:rgb(175,0,0)">"</span>, out_tree(), out_axes),
+<span class="ansi-green-fg ansi-bold">   1252</span>     spmd_axis_name<span style="color:rgb(98,98,98)">=</span>spmd_axis_name
+<span class="ansi-green-fg ansi-bold">   1253</span> )<span style="color:rgb(98,98,98)">.</span>call_wrapped(<span style="color:rgb(98,98,98)">*</span>args_flat)
+<span class="ansi-green-fg ansi-bold">   1254</span> <span style="font-weight:bold;color:rgb(0,135,0)">return</span> tree_unflatten(out_tree(), out_flat)
+
+File <span class="ansi-green-fg">~/.conda/envs/research/lib/python3.11/site-packages/jax/_src/linear_util.py:191</span>, in <span class="ansi-cyan-fg">WrappedFun.call_wrapped</span><span class="ansi-blue-fg">(self, *args, **kwargs)</span>
+<span class="ansi-green-fg ansi-bold">    188</span> gen <span style="color:rgb(98,98,98)">=</span> gen_static_args <span style="color:rgb(98,98,98)">=</span> out_store <span style="color:rgb(98,98,98)">=</span> <span style="font-weight:bold;color:rgb(0,135,0)">None</span>
+<span class="ansi-green-fg ansi-bold">    190</span> <span style="font-weight:bold;color:rgb(0,135,0)">try</span>:
+<span class="ansi-green-fg">--&gt; 191</span>   ans <span style="color:rgb(98,98,98)">=</span> <span style="color:rgb(0,135,0)">self</span><span style="color:rgb(98,98,98)">.</span>f(<span style="color:rgb(98,98,98)">*</span>args, <span style="color:rgb(98,98,98)">*</span><span style="color:rgb(98,98,98)">*</span><span style="color:rgb(0,135,0)">dict</span>(<span style="color:rgb(0,135,0)">self</span><span style="color:rgb(98,98,98)">.</span>params, <span style="color:rgb(98,98,98)">*</span><span style="color:rgb(98,98,98)">*</span>kwargs))
+<span class="ansi-green-fg ansi-bold">    192</span> <span style="font-weight:bold;color:rgb(0,135,0)">except</span>:
+<span class="ansi-green-fg ansi-bold">    193</span>   <span style="font-style:italic;color:rgb(95,135,135)"># Some transformations yield from inside context managers, so we have to</span>
+<span class="ansi-green-fg ansi-bold">    194</span>   <span style="font-style:italic;color:rgb(95,135,135)"># interrupt them before reraising the exception. Otherwise they will only</span>
+<span class="ansi-green-fg ansi-bold">    195</span>   <span style="font-style:italic;color:rgb(95,135,135)"># get garbage-collected at some later time, running their cleanup tasks</span>
+<span class="ansi-green-fg ansi-bold">    196</span>   <span style="font-style:italic;color:rgb(95,135,135)"># only after this exception is handled, which can corrupt the global</span>
+<span class="ansi-green-fg ansi-bold">    197</span>   <span style="font-style:italic;color:rgb(95,135,135)"># state.</span>
+<span class="ansi-green-fg ansi-bold">    198</span>   <span style="font-weight:bold;color:rgb(0,135,0)">while</span> stack:
+
+File <span class="ansi-green-fg">~/workspace/work/packages/isssm/isssm/laplace_approximation.py:39</span>, in <span class="ansi-cyan-fg">_initial_guess</span><span class="ansi-blue-fg">(xi_ti, y_ti, dist, link)</span>
+<span class="ansi-green-fg ansi-bold">     38</span> <span style="font-weight:bold;color:rgb(0,135,0)">def</span> <span style="color:rgb(0,0,255)">_initial_guess</span>(xi_ti, y_ti, dist, link<span style="color:rgb(98,98,98)">=</span>default_link):
+<span class="ansi-green-fg">---&gt; 39</span>     result <span style="color:rgb(98,98,98)">=</span> minimize(
+<span class="ansi-green-fg ansi-bold">     40</span>         <span style="font-weight:bold;color:rgb(0,135,0)">lambda</span> s_ti: <span style="color:rgb(98,98,98)">-</span>dist(s_ti, xi_ti)<span style="color:rgb(98,98,98)">.</span>log_prob(y_ti)<span style="color:rgb(98,98,98)">.</span>sum(),
+<span class="ansi-green-fg ansi-bold">     41</span>         jnp<span style="color:rgb(98,98,98)">.</span>atleast_1d(default_link(y_ti)),
+<span class="ansi-green-fg ansi-bold">     42</span>         method<span style="color:rgb(98,98,98)">=</span><span style="color:rgb(175,0,0)">"</span><span style="color:rgb(175,0,0)">BFGS</span><span style="color:rgb(175,0,0)">"</span>,
+<span class="ansi-green-fg ansi-bold">     43</span>     )
+<span class="ansi-green-fg ansi-bold">     44</span>     <span style="font-weight:bold;color:rgb(0,135,0)">return</span> jnp<span style="color:rgb(98,98,98)">.</span>squeeze(result<span style="color:rgb(98,98,98)">.</span>x)
+
+File <span class="ansi-green-fg">~/.conda/envs/research/lib/python3.11/site-packages/jax/_src/scipy/optimize/minimize.py:107</span>, in <span class="ansi-cyan-fg">minimize</span><span class="ansi-blue-fg">(fun, x0, args, method, tol, options)</span>
+<span class="ansi-green-fg ansi-bold">    104</span> fun_with_args <span style="color:rgb(98,98,98)">=</span> <span style="font-weight:bold;color:rgb(0,135,0)">lambda</span> x: fun(x, <span style="color:rgb(98,98,98)">*</span>args)
+<span class="ansi-green-fg ansi-bold">    106</span> <span style="font-weight:bold;color:rgb(0,135,0)">if</span> method<span style="color:rgb(98,98,98)">.</span>lower() <span style="color:rgb(98,98,98)">==</span> <span style="color:rgb(175,0,0)">'</span><span style="color:rgb(175,0,0)">bfgs</span><span style="color:rgb(175,0,0)">'</span>:
+<span class="ansi-green-fg">--&gt; 107</span>   results <span style="color:rgb(98,98,98)">=</span> minimize_bfgs(fun_with_args, x0, <span style="color:rgb(98,98,98)">*</span><span style="color:rgb(98,98,98)">*</span>options)
+<span class="ansi-green-fg ansi-bold">    108</span>   success <span style="color:rgb(98,98,98)">=</span> results<span style="color:rgb(98,98,98)">.</span>converged <span style="color:rgb(98,98,98)">&amp;</span> jnp<span style="color:rgb(98,98,98)">.</span>logical_not(results<span style="color:rgb(98,98,98)">.</span>failed)
+<span class="ansi-green-fg ansi-bold">    109</span>   <span style="font-weight:bold;color:rgb(0,135,0)">return</span> OptimizeResults(x<span style="color:rgb(98,98,98)">=</span>results<span style="color:rgb(98,98,98)">.</span>x_k,
+<span class="ansi-green-fg ansi-bold">    110</span>                          success<span style="color:rgb(98,98,98)">=</span>success,
+<span class="ansi-green-fg ansi-bold">    111</span>                          status<span style="color:rgb(98,98,98)">=</span>results<span style="color:rgb(98,98,98)">.</span>status,
+<span class="ansi-green-fg">   (...)</span>
+<span class="ansi-green-fg ansi-bold">    116</span>                          njev<span style="color:rgb(98,98,98)">=</span>results<span style="color:rgb(98,98,98)">.</span>ngev,
+<span class="ansi-green-fg ansi-bold">    117</span>                          nit<span style="color:rgb(98,98,98)">=</span>results<span style="color:rgb(98,98,98)">.</span>k)
+
+File <span class="ansi-green-fg">~/.conda/envs/research/lib/python3.11/site-packages/jax/_src/scipy/optimize/bfgs.py:164</span>, in <span class="ansi-cyan-fg">minimize_bfgs</span><span class="ansi-blue-fg">(fun, x0, maxiter, norm, gtol, line_search_maxiter)</span>
+<span class="ansi-green-fg ansi-bold">    153</span>   state <span style="color:rgb(98,98,98)">=</span> state<span style="color:rgb(98,98,98)">.</span>_replace(
+<span class="ansi-green-fg ansi-bold">    154</span>       converged<span style="color:rgb(98,98,98)">=</span>converged,
+<span class="ansi-green-fg ansi-bold">    155</span>       k<span style="color:rgb(98,98,98)">=</span>state<span style="color:rgb(98,98,98)">.</span>k <span style="color:rgb(98,98,98)">+</span> <span style="color:rgb(98,98,98)">1</span>,
+<span class="ansi-green-fg">   (...)</span>
+<span class="ansi-green-fg ansi-bold">    160</span>       old_old_fval<span style="color:rgb(98,98,98)">=</span>state<span style="color:rgb(98,98,98)">.</span>f_k,
+<span class="ansi-green-fg ansi-bold">    161</span>   )
+<span class="ansi-green-fg ansi-bold">    162</span>   <span style="font-weight:bold;color:rgb(0,135,0)">return</span> state
+<span class="ansi-green-fg">--&gt; 164</span> state <span style="color:rgb(98,98,98)">=</span> lax<span style="color:rgb(98,98,98)">.</span>while_loop(cond_fun, body_fun, state)
+<span class="ansi-green-fg ansi-bold">    165</span> status <span style="color:rgb(98,98,98)">=</span> jnp<span style="color:rgb(98,98,98)">.</span>where(
+<span class="ansi-green-fg ansi-bold">    166</span>     state<span style="color:rgb(98,98,98)">.</span>converged,
+<span class="ansi-green-fg ansi-bold">    167</span>     <span style="color:rgb(98,98,98)">0</span>,  <span style="font-style:italic;color:rgb(95,135,135)"># converged</span>
+<span class="ansi-green-fg">   (...)</span>
+<span class="ansi-green-fg ansi-bold">    176</span>     )
+<span class="ansi-green-fg ansi-bold">    177</span> )
+<span class="ansi-green-fg ansi-bold">    178</span> state <span style="color:rgb(98,98,98)">=</span> state<span style="color:rgb(98,98,98)">.</span>_replace(status<span style="color:rgb(98,98,98)">=</span>status)
+
+    <span class="ansi-red-fg">[... skipping hidden 1 frame]</span>
+
+File <span class="ansi-green-fg">~/.conda/envs/research/lib/python3.11/site-packages/jax/_src/lax/control_flow/loops.py:1243</span>, in <span class="ansi-cyan-fg">while_loop</span><span class="ansi-blue-fg">(cond_fun, body_fun, init_val)</span>
+<span class="ansi-green-fg ansi-bold">   1240</span> <span style="font-weight:bold;color:rgb(0,135,0)">if</span> disallowed_effects:
+<span class="ansi-green-fg ansi-bold">   1241</span>   <span style="font-weight:bold;color:rgb(0,135,0)">raise</span> <span style="font-weight:bold;color:rgb(215,95,95)">NotImplementedError</span>(
+<span class="ansi-green-fg ansi-bold">   1242</span>       <span style="color:rgb(175,0,0)">f</span><span style="color:rgb(175,0,0)">'</span><span style="color:rgb(175,0,0)">Effects not supported in `while`: </span><span style="font-weight:bold;color:rgb(175,95,135)">{</span>disallowed_effects<span style="font-weight:bold;color:rgb(175,95,135)">}</span><span style="color:rgb(175,0,0)">'</span>)
+<span class="ansi-green-fg">-&gt; 1243</span> outs <span style="color:rgb(98,98,98)">=</span> while_p<span style="color:rgb(98,98,98)">.</span>bind(<span style="color:rgb(98,98,98)">*</span>cond_consts, <span style="color:rgb(98,98,98)">*</span>body_consts, <span style="color:rgb(98,98,98)">*</span>init_vals,
+<span class="ansi-green-fg ansi-bold">   1244</span>                     cond_nconsts<span style="color:rgb(98,98,98)">=</span><span style="color:rgb(0,135,0)">len</span>(cond_consts), cond_jaxpr<span style="color:rgb(98,98,98)">=</span>cond_jaxpr,
+<span class="ansi-green-fg ansi-bold">   1245</span>                     body_nconsts<span style="color:rgb(98,98,98)">=</span><span style="color:rgb(0,135,0)">len</span>(body_consts), body_jaxpr<span style="color:rgb(98,98,98)">=</span>body_jaxpr)
+<span class="ansi-green-fg ansi-bold">   1246</span> <span style="font-weight:bold;color:rgb(0,135,0)">return</span> tree_unflatten(body_tree, outs)
+
+File <span class="ansi-green-fg">~/.conda/envs/research/lib/python3.11/site-packages/jax/_src/core.py:2656</span>, in <span class="ansi-cyan-fg">AxisPrimitive.bind</span><span class="ansi-blue-fg">(self, *args, **params)</span>
+<span class="ansi-green-fg ansi-bold">   2652</span> axis_main <span style="color:rgb(98,98,98)">=</span> <span style="color:rgb(0,135,0)">max</span>((axis_frame(a)<span style="color:rgb(98,98,98)">.</span>main_trace <span style="font-weight:bold;color:rgb(0,135,0)">for</span> a <span style="font-weight:bold;color:rgb(175,0,255)">in</span> used_axis_names(<span style="color:rgb(0,135,0)">self</span>, params)),
+<span class="ansi-green-fg ansi-bold">   2653</span>                 default<span style="color:rgb(98,98,98)">=</span><span style="font-weight:bold;color:rgb(0,135,0)">None</span>, key<span style="color:rgb(98,98,98)">=</span><span style="font-weight:bold;color:rgb(0,135,0)">lambda</span> t: <span style="color:rgb(0,135,0)">getattr</span>(t, <span style="color:rgb(175,0,0)">'</span><span style="color:rgb(175,0,0)">level</span><span style="color:rgb(175,0,0)">'</span>, <span style="color:rgb(98,98,98)">-</span><span style="color:rgb(98,98,98)">1</span>))
+<span class="ansi-green-fg ansi-bold">   2654</span> top_trace <span style="color:rgb(98,98,98)">=</span> (top_trace <span style="font-weight:bold;color:rgb(0,135,0)">if</span> <span style="font-weight:bold;color:rgb(175,0,255)">not</span> axis_main <span style="font-weight:bold;color:rgb(175,0,255)">or</span> axis_main<span style="color:rgb(98,98,98)">.</span>level <span style="color:rgb(98,98,98)">&lt;</span> top_trace<span style="color:rgb(98,98,98)">.</span>level
+<span class="ansi-green-fg ansi-bold">   2655</span>              <span style="font-weight:bold;color:rgb(0,135,0)">else</span> axis_main<span style="color:rgb(98,98,98)">.</span>with_cur_sublevel())
+<span class="ansi-green-fg">-&gt; 2656</span> <span style="font-weight:bold;color:rgb(0,135,0)">return</span> <span style="color:rgb(0,135,0)">self</span><span style="color:rgb(98,98,98)">.</span>bind_with_trace(top_trace, args, params)
+
+File <span class="ansi-green-fg">~/.conda/envs/research/lib/python3.11/site-packages/jax/_src/core.py:388</span>, in <span class="ansi-cyan-fg">Primitive.bind_with_trace</span><span class="ansi-blue-fg">(self, trace, args, params)</span>
+<span class="ansi-green-fg ansi-bold">    387</span> <span style="font-weight:bold;color:rgb(0,135,0)">def</span> <span style="color:rgb(0,0,255)">bind_with_trace</span>(<span style="color:rgb(0,135,0)">self</span>, trace, args, params):
+<span class="ansi-green-fg">--&gt; 388</span>   out <span style="color:rgb(98,98,98)">=</span> trace<span style="color:rgb(98,98,98)">.</span>process_primitive(<span style="color:rgb(0,135,0)">self</span>, <span style="color:rgb(0,135,0)">map</span>(trace<span style="color:rgb(98,98,98)">.</span>full_raise, args), params)
+<span class="ansi-green-fg ansi-bold">    389</span>   <span style="font-weight:bold;color:rgb(0,135,0)">return</span> <span style="color:rgb(0,135,0)">map</span>(full_lower, out) <span style="font-weight:bold;color:rgb(0,135,0)">if</span> <span style="color:rgb(0,135,0)">self</span><span style="color:rgb(98,98,98)">.</span>multiple_results <span style="font-weight:bold;color:rgb(0,135,0)">else</span> full_lower(out)
+
+File <span class="ansi-green-fg">~/.conda/envs/research/lib/python3.11/site-packages/jax/_src/interpreters/batching.py:433</span>, in <span class="ansi-cyan-fg">BatchTrace.process_primitive</span><span class="ansi-blue-fg">(self, primitive, tracers, params)</span>
+<span class="ansi-green-fg ansi-bold">    431</span>   frame <span style="color:rgb(98,98,98)">=</span> <span style="color:rgb(0,135,0)">self</span><span style="color:rgb(98,98,98)">.</span>get_frame(vals_in, dims_in)
+<span class="ansi-green-fg ansi-bold">    432</span>   batched_primitive <span style="color:rgb(98,98,98)">=</span> <span style="color:rgb(0,135,0)">self</span><span style="color:rgb(98,98,98)">.</span>get_primitive_batcher(primitive, frame)
+<span class="ansi-green-fg">--&gt; 433</span>   val_out, dim_out <span style="color:rgb(98,98,98)">=</span> batched_primitive(vals_in, dims_in, <span style="color:rgb(98,98,98)">*</span><span style="color:rgb(98,98,98)">*</span>params)
+<span class="ansi-green-fg ansi-bold">    434</span> src <span style="color:rgb(98,98,98)">=</span> source_info_util<span style="color:rgb(98,98,98)">.</span>current()
+<span class="ansi-green-fg ansi-bold">    435</span> <span style="font-weight:bold;color:rgb(0,135,0)">if</span> primitive<span style="color:rgb(98,98,98)">.</span>multiple_results:
+
+File <span class="ansi-green-fg">~/.conda/envs/research/lib/python3.11/site-packages/jax/_src/lax/control_flow/loops.py:1357</span>, in <span class="ansi-cyan-fg">_while_loop_batching_rule</span><span class="ansi-blue-fg">(spmd_axis_name, axis_size, axis_name, main_type, args, dims, cond_nconsts, cond_jaxpr, body_nconsts, body_jaxpr)</span>
+<span class="ansi-green-fg ansi-bold">   1354</span>     <span style="font-weight:bold;color:rgb(0,135,0)">assert</span> new_axis <span style="font-weight:bold;color:rgb(175,0,255)">is</span> <span style="font-weight:bold;color:rgb(175,0,255)">not</span> batching<span style="color:rgb(98,98,98)">.</span>not_mapped
+<span class="ansi-green-fg ansi-bold">   1355</span>     new_init<span style="color:rgb(98,98,98)">.</span>append(batching<span style="color:rgb(98,98,98)">.</span>moveaxis(x, old_axis, new_axis))
+<span class="ansi-green-fg">-&gt; 1357</span> outs <span style="color:rgb(98,98,98)">=</span> while_p<span style="color:rgb(98,98,98)">.</span>bind(<span style="color:rgb(98,98,98)">*</span>(cconsts <span style="color:rgb(98,98,98)">+</span> bconsts <span style="color:rgb(98,98,98)">+</span> new_init),
+<span class="ansi-green-fg ansi-bold">   1358</span>                     cond_nconsts<span style="color:rgb(98,98,98)">=</span>cond_nconsts, cond_jaxpr<span style="color:rgb(98,98,98)">=</span>cond_jaxpr_batched,
+<span class="ansi-green-fg ansi-bold">   1359</span>                     body_nconsts<span style="color:rgb(98,98,98)">=</span>body_nconsts, body_jaxpr<span style="color:rgb(98,98,98)">=</span>body_jaxpr_batched)
+<span class="ansi-green-fg ansi-bold">   1360</span> <span style="font-weight:bold;color:rgb(0,135,0)">return</span> outs, carry_dims
+
+File <span class="ansi-green-fg">~/.conda/envs/research/lib/python3.11/site-packages/jax/_src/core.py:2656</span>, in <span class="ansi-cyan-fg">AxisPrimitive.bind</span><span class="ansi-blue-fg">(self, *args, **params)</span>
+<span class="ansi-green-fg ansi-bold">   2652</span> axis_main <span style="color:rgb(98,98,98)">=</span> <span style="color:rgb(0,135,0)">max</span>((axis_frame(a)<span style="color:rgb(98,98,98)">.</span>main_trace <span style="font-weight:bold;color:rgb(0,135,0)">for</span> a <span style="font-weight:bold;color:rgb(175,0,255)">in</span> used_axis_names(<span style="color:rgb(0,135,0)">self</span>, params)),
+<span class="ansi-green-fg ansi-bold">   2653</span>                 default<span style="color:rgb(98,98,98)">=</span><span style="font-weight:bold;color:rgb(0,135,0)">None</span>, key<span style="color:rgb(98,98,98)">=</span><span style="font-weight:bold;color:rgb(0,135,0)">lambda</span> t: <span style="color:rgb(0,135,0)">getattr</span>(t, <span style="color:rgb(175,0,0)">'</span><span style="color:rgb(175,0,0)">level</span><span style="color:rgb(175,0,0)">'</span>, <span style="color:rgb(98,98,98)">-</span><span style="color:rgb(98,98,98)">1</span>))
+<span class="ansi-green-fg ansi-bold">   2654</span> top_trace <span style="color:rgb(98,98,98)">=</span> (top_trace <span style="font-weight:bold;color:rgb(0,135,0)">if</span> <span style="font-weight:bold;color:rgb(175,0,255)">not</span> axis_main <span style="font-weight:bold;color:rgb(175,0,255)">or</span> axis_main<span style="color:rgb(98,98,98)">.</span>level <span style="color:rgb(98,98,98)">&lt;</span> top_trace<span style="color:rgb(98,98,98)">.</span>level
+<span class="ansi-green-fg ansi-bold">   2655</span>              <span style="font-weight:bold;color:rgb(0,135,0)">else</span> axis_main<span style="color:rgb(98,98,98)">.</span>with_cur_sublevel())
+<span class="ansi-green-fg">-&gt; 2656</span> <span style="font-weight:bold;color:rgb(0,135,0)">return</span> <span style="color:rgb(0,135,0)">self</span><span style="color:rgb(98,98,98)">.</span>bind_with_trace(top_trace, args, params)
+
+File <span class="ansi-green-fg">~/.conda/envs/research/lib/python3.11/site-packages/jax/_src/core.py:388</span>, in <span class="ansi-cyan-fg">Primitive.bind_with_trace</span><span class="ansi-blue-fg">(self, trace, args, params)</span>
+<span class="ansi-green-fg ansi-bold">    387</span> <span style="font-weight:bold;color:rgb(0,135,0)">def</span> <span style="color:rgb(0,0,255)">bind_with_trace</span>(<span style="color:rgb(0,135,0)">self</span>, trace, args, params):
+<span class="ansi-green-fg">--&gt; 388</span>   out <span style="color:rgb(98,98,98)">=</span> trace<span style="color:rgb(98,98,98)">.</span>process_primitive(<span style="color:rgb(0,135,0)">self</span>, <span style="color:rgb(0,135,0)">map</span>(trace<span style="color:rgb(98,98,98)">.</span>full_raise, args), params)
+<span class="ansi-green-fg ansi-bold">    389</span>   <span style="font-weight:bold;color:rgb(0,135,0)">return</span> <span style="color:rgb(0,135,0)">map</span>(full_lower, out) <span style="font-weight:bold;color:rgb(0,135,0)">if</span> <span style="color:rgb(0,135,0)">self</span><span style="color:rgb(98,98,98)">.</span>multiple_results <span style="font-weight:bold;color:rgb(0,135,0)">else</span> full_lower(out)
+
+File <span class="ansi-green-fg">~/.conda/envs/research/lib/python3.11/site-packages/jax/_src/interpreters/batching.py:433</span>, in <span class="ansi-cyan-fg">BatchTrace.process_primitive</span><span class="ansi-blue-fg">(self, primitive, tracers, params)</span>
+<span class="ansi-green-fg ansi-bold">    431</span>   frame <span style="color:rgb(98,98,98)">=</span> <span style="color:rgb(0,135,0)">self</span><span style="color:rgb(98,98,98)">.</span>get_frame(vals_in, dims_in)
+<span class="ansi-green-fg ansi-bold">    432</span>   batched_primitive <span style="color:rgb(98,98,98)">=</span> <span style="color:rgb(0,135,0)">self</span><span style="color:rgb(98,98,98)">.</span>get_primitive_batcher(primitive, frame)
+<span class="ansi-green-fg">--&gt; 433</span>   val_out, dim_out <span style="color:rgb(98,98,98)">=</span> batched_primitive(vals_in, dims_in, <span style="color:rgb(98,98,98)">*</span><span style="color:rgb(98,98,98)">*</span>params)
+<span class="ansi-green-fg ansi-bold">    434</span> src <span style="color:rgb(98,98,98)">=</span> source_info_util<span style="color:rgb(98,98,98)">.</span>current()
+<span class="ansi-green-fg ansi-bold">    435</span> <span style="font-weight:bold;color:rgb(0,135,0)">if</span> primitive<span style="color:rgb(98,98,98)">.</span>multiple_results:
+
+File <span class="ansi-green-fg">~/.conda/envs/research/lib/python3.11/site-packages/jax/_src/lax/control_flow/loops.py:1357</span>, in <span class="ansi-cyan-fg">_while_loop_batching_rule</span><span class="ansi-blue-fg">(spmd_axis_name, axis_size, axis_name, main_type, args, dims, cond_nconsts, cond_jaxpr, body_nconsts, body_jaxpr)</span>
+<span class="ansi-green-fg ansi-bold">   1354</span>     <span style="font-weight:bold;color:rgb(0,135,0)">assert</span> new_axis <span style="font-weight:bold;color:rgb(175,0,255)">is</span> <span style="font-weight:bold;color:rgb(175,0,255)">not</span> batching<span style="color:rgb(98,98,98)">.</span>not_mapped
+<span class="ansi-green-fg ansi-bold">   1355</span>     new_init<span style="color:rgb(98,98,98)">.</span>append(batching<span style="color:rgb(98,98,98)">.</span>moveaxis(x, old_axis, new_axis))
+<span class="ansi-green-fg">-&gt; 1357</span> outs <span style="color:rgb(98,98,98)">=</span> while_p<span style="color:rgb(98,98,98)">.</span>bind(<span style="color:rgb(98,98,98)">*</span>(cconsts <span style="color:rgb(98,98,98)">+</span> bconsts <span style="color:rgb(98,98,98)">+</span> new_init),
+<span class="ansi-green-fg ansi-bold">   1358</span>                     cond_nconsts<span style="color:rgb(98,98,98)">=</span>cond_nconsts, cond_jaxpr<span style="color:rgb(98,98,98)">=</span>cond_jaxpr_batched,
+<span class="ansi-green-fg ansi-bold">   1359</span>                     body_nconsts<span style="color:rgb(98,98,98)">=</span>body_nconsts, body_jaxpr<span style="color:rgb(98,98,98)">=</span>body_jaxpr_batched)
+<span class="ansi-green-fg ansi-bold">   1360</span> <span style="font-weight:bold;color:rgb(0,135,0)">return</span> outs, carry_dims
+
+File <span class="ansi-green-fg">~/.conda/envs/research/lib/python3.11/site-packages/jax/_src/core.py:2656</span>, in <span class="ansi-cyan-fg">AxisPrimitive.bind</span><span class="ansi-blue-fg">(self, *args, **params)</span>
+<span class="ansi-green-fg ansi-bold">   2652</span> axis_main <span style="color:rgb(98,98,98)">=</span> <span style="color:rgb(0,135,0)">max</span>((axis_frame(a)<span style="color:rgb(98,98,98)">.</span>main_trace <span style="font-weight:bold;color:rgb(0,135,0)">for</span> a <span style="font-weight:bold;color:rgb(175,0,255)">in</span> used_axis_names(<span style="color:rgb(0,135,0)">self</span>, params)),
+<span class="ansi-green-fg ansi-bold">   2653</span>                 default<span style="color:rgb(98,98,98)">=</span><span style="font-weight:bold;color:rgb(0,135,0)">None</span>, key<span style="color:rgb(98,98,98)">=</span><span style="font-weight:bold;color:rgb(0,135,0)">lambda</span> t: <span style="color:rgb(0,135,0)">getattr</span>(t, <span style="color:rgb(175,0,0)">'</span><span style="color:rgb(175,0,0)">level</span><span style="color:rgb(175,0,0)">'</span>, <span style="color:rgb(98,98,98)">-</span><span style="color:rgb(98,98,98)">1</span>))
+<span class="ansi-green-fg ansi-bold">   2654</span> top_trace <span style="color:rgb(98,98,98)">=</span> (top_trace <span style="font-weight:bold;color:rgb(0,135,0)">if</span> <span style="font-weight:bold;color:rgb(175,0,255)">not</span> axis_main <span style="font-weight:bold;color:rgb(175,0,255)">or</span> axis_main<span style="color:rgb(98,98,98)">.</span>level <span style="color:rgb(98,98,98)">&lt;</span> top_trace<span style="color:rgb(98,98,98)">.</span>level
+<span class="ansi-green-fg ansi-bold">   2655</span>              <span style="font-weight:bold;color:rgb(0,135,0)">else</span> axis_main<span style="color:rgb(98,98,98)">.</span>with_cur_sublevel())
+<span class="ansi-green-fg">-&gt; 2656</span> <span style="font-weight:bold;color:rgb(0,135,0)">return</span> <span style="color:rgb(0,135,0)">self</span><span style="color:rgb(98,98,98)">.</span>bind_with_trace(top_trace, args, params)
+
+File <span class="ansi-green-fg">~/.conda/envs/research/lib/python3.11/site-packages/jax/_src/core.py:388</span>, in <span class="ansi-cyan-fg">Primitive.bind_with_trace</span><span class="ansi-blue-fg">(self, trace, args, params)</span>
+<span class="ansi-green-fg ansi-bold">    387</span> <span style="font-weight:bold;color:rgb(0,135,0)">def</span> <span style="color:rgb(0,0,255)">bind_with_trace</span>(<span style="color:rgb(0,135,0)">self</span>, trace, args, params):
+<span class="ansi-green-fg">--&gt; 388</span>   out <span style="color:rgb(98,98,98)">=</span> trace<span style="color:rgb(98,98,98)">.</span>process_primitive(<span style="color:rgb(0,135,0)">self</span>, <span style="color:rgb(0,135,0)">map</span>(trace<span style="color:rgb(98,98,98)">.</span>full_raise, args), params)
+<span class="ansi-green-fg ansi-bold">    389</span>   <span style="font-weight:bold;color:rgb(0,135,0)">return</span> <span style="color:rgb(0,135,0)">map</span>(full_lower, out) <span style="font-weight:bold;color:rgb(0,135,0)">if</span> <span style="color:rgb(0,135,0)">self</span><span style="color:rgb(98,98,98)">.</span>multiple_results <span style="font-weight:bold;color:rgb(0,135,0)">else</span> full_lower(out)
+
+File <span class="ansi-green-fg">~/.conda/envs/research/lib/python3.11/site-packages/jax/_src/core.py:868</span>, in <span class="ansi-cyan-fg">EvalTrace.process_primitive</span><span class="ansi-blue-fg">(self, primitive, tracers, params)</span>
+<span class="ansi-green-fg ansi-bold">    867</span> <span style="font-weight:bold;color:rgb(0,135,0)">def</span> <span style="color:rgb(0,0,255)">process_primitive</span>(<span style="color:rgb(0,135,0)">self</span>, primitive, tracers, params):
+<span class="ansi-green-fg">--&gt; 868</span>   <span style="font-weight:bold;color:rgb(0,135,0)">return</span> primitive<span style="color:rgb(98,98,98)">.</span>impl(<span style="color:rgb(98,98,98)">*</span>tracers, <span style="color:rgb(98,98,98)">*</span><span style="color:rgb(98,98,98)">*</span>params)
+
+File <span class="ansi-green-fg">~/.conda/envs/research/lib/python3.11/site-packages/jax/_src/dispatch.py:128</span>, in <span class="ansi-cyan-fg">apply_primitive</span><span class="ansi-blue-fg">(prim, *args, **params)</span>
+<span class="ansi-green-fg ansi-bold">    126</span>   in_avals, in_shardings <span style="color:rgb(98,98,98)">=</span> util<span style="color:rgb(98,98,98)">.</span>unzip2([_arg_spec(a) <span style="font-weight:bold;color:rgb(0,135,0)">for</span> a <span style="font-weight:bold;color:rgb(175,0,255)">in</span> args])
+<span class="ansi-green-fg ansi-bold">    127</span>   in_tree <span style="color:rgb(98,98,98)">=</span> tree_util<span style="color:rgb(98,98,98)">.</span>tree_structure(args)
+<span class="ansi-green-fg">--&gt; 128</span>   compiled_fun <span style="color:rgb(98,98,98)">=</span> xla_primitive_callable(
+<span class="ansi-green-fg ansi-bold">    129</span>       prim, in_avals, in_tree, OrigShardings(in_shardings), <span style="color:rgb(98,98,98)">*</span><span style="color:rgb(98,98,98)">*</span>params)
+<span class="ansi-green-fg ansi-bold">    130</span> <span style="font-weight:bold;color:rgb(0,135,0)">except</span> pxla<span style="color:rgb(98,98,98)">.</span>DeviceAssignmentMismatchError <span style="font-weight:bold;color:rgb(0,135,0)">as</span> e:
+<span class="ansi-green-fg ansi-bold">    131</span>   fails, <span style="color:rgb(98,98,98)">=</span> e<span style="color:rgb(98,98,98)">.</span>args
+
+File <span class="ansi-green-fg">~/.conda/envs/research/lib/python3.11/site-packages/jax/_src/util.py:284</span>, in <span class="ansi-cyan-fg">cache.&lt;locals&gt;.wrap.&lt;locals&gt;.wrapper</span><span class="ansi-blue-fg">(*args, **kwargs)</span>
+<span class="ansi-green-fg ansi-bold">    282</span>   <span style="font-weight:bold;color:rgb(0,135,0)">return</span> f(<span style="color:rgb(98,98,98)">*</span>args, <span style="color:rgb(98,98,98)">*</span><span style="color:rgb(98,98,98)">*</span>kwargs)
+<span class="ansi-green-fg ansi-bold">    283</span> <span style="font-weight:bold;color:rgb(0,135,0)">else</span>:
+<span class="ansi-green-fg">--&gt; 284</span>   <span style="font-weight:bold;color:rgb(0,135,0)">return</span> cached(config<span style="color:rgb(98,98,98)">.</span>config<span style="color:rgb(98,98,98)">.</span>_trace_context(), <span style="color:rgb(98,98,98)">*</span>args, <span style="color:rgb(98,98,98)">*</span><span style="color:rgb(98,98,98)">*</span>kwargs)
+
+File <span class="ansi-green-fg">~/.conda/envs/research/lib/python3.11/site-packages/jax/_src/util.py:277</span>, in <span class="ansi-cyan-fg">cache.&lt;locals&gt;.wrap.&lt;locals&gt;.cached</span><span class="ansi-blue-fg">(_, *args, **kwargs)</span>
+<span class="ansi-green-fg ansi-bold">    275</span> <span style="color:rgb(175,0,255)">@functools</span><span style="color:rgb(98,98,98)">.</span>lru_cache(max_size)
+<span class="ansi-green-fg ansi-bold">    276</span> <span style="font-weight:bold;color:rgb(0,135,0)">def</span> <span style="color:rgb(0,0,255)">cached</span>(_, <span style="color:rgb(98,98,98)">*</span>args, <span style="color:rgb(98,98,98)">*</span><span style="color:rgb(98,98,98)">*</span>kwargs):
+<span class="ansi-green-fg">--&gt; 277</span>   <span style="font-weight:bold;color:rgb(0,135,0)">return</span> f(<span style="color:rgb(98,98,98)">*</span>args, <span style="color:rgb(98,98,98)">*</span><span style="color:rgb(98,98,98)">*</span>kwargs)
+
+File <span class="ansi-green-fg">~/.conda/envs/research/lib/python3.11/site-packages/jax/_src/dispatch.py:161</span>, in <span class="ansi-cyan-fg">xla_primitive_callable</span><span class="ansi-blue-fg">(prim, in_avals, in_tree, orig_in_shardings, **params)</span>
+<span class="ansi-green-fg ansi-bold">    156</span> flat_fun, out_tree <span style="color:rgb(98,98,98)">=</span> api_util<span style="color:rgb(98,98,98)">.</span>flatten_fun_nokwargs(wrapped_fun, in_tree)
+<span class="ansi-green-fg ansi-bold">    157</span> computation <span style="color:rgb(98,98,98)">=</span> sharded_lowering(
+<span class="ansi-green-fg ansi-bold">    158</span>     flat_fun, prim<span style="color:rgb(98,98,98)">.</span>name, donated_invars, keep_unused<span style="color:rgb(98,98,98)">=</span><span style="font-weight:bold;color:rgb(0,135,0)">False</span>,
+<span class="ansi-green-fg ansi-bold">    159</span>     inline<span style="color:rgb(98,98,98)">=</span><span style="font-weight:bold;color:rgb(0,135,0)">True</span>, in_avals<span style="color:rgb(98,98,98)">=</span>in_avals, in_shardings<span style="color:rgb(98,98,98)">=</span>orig_in_shardings<span style="color:rgb(98,98,98)">.</span>shardings,
+<span class="ansi-green-fg ansi-bold">    160</span>     lowering_parameters<span style="color:rgb(98,98,98)">=</span>mlir<span style="color:rgb(98,98,98)">.</span>LoweringParameters())
+<span class="ansi-green-fg">--&gt; 161</span> compiled <span style="color:rgb(98,98,98)">=</span> computation<span style="color:rgb(98,98,98)">.</span>compile()
+<span class="ansi-green-fg ansi-bold">    162</span> <span style="font-weight:bold;color:rgb(0,135,0)">if</span> xla_extension_version <span style="color:rgb(98,98,98)">&gt;</span><span style="color:rgb(98,98,98)">=</span> <span style="color:rgb(98,98,98)">192</span>:
+<span class="ansi-green-fg ansi-bold">    163</span>   <span style="font-weight:bold;color:rgb(0,135,0)">if</span> config<span style="color:rgb(98,98,98)">.</span>disable_jit<span style="color:rgb(98,98,98)">.</span>value:
+
+File <span class="ansi-green-fg">~/.conda/envs/research/lib/python3.11/site-packages/jax/_src/interpreters/pxla.py:2258</span>, in <span class="ansi-cyan-fg">MeshComputation.compile</span><span class="ansi-blue-fg">(self, compiler_options)</span>
+<span class="ansi-green-fg ansi-bold">   2256</span> <span style="font-weight:bold;color:rgb(0,135,0)">def</span> <span style="color:rgb(0,0,255)">compile</span>(<span style="color:rgb(0,135,0)">self</span>, compiler_options<span style="color:rgb(98,98,98)">=</span><span style="font-weight:bold;color:rgb(0,135,0)">None</span>) <span style="color:rgb(98,98,98)">-</span><span style="color:rgb(98,98,98)">&gt;</span> MeshExecutable:
+<span class="ansi-green-fg ansi-bold">   2257</span>   <span style="font-weight:bold;color:rgb(0,135,0)">if</span> <span style="color:rgb(0,135,0)">self</span><span style="color:rgb(98,98,98)">.</span>_executable <span style="font-weight:bold;color:rgb(175,0,255)">is</span> <span style="font-weight:bold;color:rgb(0,135,0)">None</span> <span style="font-weight:bold;color:rgb(175,0,255)">or</span> compiler_options <span style="font-weight:bold;color:rgb(175,0,255)">is</span> <span style="font-weight:bold;color:rgb(175,0,255)">not</span> <span style="font-weight:bold;color:rgb(0,135,0)">None</span>:
+<span class="ansi-green-fg">-&gt; 2258</span>     executable <span style="color:rgb(98,98,98)">=</span> UnloadedMeshExecutable<span style="color:rgb(98,98,98)">.</span>from_hlo(
+<span class="ansi-green-fg ansi-bold">   2259</span>         <span style="color:rgb(0,135,0)">self</span><span style="color:rgb(98,98,98)">.</span>_name, <span style="color:rgb(0,135,0)">self</span><span style="color:rgb(98,98,98)">.</span>_hlo, <span style="color:rgb(98,98,98)">*</span><span style="color:rgb(98,98,98)">*</span><span style="color:rgb(0,135,0)">self</span><span style="color:rgb(98,98,98)">.</span>compile_args,
+<span class="ansi-green-fg ansi-bold">   2260</span>         compiler_options<span style="color:rgb(98,98,98)">=</span>compiler_options)
+<span class="ansi-green-fg ansi-bold">   2261</span>     <span style="font-weight:bold;color:rgb(0,135,0)">if</span> compiler_options <span style="font-weight:bold;color:rgb(175,0,255)">is</span> <span style="font-weight:bold;color:rgb(0,135,0)">None</span>:
+<span class="ansi-green-fg ansi-bold">   2262</span>       <span style="color:rgb(0,135,0)">self</span><span style="color:rgb(98,98,98)">.</span>_executable <span style="color:rgb(98,98,98)">=</span> executable
+
+File <span class="ansi-green-fg">~/.conda/envs/research/lib/python3.11/site-packages/jax/_src/interpreters/pxla.py:2606</span>, in <span class="ansi-cyan-fg">UnloadedMeshExecutable.from_hlo</span><span class="ansi-blue-fg">(***failed resolving arguments***)</span>
+<span class="ansi-green-fg ansi-bold">   2603</span>       mesh <span style="color:rgb(98,98,98)">=</span> i<span style="color:rgb(98,98,98)">.</span>mesh  <span style="font-style:italic;color:rgb(95,135,135)"># type: ignore</span>
+<span class="ansi-green-fg ansi-bold">   2604</span>       <span style="font-weight:bold;color:rgb(0,135,0)">break</span>
+<span class="ansi-green-fg">-&gt; 2606</span> xla_executable, compile_options <span style="color:rgb(98,98,98)">=</span> _cached_compilation(
+<span class="ansi-green-fg ansi-bold">   2607</span>     hlo, name, mesh, spmd_lowering,
+<span class="ansi-green-fg ansi-bold">   2608</span>     tuple_args, auto_spmd_lowering, allow_prop_to_outputs,
+<span class="ansi-green-fg ansi-bold">   2609</span>     <span style="color:rgb(0,135,0)">tuple</span>(host_callbacks), backend, da, pmap_nreps,
+<span class="ansi-green-fg ansi-bold">   2610</span>     compiler_options_keys, compiler_options_values)
+<span class="ansi-green-fg ansi-bold">   2612</span> <span style="font-weight:bold;color:rgb(0,135,0)">if</span> <span style="color:rgb(0,135,0)">hasattr</span>(backend, <span style="color:rgb(175,0,0)">"</span><span style="color:rgb(175,0,0)">compile_replicated</span><span style="color:rgb(175,0,0)">"</span>):
+<span class="ansi-green-fg ansi-bold">   2613</span>   semantics_in_shardings <span style="color:rgb(98,98,98)">=</span> SemanticallyEqualShardings(in_shardings)  <span style="font-style:italic;color:rgb(95,135,135)"># type: ignore</span>
+
+File <span class="ansi-green-fg">~/.conda/envs/research/lib/python3.11/site-packages/jax/_src/interpreters/pxla.py:2513</span>, in <span class="ansi-cyan-fg">_cached_compilation</span><span class="ansi-blue-fg">(computation, name, mesh, spmd_lowering, tuple_args, auto_spmd_lowering, _allow_propagation_to_outputs, host_callbacks, backend, da, pmap_nreps, compiler_options_keys, compiler_options_values)</span>
+<span class="ansi-green-fg ansi-bold">   2508</span>   <span style="font-weight:bold;color:rgb(0,135,0)">return</span> <span style="font-weight:bold;color:rgb(0,135,0)">None</span>, compile_options
+<span class="ansi-green-fg ansi-bold">   2510</span> <span style="font-weight:bold;color:rgb(0,135,0)">with</span> dispatch<span style="color:rgb(98,98,98)">.</span>log_elapsed_time(
+<span class="ansi-green-fg ansi-bold">   2511</span>     <span style="color:rgb(175,0,0)">"</span><span style="color:rgb(175,0,0)">Finished XLA compilation of </span><span style="font-weight:bold;color:rgb(175,95,135)">{fun_name}</span><span style="color:rgb(175,0,0)"> in </span><span style="font-weight:bold;color:rgb(175,95,135)">{elapsed_time}</span><span style="color:rgb(175,0,0)"> sec</span><span style="color:rgb(175,0,0)">"</span>,
+<span class="ansi-green-fg ansi-bold">   2512</span>     fun_name<span style="color:rgb(98,98,98)">=</span>name, event<span style="color:rgb(98,98,98)">=</span>dispatch<span style="color:rgb(98,98,98)">.</span>BACKEND_COMPILE_EVENT):
+<span class="ansi-green-fg">-&gt; 2513</span>   xla_executable <span style="color:rgb(98,98,98)">=</span> compiler<span style="color:rgb(98,98,98)">.</span>compile_or_get_cached(
+<span class="ansi-green-fg ansi-bold">   2514</span>       backend, computation, dev, compile_options, host_callbacks)
+<span class="ansi-green-fg ansi-bold">   2515</span> <span style="font-weight:bold;color:rgb(0,135,0)">return</span> xla_executable, compile_options
+
+File <span class="ansi-green-fg">~/.conda/envs/research/lib/python3.11/site-packages/jax/_src/compiler.py:295</span>, in <span class="ansi-cyan-fg">compile_or_get_cached</span><span class="ansi-blue-fg">(backend, computation, devices, compile_options, host_callbacks)</span>
+<span class="ansi-green-fg ansi-bold">    291</span> use_compilation_cache <span style="color:rgb(98,98,98)">=</span> (compilation_cache<span style="color:rgb(98,98,98)">.</span>is_initialized() <span style="font-weight:bold;color:rgb(175,0,255)">and</span>
+<span class="ansi-green-fg ansi-bold">    292</span>                          backend<span style="color:rgb(98,98,98)">.</span>platform <span style="font-weight:bold;color:rgb(175,0,255)">in</span> supported_platforms)
+<span class="ansi-green-fg ansi-bold">    294</span> <span style="font-weight:bold;color:rgb(0,135,0)">if</span> <span style="font-weight:bold;color:rgb(175,0,255)">not</span> use_compilation_cache:
+<span class="ansi-green-fg">--&gt; 295</span>   <span style="font-weight:bold;color:rgb(0,135,0)">return</span> backend_compile(backend, computation, compile_options,
+<span class="ansi-green-fg ansi-bold">    296</span>                          host_callbacks)
+<span class="ansi-green-fg ansi-bold">    298</span> <span style="font-weight:bold;color:rgb(0,135,0)">global</span> _cache_used
+<span class="ansi-green-fg ansi-bold">    299</span> <span style="font-weight:bold;color:rgb(0,135,0)">if</span> <span style="font-weight:bold;color:rgb(175,0,255)">not</span> _cache_used:
+
+File <span class="ansi-green-fg">~/.conda/envs/research/lib/python3.11/site-packages/jax/_src/profiler.py:340</span>, in <span class="ansi-cyan-fg">annotate_function.&lt;locals&gt;.wrapper</span><span class="ansi-blue-fg">(*args, **kwargs)</span>
+<span class="ansi-green-fg ansi-bold">    337</span> <span style="color:rgb(175,0,255)">@wraps</span>(func)
+<span class="ansi-green-fg ansi-bold">    338</span> <span style="font-weight:bold;color:rgb(0,135,0)">def</span> <span style="color:rgb(0,0,255)">wrapper</span>(<span style="color:rgb(98,98,98)">*</span>args, <span style="color:rgb(98,98,98)">*</span><span style="color:rgb(98,98,98)">*</span>kwargs):
+<span class="ansi-green-fg ansi-bold">    339</span>   <span style="font-weight:bold;color:rgb(0,135,0)">with</span> TraceAnnotation(name, <span style="color:rgb(98,98,98)">*</span><span style="color:rgb(98,98,98)">*</span>decorator_kwargs):
+<span class="ansi-green-fg">--&gt; 340</span>     <span style="font-weight:bold;color:rgb(0,135,0)">return</span> func(<span style="color:rgb(98,98,98)">*</span>args, <span style="color:rgb(98,98,98)">*</span><span style="color:rgb(98,98,98)">*</span>kwargs)
+<span class="ansi-green-fg ansi-bold">    341</span>   <span style="font-weight:bold;color:rgb(0,135,0)">return</span> wrapper
+
+File <span class="ansi-green-fg">~/.conda/envs/research/lib/python3.11/site-packages/jax/_src/compiler.py:255</span>, in <span class="ansi-cyan-fg">backend_compile</span><span class="ansi-blue-fg">(backend, module, options, host_callbacks)</span>
+<span class="ansi-green-fg ansi-bold">    250</span>   <span style="font-weight:bold;color:rgb(0,135,0)">return</span> backend<span style="color:rgb(98,98,98)">.</span>compile(built_c, compile_options<span style="color:rgb(98,98,98)">=</span>options,
+<span class="ansi-green-fg ansi-bold">    251</span>                          host_callbacks<span style="color:rgb(98,98,98)">=</span>host_callbacks)
+<span class="ansi-green-fg ansi-bold">    252</span> <span style="font-style:italic;color:rgb(95,135,135)"># Some backends don't have `host_callbacks` option yet</span>
+<span class="ansi-green-fg ansi-bold">    253</span> <span style="font-style:italic;color:rgb(95,135,135)"># TODO(sharadmv): remove this fallback when all backends allow `compile`</span>
+<span class="ansi-green-fg ansi-bold">    254</span> <span style="font-style:italic;color:rgb(95,135,135)"># to take in `host_callbacks`</span>
+<span class="ansi-green-fg">--&gt; 255</span> <span style="font-weight:bold;color:rgb(0,135,0)">return</span> backend<span style="color:rgb(98,98,98)">.</span>compile(built_c, compile_options<span style="color:rgb(98,98,98)">=</span>options)
+
+<span class="ansi-red-fg">KeyboardInterrupt</span>: </pre>
+</div>
+</div>
+</div>
+<hr>
+<p><a href="https://github.com/stefanheyder/isssm/blob/main/isssm/estimation.py#L180" target="_blank" style="float:right; font-size:smaller">source</a></p>
+</section>
+<section id="mle_pgssm" class="level3">
+<h3 class="anchored" data-anchor-id="mle_pgssm">mle_pgssm</h3>
+<blockquote class="blockquote">
+<pre><code> mle_pgssm (y:jaxtyping.Float[Array,'n+1p'], model_fn,
+            theta0:jaxtyping.Float[Array,'k'], aux, n_iter_la:int, N:int,
+            key:jax.Array, options=None)</code></pre>
+</blockquote>
+<p><em>Maximum Likelihood Estimation for PGSSMs</em></p>
+<table class="caption-top table">
+<thead>
+<tr class="header">
+<th></th>
+<th><strong>Type</strong></th>
+<th><strong>Default</strong></th>
+<th><strong>Details</strong></th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>y</td>
+<td>Float[Array, ‘n+1 p’]</td>
+<td></td>
+<td>observations <span class="math inline">\(y_t\)</span></td>
+</tr>
+<tr class="even">
+<td>model_fn</td>
+<td></td>
+<td></td>
+<td>parameterized LCSSM</td>
+</tr>
+<tr class="odd">
+<td>theta0</td>
+<td>Float[Array, ‘k’]</td>
+<td></td>
+<td>initial parameter guess</td>
+</tr>
+<tr class="even">
+<td>aux</td>
+<td></td>
+<td></td>
+<td>auxiliary data for the model</td>
+</tr>
+<tr class="odd">
+<td>n_iter_la</td>
+<td>int</td>
+<td></td>
+<td>number of LA iterations</td>
+</tr>
+<tr class="even">
+<td>N</td>
+<td>int</td>
+<td></td>
+<td>number of importance samples</td>
+</tr>
+<tr class="odd">
+<td>key</td>
+<td>Array</td>
+<td></td>
+<td>random key</td>
+</tr>
+<tr class="even">
+<td>options</td>
+<td>NoneType</td>
+<td>None</td>
+<td>options for the optimizer</td>
+</tr>
+<tr class="odd">
+<td><strong>Returns</strong></td>
+<td><strong>Float[Array, ‘k’]</strong></td>
+<td></td>
+<td><strong>MLE</strong></td>
+</tr>
+</tbody>
+</table>
+<div id="cell-20" class="cell">
+<div class="sourceCode cell-code" id="cb15"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a>key, subkey <span class="op">=</span> jrn.split(key)</span>
+<span id="cb15-2"><a href="#cb15-2" aria-hidden="true" tabindex="-1"></a>result <span class="op">=</span> mle_pgssm(y, model_fn, theta0, aux, <span class="dv">10</span>, <span class="dv">1000</span>, subkey)</span>
+<span id="cb15-3"><a href="#cb15-3" aria-hidden="true" tabindex="-1"></a>theta_hat <span class="op">=</span> result.x</span>
+<span id="cb15-4"><a href="#cb15-4" aria-hidden="true" tabindex="-1"></a>result</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display">
+<pre><code>  message: Optimization terminated successfully.
+  success: True
+   status: 0
+      fun: 0.6555639773794885
+        x: [ 4.335e-01  3.698e+00]
+      nit: 19
+      jac: [ 6.729e-06 -1.113e-06]
+ hess_inv: [[ 1.908e+01  1.101e+02]
+            [ 1.101e+02  1.307e+04]]
+     nfev: 105
+     njev: 21</code></pre>
+</div>
+</div>
+<div id="cell-21" class="cell">
+<div class="sourceCode cell-code" id="cb17"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb17-1"><a href="#cb17-1" aria-hidden="true" tabindex="-1"></a><span class="at">@jit</span></span>
+<span id="cb17-2"><a href="#cb17-2" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> pgnll_full(theta, key):</span>
+<span id="cb17-3"><a href="#cb17-3" aria-hidden="true" tabindex="-1"></a>    model <span class="op">=</span> model_fn(theta, aux)</span>
+<span id="cb17-4"><a href="#cb17-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb17-5"><a href="#cb17-5" aria-hidden="true" tabindex="-1"></a>    proposal, info <span class="op">=</span> laplace_approximation(y, model, <span class="dv">10</span>)</span>
+<span id="cb17-6"><a href="#cb17-6" aria-hidden="true" tabindex="-1"></a>    key, subkey <span class="op">=</span> jrn.split(key)</span>
+<span id="cb17-7"><a href="#cb17-7" aria-hidden="true" tabindex="-1"></a>    proposal_meis, _ <span class="op">=</span> modified_efficient_importance_sampling(</span>
+<span id="cb17-8"><a href="#cb17-8" aria-hidden="true" tabindex="-1"></a>        y, model, proposal.z, proposal.Omega, <span class="dv">10</span>, <span class="dv">100</span>, subkey</span>
+<span id="cb17-9"><a href="#cb17-9" aria-hidden="true" tabindex="-1"></a>    )</span>
+<span id="cb17-10"><a href="#cb17-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb17-11"><a href="#cb17-11" aria-hidden="true" tabindex="-1"></a>    key, subkey <span class="op">=</span> jrn.split(key)</span>
+<span id="cb17-12"><a href="#cb17-12" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> pgnll(y, model, proposal_meis.z, proposal_meis.Omega, <span class="dv">100</span>, subkey) <span class="op">/</span> y.size</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<div id="cell-22" class="cell">
+<div class="sourceCode cell-code" id="cb18"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb18-1"><a href="#cb18-1" aria-hidden="true" tabindex="-1"></a><span class="co"># 2d grid on the log scale</span></span>
+<span id="cb18-2"><a href="#cb18-2" aria-hidden="true" tabindex="-1"></a>(log_sigma_min, log_r_min), (log_sigma_max, log_r_max) <span class="op">=</span> jnp.<span class="bu">min</span>(</span>
+<span id="cb18-3"><a href="#cb18-3" aria-hidden="true" tabindex="-1"></a>    jnp.vstack((theta_lc, theta0, theta_hat)), axis<span class="op">=</span><span class="dv">0</span></span>
+<span id="cb18-4"><a href="#cb18-4" aria-hidden="true" tabindex="-1"></a>), jnp.<span class="bu">max</span>(jnp.vstack((theta_lc, theta0, theta_hat)), axis<span class="op">=</span><span class="dv">0</span>)</span>
+<span id="cb18-5"><a href="#cb18-5" aria-hidden="true" tabindex="-1"></a>k <span class="op">=</span> <span class="dv">20</span>  <span class="co"># number of evaluations in each dimension</span></span>
+<span id="cb18-6"><a href="#cb18-6" aria-hidden="true" tabindex="-1"></a>delta <span class="op">=</span> <span class="fl">0.5</span></span>
+<span id="cb18-7"><a href="#cb18-7" aria-hidden="true" tabindex="-1"></a>log_sigma, log_r <span class="op">=</span> jnp.meshgrid(</span>
+<span id="cb18-8"><a href="#cb18-8" aria-hidden="true" tabindex="-1"></a>    jnp.linspace(log_sigma_min <span class="op">-</span> delta, log_sigma_max <span class="op">+</span> delta, k),</span>
+<span id="cb18-9"><a href="#cb18-9" aria-hidden="true" tabindex="-1"></a>    jnp.linspace(log_r_min <span class="op">-</span> delta, log_r_max <span class="op">+</span> delta, k),</span>
+<span id="cb18-10"><a href="#cb18-10" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb18-11"><a href="#cb18-11" aria-hidden="true" tabindex="-1"></a><span class="co"># flatten</span></span>
+<span id="cb18-12"><a href="#cb18-12" aria-hidden="true" tabindex="-1"></a>thetas <span class="op">=</span> jnp.vstack([log_sigma.ravel(), log_r.ravel()]).T</span>
+<span id="cb18-13"><a href="#cb18-13" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-14"><a href="#cb18-14" aria-hidden="true" tabindex="-1"></a>key, subkey <span class="op">=</span> jrn.split(key)</span>
+<span id="cb18-15"><a href="#cb18-15" aria-hidden="true" tabindex="-1"></a>nlls <span class="op">=</span> vmap(pgnll_full, (<span class="dv">0</span>, <span class="va">None</span>))(thetas, subkey)</span>
+<span id="cb18-16"><a href="#cb18-16" aria-hidden="true" tabindex="-1"></a><span class="co"># location of minimum in nlls</span></span>
+<span id="cb18-17"><a href="#cb18-17" aria-hidden="true" tabindex="-1"></a>i <span class="op">=</span> jnp.argmin(nlls)</span>
+<span id="cb18-18"><a href="#cb18-18" aria-hidden="true" tabindex="-1"></a><span class="co"># location of minimum in the grid</span></span>
+<span id="cb18-19"><a href="#cb18-19" aria-hidden="true" tabindex="-1"></a>i_sigma, i_r <span class="op">=</span> i <span class="op">//</span> k, i <span class="op">%</span> k</span>
+<span id="cb18-20"><a href="#cb18-20" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-21"><a href="#cb18-21" aria-hidden="true" tabindex="-1"></a>plt.contourf(log_sigma, log_r, nlls.reshape(k, k))</span>
+<span id="cb18-22"><a href="#cb18-22" aria-hidden="true" tabindex="-1"></a>plt.scatter(</span>
+<span id="cb18-23"><a href="#cb18-23" aria-hidden="true" tabindex="-1"></a>    log_sigma[i_sigma, i_r],</span>
+<span id="cb18-24"><a href="#cb18-24" aria-hidden="true" tabindex="-1"></a>    log_r[i_sigma, i_r],</span>
+<span id="cb18-25"><a href="#cb18-25" aria-hidden="true" tabindex="-1"></a>    c<span class="op">=</span><span class="st">"white"</span>,</span>
+<span id="cb18-26"><a href="#cb18-26" aria-hidden="true" tabindex="-1"></a>    marker<span class="op">=</span><span class="st">"x"</span>,</span>
+<span id="cb18-27"><a href="#cb18-27" aria-hidden="true" tabindex="-1"></a>    label<span class="op">=</span><span class="st">"min_grid"</span>,</span>
+<span id="cb18-28"><a href="#cb18-28" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb18-29"><a href="#cb18-29" aria-hidden="true" tabindex="-1"></a>plt.scatter(theta_lc[<span class="dv">0</span>], theta_lc[<span class="dv">1</span>], c<span class="op">=</span><span class="st">"r"</span>, marker<span class="op">=</span><span class="st">"x"</span>, label<span class="op">=</span><span class="st">"true"</span>)</span>
+<span id="cb18-30"><a href="#cb18-30" aria-hidden="true" tabindex="-1"></a>plt.scatter(theta0[<span class="dv">0</span>], theta0[<span class="dv">1</span>], c<span class="op">=</span><span class="st">"black"</span>, marker<span class="op">=</span><span class="st">"x"</span>, label<span class="op">=</span><span class="st">"$</span><span class="ch">\\</span><span class="st">theta_0$"</span>)</span>
+<span id="cb18-31"><a href="#cb18-31" aria-hidden="true" tabindex="-1"></a>plt.scatter(<span class="op">*</span>theta_hat, c<span class="op">=</span><span class="st">"g"</span>, marker<span class="op">=</span><span class="st">"o"</span>, label<span class="op">=</span><span class="st">"min_mle"</span>)</span>
+<span id="cb18-32"><a href="#cb18-32" aria-hidden="true" tabindex="-1"></a>plt.legend()</span>
+<span id="cb18-33"><a href="#cb18-33" aria-hidden="true" tabindex="-1"></a>plt.xlabel(<span class="st">"$</span><span class="ch">\\</span><span class="st">log(</span><span class="ch">\\</span><span class="st">sigma^2_</span><span class="ch">\\</span><span class="st">varepsilon)$"</span>)</span>
+<span id="cb18-34"><a href="#cb18-34" aria-hidden="true" tabindex="-1"></a>plt.ylabel(<span class="st">"$</span><span class="ch">\\</span><span class="st">log(r)$"</span>)</span>
+<span id="cb18-35"><a href="#cb18-35" aria-hidden="true" tabindex="-1"></a>plt.colorbar()</span>
+<span id="cb18-36"><a href="#cb18-36" aria-hidden="true" tabindex="-1"></a>plt.show()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="60_maximum_likelihood_estimation_files/figure-html/cell-16-output-1.png" class="img-fluid figure-img"></p>
+</figure>
+</div>
+</div>
+</div>
+<p>From the above picture, we see that <span class="math inline">\(\log r\)</span> is hard to determine: the likelihood is very flat in the <span class="math inline">\(r\)</span> direction, which explains the precision loss warning in the optimizer. Nevertheless, our estimate <span class="math inline">\(\hat\theta\)</span> seems to have converged to a reasonable value.</p>
+
+
+
+</section>
+</section>
+
+<div id="quarto-appendix" class="default"><section class="quarto-appendix-contents" role="doc-bibliography" id="quarto-bibliography"><h2 class="anchored quarto-appendix-heading">References</h2><div id="refs" class="references csl-bib-body hanging-indent" data-entry-spacing="0" role="list">
+<div id="ref-Durbin1997Monte" class="csl-entry" role="listitem">
+Durbin, James, and Siem Jan Koopman. 1997. <span>“Monte <span>Carlo</span> Maximum Likelihood Estimation for Non-<span>Gaussian</span> State Space Models.”</span> <em>Biometrika</em> 84 (3): 669–84. <a href="https://doi.org/10.1093/biomet/84.3.669">https://doi.org/10.1093/biomet/84.3.669</a>.
+</div>
+</div></section></div></main> <!-- /main -->
+<script id="quarto-html-after-body" type="application/javascript">
+window.document.addEventListener("DOMContentLoaded", function (event) {
+  const toggleBodyColorMode = (bsSheetEl) => {
+    const mode = bsSheetEl.getAttribute("data-mode");
+    const bodyEl = window.document.querySelector("body");
+    if (mode === "dark") {
+      bodyEl.classList.add("quarto-dark");
+      bodyEl.classList.remove("quarto-light");
+    } else {
+      bodyEl.classList.add("quarto-light");
+      bodyEl.classList.remove("quarto-dark");
+    }
+  }
+  const toggleBodyColorPrimary = () => {
+    const bsSheetEl = window.document.querySelector("link#quarto-bootstrap");
+    if (bsSheetEl) {
+      toggleBodyColorMode(bsSheetEl);
+    }
+  }
+  toggleBodyColorPrimary();  
+  const icon = "";
+  const anchorJS = new window.AnchorJS();
+  anchorJS.options = {
+    placement: 'right',
+    icon: icon
+  };
+  anchorJS.add('.anchored');
+  const isCodeAnnotation = (el) => {
+    for (const clz of el.classList) {
+      if (clz.startsWith('code-annotation-')) {                     
+        return true;
+      }
+    }
+    return false;
+  }
+  const onCopySuccess = function(e) {
+    // button target
+    const button = e.trigger;
+    // don't keep focus
+    button.blur();
+    // flash "checked"
+    button.classList.add('code-copy-button-checked');
+    var currentTitle = button.getAttribute("title");
+    button.setAttribute("title", "Copied!");
+    let tooltip;
+    if (window.bootstrap) {
+      button.setAttribute("data-bs-toggle", "tooltip");
+      button.setAttribute("data-bs-placement", "left");
+      button.setAttribute("data-bs-title", "Copied!");
+      tooltip = new bootstrap.Tooltip(button, 
+        { trigger: "manual", 
+          customClass: "code-copy-button-tooltip",
+          offset: [0, -8]});
+      tooltip.show();    
+    }
+    setTimeout(function() {
+      if (tooltip) {
+        tooltip.hide();
+        button.removeAttribute("data-bs-title");
+        button.removeAttribute("data-bs-toggle");
+        button.removeAttribute("data-bs-placement");
+      }
+      button.setAttribute("title", currentTitle);
+      button.classList.remove('code-copy-button-checked');
+    }, 1000);
+    // clear code selection
+    e.clearSelection();
+  }
+  const getTextToCopy = function(trigger) {
+      const codeEl = trigger.previousElementSibling.cloneNode(true);
+      for (const childEl of codeEl.children) {
+        if (isCodeAnnotation(childEl)) {
+          childEl.remove();
+        }
+      }
+      return codeEl.innerText;
+  }
+  const clipboard = new window.ClipboardJS('.code-copy-button:not([data-in-quarto-modal])', {
+    text: getTextToCopy
+  });
+  clipboard.on('success', onCopySuccess);
+  if (window.document.getElementById('quarto-embedded-source-code-modal')) {
+    // For code content inside modals, clipBoardJS needs to be initialized with a container option
+    // TODO: Check when it could be a function (https://github.com/zenorocha/clipboard.js/issues/860)
+    const clipboardModal = new window.ClipboardJS('.code-copy-button[data-in-quarto-modal]', {
+      text: getTextToCopy,
+      container: window.document.getElementById('quarto-embedded-source-code-modal')
+    });
+    clipboardModal.on('success', onCopySuccess);
+  }
+    var localhostRegex = new RegExp(/^(?:http|https):\/\/localhost\:?[0-9]*\//);
+    var mailtoRegex = new RegExp(/^mailto:/);
+      var filterRegex = new RegExp("https:\/\/stefanheyder\.github\.io\/isssm");
+    var isInternal = (href) => {
+        return filterRegex.test(href) || localhostRegex.test(href) || mailtoRegex.test(href);
+    }
+    // Inspect non-navigation links and adorn them if external
+ 	var links = window.document.querySelectorAll('a[href]:not(.nav-link):not(.navbar-brand):not(.toc-action):not(.sidebar-link):not(.sidebar-item-toggle):not(.pagination-link):not(.no-external):not([aria-hidden]):not(.dropdown-item):not(.quarto-navigation-tool):not(.about-link)');
+    for (var i=0; i<links.length; i++) {
+      const link = links[i];
+      if (!isInternal(link.href)) {
+        // undo the damage that might have been done by quarto-nav.js in the case of
+        // links that we want to consider external
+        if (link.dataset.originalHref !== undefined) {
+          link.href = link.dataset.originalHref;
+        }
+      }
+    }
+  function tippyHover(el, contentFn, onTriggerFn, onUntriggerFn) {
+    const config = {
+      allowHTML: true,
+      maxWidth: 500,
+      delay: 100,
+      arrow: false,
+      appendTo: function(el) {
+          return el.parentElement;
+      },
+      interactive: true,
+      interactiveBorder: 10,
+      theme: 'quarto',
+      placement: 'bottom-start',
+    };
+    if (contentFn) {
+      config.content = contentFn;
+    }
+    if (onTriggerFn) {
+      config.onTrigger = onTriggerFn;
+    }
+    if (onUntriggerFn) {
+      config.onUntrigger = onUntriggerFn;
+    }
+    window.tippy(el, config); 
+  }
+  const noterefs = window.document.querySelectorAll('a[role="doc-noteref"]');
+  for (var i=0; i<noterefs.length; i++) {
+    const ref = noterefs[i];
+    tippyHover(ref, function() {
+      // use id or data attribute instead here
+      let href = ref.getAttribute('data-footnote-href') || ref.getAttribute('href');
+      try { href = new URL(href).hash; } catch {}
+      const id = href.replace(/^#\/?/, "");
+      const note = window.document.getElementById(id);
+      if (note) {
+        return note.innerHTML;
+      } else {
+        return "";
+      }
+    });
+  }
+  const xrefs = window.document.querySelectorAll('a.quarto-xref');
+  const processXRef = (id, note) => {
+    // Strip column container classes
+    const stripColumnClz = (el) => {
+      el.classList.remove("page-full", "page-columns");
+      if (el.children) {
+        for (const child of el.children) {
+          stripColumnClz(child);
+        }
+      }
+    }
+    stripColumnClz(note)
+    if (id === null || id.startsWith('sec-')) {
+      // Special case sections, only their first couple elements
+      const container = document.createElement("div");
+      if (note.children && note.children.length > 2) {
+        container.appendChild(note.children[0].cloneNode(true));
+        for (let i = 1; i < note.children.length; i++) {
+          const child = note.children[i];
+          if (child.tagName === "P" && child.innerText === "") {
+            continue;
+          } else {
+            container.appendChild(child.cloneNode(true));
+            break;
+          }
+        }
+        if (window.Quarto?.typesetMath) {
+          window.Quarto.typesetMath(container);
+        }
+        return container.innerHTML
+      } else {
+        if (window.Quarto?.typesetMath) {
+          window.Quarto.typesetMath(note);
+        }
+        return note.innerHTML;
+      }
+    } else {
+      // Remove any anchor links if they are present
+      const anchorLink = note.querySelector('a.anchorjs-link');
+      if (anchorLink) {
+        anchorLink.remove();
+      }
+      if (window.Quarto?.typesetMath) {
+        window.Quarto.typesetMath(note);
+      }
+      // TODO in 1.5, we should make sure this works without a callout special case
+      if (note.classList.contains("callout")) {
+        return note.outerHTML;
+      } else {
+        return note.innerHTML;
+      }
+    }
+  }
+  for (var i=0; i<xrefs.length; i++) {
+    const xref = xrefs[i];
+    tippyHover(xref, undefined, function(instance) {
+      instance.disable();
+      let url = xref.getAttribute('href');
+      let hash = undefined; 
+      if (url.startsWith('#')) {
+        hash = url;
+      } else {
+        try { hash = new URL(url).hash; } catch {}
+      }
+      if (hash) {
+        const id = hash.replace(/^#\/?/, "");
+        const note = window.document.getElementById(id);
+        if (note !== null) {
+          try {
+            const html = processXRef(id, note.cloneNode(true));
+            instance.setContent(html);
+          } finally {
+            instance.enable();
+            instance.show();
+          }
+        } else {
+          // See if we can fetch this
+          fetch(url.split('#')[0])
+          .then(res => res.text())
+          .then(html => {
+            const parser = new DOMParser();
+            const htmlDoc = parser.parseFromString(html, "text/html");
+            const note = htmlDoc.getElementById(id);
+            if (note !== null) {
+              const html = processXRef(id, note);
+              instance.setContent(html);
+            } 
+          }).finally(() => {
+            instance.enable();
+            instance.show();
+          });
+        }
+      } else {
+        // See if we can fetch a full url (with no hash to target)
+        // This is a special case and we should probably do some content thinning / targeting
+        fetch(url)
+        .then(res => res.text())
+        .then(html => {
+          const parser = new DOMParser();
+          const htmlDoc = parser.parseFromString(html, "text/html");
+          const note = htmlDoc.querySelector('main.content');
+          if (note !== null) {
+            // This should only happen for chapter cross references
+            // (since there is no id in the URL)
+            // remove the first header
+            if (note.children.length > 0 && note.children[0].tagName === "HEADER") {
+              note.children[0].remove();
+            }
+            const html = processXRef(null, note);
+            instance.setContent(html);
+          } 
+        }).finally(() => {
+          instance.enable();
+          instance.show();
+        });
+      }
+    }, function(instance) {
+    });
+  }
+      let selectedAnnoteEl;
+      const selectorForAnnotation = ( cell, annotation) => {
+        let cellAttr = 'data-code-cell="' + cell + '"';
+        let lineAttr = 'data-code-annotation="' +  annotation + '"';
+        const selector = 'span[' + cellAttr + '][' + lineAttr + ']';
+        return selector;
+      }
+      const selectCodeLines = (annoteEl) => {
+        const doc = window.document;
+        const targetCell = annoteEl.getAttribute("data-target-cell");
+        const targetAnnotation = annoteEl.getAttribute("data-target-annotation");
+        const annoteSpan = window.document.querySelector(selectorForAnnotation(targetCell, targetAnnotation));
+        const lines = annoteSpan.getAttribute("data-code-lines").split(",");
+        const lineIds = lines.map((line) => {
+          return targetCell + "-" + line;
+        })
+        let top = null;
+        let height = null;
+        let parent = null;
+        if (lineIds.length > 0) {
+            //compute the position of the single el (top and bottom and make a div)
+            const el = window.document.getElementById(lineIds[0]);
+            top = el.offsetTop;
+            height = el.offsetHeight;
+            parent = el.parentElement.parentElement;
+          if (lineIds.length > 1) {
+            const lastEl = window.document.getElementById(lineIds[lineIds.length - 1]);
+            const bottom = lastEl.offsetTop + lastEl.offsetHeight;
+            height = bottom - top;
+          }
+          if (top !== null && height !== null && parent !== null) {
+            // cook up a div (if necessary) and position it 
+            let div = window.document.getElementById("code-annotation-line-highlight");
+            if (div === null) {
+              div = window.document.createElement("div");
+              div.setAttribute("id", "code-annotation-line-highlight");
+              div.style.position = 'absolute';
+              parent.appendChild(div);
+            }
+            div.style.top = top - 2 + "px";
+            div.style.height = height + 4 + "px";
+            div.style.left = 0;
+            let gutterDiv = window.document.getElementById("code-annotation-line-highlight-gutter");
+            if (gutterDiv === null) {
+              gutterDiv = window.document.createElement("div");
+              gutterDiv.setAttribute("id", "code-annotation-line-highlight-gutter");
+              gutterDiv.style.position = 'absolute';
+              const codeCell = window.document.getElementById(targetCell);
+              const gutter = codeCell.querySelector('.code-annotation-gutter');
+              gutter.appendChild(gutterDiv);
+            }
+            gutterDiv.style.top = top - 2 + "px";
+            gutterDiv.style.height = height + 4 + "px";
+          }
+          selectedAnnoteEl = annoteEl;
+        }
+      };
+      const unselectCodeLines = () => {
+        const elementsIds = ["code-annotation-line-highlight", "code-annotation-line-highlight-gutter"];
+        elementsIds.forEach((elId) => {
+          const div = window.document.getElementById(elId);
+          if (div) {
+            div.remove();
+          }
+        });
+        selectedAnnoteEl = undefined;
+      };
+        // Handle positioning of the toggle
+    window.addEventListener(
+      "resize",
+      throttle(() => {
+        elRect = undefined;
+        if (selectedAnnoteEl) {
+          selectCodeLines(selectedAnnoteEl);
+        }
+      }, 10)
+    );
+    function throttle(fn, ms) {
+    let throttle = false;
+    let timer;
+      return (...args) => {
+        if(!throttle) { // first call gets through
+            fn.apply(this, args);
+            throttle = true;
+        } else { // all the others get throttled
+            if(timer) clearTimeout(timer); // cancel #2
+            timer = setTimeout(() => {
+              fn.apply(this, args);
+              timer = throttle = false;
+            }, ms);
+        }
+      };
+    }
+      // Attach click handler to the DT
+      const annoteDls = window.document.querySelectorAll('dt[data-target-cell]');
+      for (const annoteDlNode of annoteDls) {
+        annoteDlNode.addEventListener('click', (event) => {
+          const clickedEl = event.target;
+          if (clickedEl !== selectedAnnoteEl) {
+            unselectCodeLines();
+            const activeEl = window.document.querySelector('dt[data-target-cell].code-annotation-active');
+            if (activeEl) {
+              activeEl.classList.remove('code-annotation-active');
+            }
+            selectCodeLines(clickedEl);
+            clickedEl.classList.add('code-annotation-active');
+          } else {
+            // Unselect the line
+            unselectCodeLines();
+            clickedEl.classList.remove('code-annotation-active');
+          }
+        });
+      }
+  const findCites = (el) => {
+    const parentEl = el.parentElement;
+    if (parentEl) {
+      const cites = parentEl.dataset.cites;
+      if (cites) {
+        return {
+          el,
+          cites: cites.split(' ')
+        };
+      } else {
+        return findCites(el.parentElement)
+      }
+    } else {
+      return undefined;
+    }
+  };
+  var bibliorefs = window.document.querySelectorAll('a[role="doc-biblioref"]');
+  for (var i=0; i<bibliorefs.length; i++) {
+    const ref = bibliorefs[i];
+    const citeInfo = findCites(ref);
+    if (citeInfo) {
+      tippyHover(citeInfo.el, function() {
+        var popup = window.document.createElement('div');
+        citeInfo.cites.forEach(function(cite) {
+          var citeDiv = window.document.createElement('div');
+          citeDiv.classList.add('hanging-indent');
+          citeDiv.classList.add('csl-entry');
+          var biblioDiv = window.document.getElementById('ref-' + cite);
+          if (biblioDiv) {
+            citeDiv.innerHTML = biblioDiv.innerHTML;
+          }
+          popup.appendChild(citeDiv);
+        });
+        return popup.innerHTML;
+      });
+    }
+  }
+});
+</script>
+</div> <!-- /content -->
+
+
+
+
+<footer class="footer"><div class="nav-footer"><div class="nav-footer-center"><div class="toc-actions d-sm-block d-md-none"><ul><li><a href="https://github.com/stefanheyder/isssm/issues/new" class="toc-action"><i class="bi bi-github"></i>Report an issue</a></li></ul></div></div></div></footer></body></html>
