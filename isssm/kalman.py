@@ -2,7 +2,8 @@
 
 # %% auto 0
 __all__ = ['State', 'StateCov', 'StateTransition', 'kalman', 'smoother', 'account_for_nans', 'filter_intervals',
-           'smoother_intervals', 'FFBS', 'disturbance_smoother', 'smoothed_signals', 'simulation_smoother']
+           'smoother_intervals', 'FFBS', 'disturbance_smoother', 'smoothed_signals', 'simulation_smoother',
+           'to_signal_model', 'state_conditional_on_signal', 'state_mode']
 
 # %% ../nbs/10_kalman_filter_smoother.ipynb 1
 import jax.numpy as jnp
@@ -46,7 +47,9 @@ def _filter(
     """perform a single filtering step"""
     y_pred = v + B @ x_pred
     Psi_pred = B @ Xi_pred @ B.T + Omega
-    K = Xi_pred @ B.T @ jnp.linalg.pinv(Psi_pred)  # jsla.solve(Psi_pred, B).T
+    K = (
+        Xi_pred @ B.T @ jnp.linalg.pinv(Psi_pred, hermitian=True)
+    )  # jsla.solve(Psi_pred, B).T
     x_filt = x_pred + K @ (y - y_pred)
     Xi_filt = Xi_pred - K @ Psi_pred @ K.T
 
@@ -105,7 +108,7 @@ def _smooth_step(
     A: StateTransition,
 ):
     err = x_smooth_next - x_pred_next
-    Gain = Xi_filt @ A.T @ jnp.linalg.pinv(Xi_pred_next)
+    Gain = Xi_filt @ A.T @ jnp.linalg.pinv(Xi_pred_next, hermitian=True)
 
     x_smooth = x_filt + Gain @ err
     Xi_smooth = Xi_filt - Gain @ (Xi_pred_next - Xi_smooth_next) @ Gain.T
@@ -266,7 +269,7 @@ def disturbance_smoother(
     # offline computation is faster
     y_tilde = y - mm_time(B, x_pred)
     Psi_pred = B @ Xi_pred @ BT + Omega
-    Psi_pred_pinv = jnp.linalg.pinv(Psi_pred)
+    Psi_pred_pinv = jnp.linalg.pinv(Psi_pred, hermitian=True)
     O_Pinv_y = mm_time(Omega @ Psi_pred_pinv, y_tilde)
     K = Xi_pred @ BT @ Psi_pred_pinv
 
@@ -382,3 +385,31 @@ def simulation_smoother(
     full_samples = jnp.concatenate((samples, l_samples, s_samples, ls_samples), axis=0)
 
     return full_samples
+
+# %% ../nbs/10_kalman_filter_smoother.ipynb 39
+from .typing import PGSSM
+
+
+def to_signal_model(model: GLSSM | PGSSM):
+    np1, p, _ = model.B.shape
+    return GLSSM(
+        model.u,
+        model.A,
+        model.D,
+        model.Sigma0,
+        model.Sigma,
+        model.v,
+        model.B,
+        jnp.zeros((np1, p, p)),
+    )
+
+
+def state_conditional_on_signal(
+    model: GLSSM | PGSSM, signal_mode: Float[Array, "n+1 p"]
+):
+    signal_model = to_signal_model(model)
+    return smoother(kalman(signal_mode, signal_model), signal_model.A)
+
+
+def state_mode(model: GLSSM | PGSSM, signal_mode: Float[Array, "n+1 p"]):
+    return state_conditional_on_signal(model, signal_mode).x_smooth

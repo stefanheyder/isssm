@@ -139,7 +139,7 @@ from .kalman import kalman, smoother
 def _joint_cov(Xi_smooth_t, Xi_smooth_tp1, Xi_filt_t, Xi_pred_tp1, A_t):
     """Joint covariance of conditional Markov process"""
     off_diag = (
-        Xi_filt_t @ A_t.T @ jnp.linalg.pinv(Xi_pred_tp1) @ Xi_smooth_tp1
+        Xi_filt_t @ A_t.T @ jnp.linalg.pinv(Xi_pred_tp1, hermitian=True) @ Xi_smooth_tp1
     )  # jnp.linalg.solve(Xi_pred_tp1, Xi_smooth_tp1)
     return jnp.block([[Xi_smooth_t, off_diag], [off_diag.T, Xi_smooth_tp1]])
 

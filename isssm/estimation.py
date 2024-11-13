@@ -3,7 +3,7 @@
 # %% auto 0
 __all__ = ['vmm', 'gnll', 'gnll_full', 'mle_glssm', 'mle_glssm_ad', 'pgnll', 'initial_theta', 'mle_pgssm']
 
-# %% ../nbs/60_maximum_likelihood_estimation.ipynb 2
+# %% ../nbs/60_maximum_likelihood_estimation.ipynb 3
 import jax.numpy as jnp
 import jax.random as jrn
 from jax import vmap
@@ -18,7 +18,7 @@ from isssm.modified_efficient_importance_sampling import (
 from .importance_sampling import normalize_weights
 from .typing import GLSSM, PGSSM
 
-# %% ../nbs/60_maximum_likelihood_estimation.ipynb 5
+# %% ../nbs/60_maximum_likelihood_estimation.ipynb 6
 from .util import MVN_degenerate as MVN
 
 vmm = vmap(jnp.matmul, (0, 0))
@@ -44,7 +44,7 @@ def gnll_full(y: Float[Array, "n+1 p"], model: GLSSM):  # observations $y_t$
     filtered = kalman(y, model)
     return gnll(y, filtered.x_pred, filtered.Xi_pred, model.B, model.Omega)
 
-# %% ../nbs/60_maximum_likelihood_estimation.ipynb 8
+# %% ../nbs/60_maximum_likelihood_estimation.ipynb 9
 from scipy.optimize import minimize as minimize_scipy
 from jax.scipy.optimize import minimize as minimize_jax
 from scipy.optimize import OptimizeResult
@@ -87,7 +87,7 @@ def mle_glssm_ad(
 
     return minimize_jax(f, theta0, method="BFGS", options=options)
 
-# %% ../nbs/60_maximum_likelihood_estimation.ipynb 15
+# %% ../nbs/60_maximum_likelihood_estimation.ipynb 16
 from jax.scipy.special import logsumexp
 from .importance_sampling import pgssm_importance_sampling
 from .kalman import kalman
@@ -139,7 +139,7 @@ def pgnll(
         log_weights,
     )
 
-# %% ../nbs/60_maximum_likelihood_estimation.ipynb 18
+# %% ../nbs/60_maximum_likelihood_estimation.ipynb 19
 from .importance_sampling import log_weights
 from .laplace_approximation import posterior_mode
 
@@ -151,10 +151,10 @@ def initial_theta(
     aux,  # auxiliary data for the model
     n_iter_la: int,  # number of LA iterations
     options=None,  # options for the optimizer
+    jit_target=True,  # whether to jit the function
 ):
     """Initial value for Maximum Likelihood Estimation for PGSSMs"""
 
-    @jit
     def f(theta):
         model = model_fn(theta, aux)
 
@@ -173,10 +173,13 @@ def initial_theta(
         n_obs = y.size
         return negloglik / n_obs
 
+    if jit_target:
+        f = jit(f)
+
     result = minimize_scipy(f, theta0, method="BFGS", jac="3-point", options=options)
     return result
 
-# %% ../nbs/60_maximum_likelihood_estimation.ipynb 22
+# %% ../nbs/60_maximum_likelihood_estimation.ipynb 24
 def mle_pgssm(
     y: Float[Array, "n+1 p"],  # observations $y_t$
     model_fn,  # parameterized LCSSM
