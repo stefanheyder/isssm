@@ -43,7 +43,14 @@ def converged(
     eps: Float,  # tolerance
 ) -> Bool:  # whether the arrays are close enough
     """check that sup-norm of relative change is smaller than tolerance"""
-    is_close = jnp.max(jnp.abs((new - old) / old)) < eps
+    # Avoid division by zero by using absolute difference where old is zero or close to zero
+    # Use a small threshold to determine when to use absolute vs relative difference
+    threshold = 1e-10
+    is_small = jnp.abs(old) < threshold
+    # For small values, use absolute difference
+    # For larger values, use relative difference
+    diff = jnp.where(is_small, jnp.abs(new - old), jnp.abs((new - old) / old))
+    is_close = jnp.max(diff) < eps
     any_nans = jnp.isnan(new).sum() > 0
     return jnp.logical_or(is_close, any_nans)
 
