@@ -5,11 +5,55 @@
 
 ## Install
 
-Clone this repository, then run
+### Option 1: Install from PyPI (for users)
 
 ``` sh
 pip install isssm
 ```
+
+### Option 2: Development Setup with uv (for contributors)
+
+This project uses [uv](https://github.com/astral-sh/uv) for dependency
+management and virtual environments.
+
+1.  **Install uv** (if not already installed):
+
+    ``` sh
+    # On macOS/Linux
+    curl -LsSf https://astral.sh/uv/install.sh | sh
+
+    # On Windows
+    powershell -c "irm https://astral.sh/uv/install.ps1 | iex"
+    ```
+
+2.  **Clone the repository**:
+
+    ``` sh
+    git clone https://github.com/stefanheyder/isssm.git
+    cd isssm
+    ```
+
+3.  **Create a virtual environment**:
+
+    ``` sh
+    uv venv
+    ```
+
+4.  **Activate the virtual environment**:
+
+    ``` sh
+    # On macOS/Linux
+    source .venv/bin/activate
+
+    # On Windows
+    .venv\Scripts\activate
+    ```
+
+5.  **Install the package in development mode**:
+
+    ``` sh
+    uv pip install -e ".[dev]"
+    ```
 
 ## How to use
 
@@ -19,3 +63,59 @@ examples.
 
 For the mathematics and further details, please have a look at my [PhD
 thesis](https://github.com/stefanheyder/dissertation).
+
+## Development Workflow with nbdev
+
+This project uses [nbdev](https://nbdev.fast.ai/) for literate
+programming. Here’s how to work with it:
+
+1.  **Edit notebooks in the `nbs/` directory**:
+
+    All development happens in Jupyter notebooks in the `nbs/`
+    directory.
+
+2.  **Export your changes to Python modules**:
+
+    ``` sh
+    nbdev_export
+    ```
+
+3.  **Build the documentation**:
+
+    ``` sh
+    nbdev_docs
+    ```
+
+4.  **Preview the documentation locally**:
+
+    ``` sh
+    nbdev_preview
+    ```
+
+## Migration from conda to uv
+
+This project was migrated from using conda/pipenv to uv for dependency
+management:
+
+- **uv** is a fast, reliable Python package installer and resolver
+- Installation is now handled through `pyproject.toml` instead of
+  `Pipfile` or `environment.yml`
+- Development setup is simplified with `uv pip install -e ".[dev]"`
+
+To migrate an existing conda or pipenv environment to uv:
+
+1.  Install uv as shown in the installation instructions above
+2.  Remove or deactivate your existing conda environment
+3.  Follow the development setup steps with uv
+
+## Tips for Working with uv and nbdev
+
+- **Jupyter kernel**: After setting up with uv, select the `.venv`
+  kernel in Jupyter for your notebooks
+- **Adding dependencies**: If you need new packages, add them to
+  `pyproject.toml` and run `uv pip install -e ".[dev]"` again
+- **Clean reinstall**: To start fresh, delete the `.venv` directory and
+  recreate it with
+  `uv venv && source .venv/bin/activate && uv pip install -e ".[dev]"`
+- **Jupyter configuration**: uv-created environments work seamlessly
+  with Jupyter when installed in the same environment

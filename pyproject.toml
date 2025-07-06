@@ -3,11 +3,11 @@ requires = ["setuptools>=42", "wheel", "build"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "isssm"
+name="isssm"
 version = "0.0.1"
 description = "Importance Sampling for State Space Models (in jax)"
 readme = "README.md"
-requires-python = ">=3.7"
+requires-python=">=3.7"
 license = {text = "MIT"}
 authors = [
     {name = "Stefan Heyder", email = "stefan.heyder@gmail.com"}
@@ -52,6 +52,3 @@ doc_path = "_docs"
 recursive = true
 tst_flags = "notest"
 put_version_in_init = true
-
-[tool.uv]
-python = "3.10"
