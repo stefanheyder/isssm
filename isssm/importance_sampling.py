@@ -88,7 +88,7 @@ from jaxtyping import Float, Array
 
 
 def normalize_weights(
-    log_weights: Float[Array, "N"]  # log importance sampling weights
+    log_weights: Float[Array, "N"],  # log importance sampling weights
 ) -> Float[Array, "N"]:  # normalized importance sampling weights
     """Normalize importance sampling weights."""
     max_weight = jnp.max(log_weights)
@@ -104,21 +104,21 @@ from jaxtyping import Float, Array
 
 
 def ess(
-    normalized_weights: Float[Array, "N"]  # normalized weights
+    normalized_weights: Float[Array, "N"],  # normalized weights
 ) -> Float:  # the effective sample size
     """Compute the effective sample size of a set of normalized weights"""
     return 1 / (normalized_weights**2).sum()
 
 
 def ess_lw(
-    log_weights: Float[Array, "N"]  # the log weights
+    log_weights: Float[Array, "N"],  # the log weights
 ) -> Float:  # the effective sample size
     """Compute the effective sample size of a set of log weights"""
     return ess(normalize_weights(log_weights))
 
 
 def ess_pct(
-    log_weights: Float[Array, "N"]  # log weights
+    log_weights: Float[Array, "N"],  # log weights
 ) -> Float:  # the effective sample size in percent, also called efficiency factor
     (N,) = log_weights.shape
     return ess_lw(log_weights) / N * 100
