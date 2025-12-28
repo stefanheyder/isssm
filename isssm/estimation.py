@@ -202,7 +202,7 @@ def mle_pgssm(
 
         key, subkey = jrn.split(key)
         proposal_meis, _ = modified_efficient_importance_sampling(
-            y, model, proposal_la.z, proposal_la.Omega, n_iter_la, N, subkey
+            Y, model, proposal_la.z, proposal_la.Omega, n_iter_la, N, subkey
         )
 
         key, subkey = jrn.split(key)
