@@ -1,0 +1,1442 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
+
+<meta charset="utf-8">
+<meta name="generator" content="quarto-1.8.26">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+
+<meta name="description" content="See also the corresponding section in my thesis">
+
+<title>Maximum Likelihood Estimation – isssm</title>
+<style>
+code{white-space: pre-wrap;}
+span.smallcaps{font-variant: small-caps;}
+div.columns{display: flex; gap: min(4vw, 1.5em);}
+div.column{flex: auto; overflow-x: auto;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+ul.task-list li input[type="checkbox"] {
+  width: 0.8em;
+  margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
+  vertical-align: middle;
+}
+/* CSS for syntax highlighting */
+html { -webkit-text-size-adjust: 100%; }
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+  { counter-reset: source-line 0; }
+pre.numberSource code > span
+  { position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+  { content: counter(source-line);
+    position: relative; left: -1em; text-align: right; vertical-align: baseline;
+    border: none; display: inline-block;
+    -webkit-touch-callout: none; -webkit-user-select: none;
+    -khtml-user-select: none; -moz-user-select: none;
+    -ms-user-select: none; user-select: none;
+    padding: 0 4px; width: 4em;
+  }
+pre.numberSource { margin-left: 3em;  padding-left: 4px; }
+div.sourceCode
+  {   }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+/* CSS for citations */
+div.csl-bib-body { }
+div.csl-entry {
+  clear: both;
+  margin-bottom: 0em;
+}
+.hanging-indent div.csl-entry {
+  margin-left:2em;
+  text-indent:-2em;
+}
+div.csl-left-margin {
+  min-width:2em;
+  float:left;
+}
+div.csl-right-inline {
+  margin-left:2em;
+  padding-left:1em;
+}
+div.csl-indent {
+  margin-left: 2em;
+}</style>
+
+
+<script src="site_libs/quarto-nav/quarto-nav.js"></script>
+<script src="site_libs/quarto-nav/headroom.min.js"></script>
+<script src="site_libs/clipboard/clipboard.min.js"></script>
+<script src="site_libs/quarto-search/autocomplete.umd.js"></script>
+<script src="site_libs/quarto-search/fuse.min.js"></script>
+<script src="site_libs/quarto-search/quarto-search.js"></script>
+<meta name="quarto:offset" content="./">
+<script src="site_libs/quarto-html/quarto.js" type="module"></script>
+<script src="site_libs/quarto-html/tabsets/tabsets.js" type="module"></script>
+<script src="site_libs/quarto-html/axe/axe-check.js" type="module"></script>
+<script src="site_libs/quarto-html/popper.min.js"></script>
+<script src="site_libs/quarto-html/tippy.umd.min.js"></script>
+<script src="site_libs/quarto-html/anchor.min.js"></script>
+<link href="site_libs/quarto-html/tippy.css" rel="stylesheet">
+<link href="site_libs/quarto-html/quarto-syntax-highlighting-587c61ba64f3a5504c4d52d930310e48.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<script src="site_libs/bootstrap/bootstrap.min.js"></script>
+<link href="site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
+<link href="site_libs/bootstrap/bootstrap-000f0825b9c55ed21d14970d810c14a9.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
+<script id="quarto-search-options" type="application/json">{
+  "location": "navbar",
+  "copy-button": false,
+  "collapse-after": 3,
+  "panel-placement": "end",
+  "type": "overlay",
+  "limit": 50,
+  "keyboard-shortcut": [
+    "f",
+    "/",
+    "s"
+  ],
+  "show-item-context": false,
+  "language": {
+    "search-no-results-text": "No results",
+    "search-matching-documents-text": "matching documents",
+    "search-copy-link-title": "Copy link to search",
+    "search-hide-matches-text": "Hide additional matches",
+    "search-more-match-text": "more match in this document",
+    "search-more-matches-text": "more matches in this document",
+    "search-clear-button-title": "Clear",
+    "search-text-placeholder": "",
+    "search-detached-cancel-button-title": "Cancel",
+    "search-submit-button-title": "Submit",
+    "search-label": "Search"
+  }
+}</script>
+
+  <script src="https://cdnjs.cloudflare.com/polyfill/v3/polyfill.min.js?features=es6"></script>
+  <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml-full.js" type="text/javascript"></script>
+
+<script type="text/javascript">
+const typesetMath = (el) => {
+  if (window.MathJax) {
+    // MathJax Typeset
+    window.MathJax.typeset([el]);
+  } else if (window.katex) {
+    // KaTeX Render
+    var mathElements = el.getElementsByClassName("math");
+    var macros = [];
+    for (var i = 0; i < mathElements.length; i++) {
+      var texText = mathElements[i].firstChild;
+      if (mathElements[i].tagName == "SPAN" && texText && texText.data) {
+        window.katex.render(texText.data, mathElements[i], {
+          displayMode: mathElements[i].classList.contains('display'),
+          throwOnError: false,
+          macros: macros,
+          fleqn: false
+        });
+      }
+    }
+  }
+}
+window.Quarto = {
+  typesetMath
+};
+</script>
+
+<link rel="stylesheet" href="styles.css">
+<meta property="og:title" content="Maximum Likelihood Estimation – isssm">
+<meta property="og:description" content="See also the corresponding section in my thesis">
+<meta property="og:site_name" content="isssm">
+<meta name="twitter:title" content="Maximum Likelihood Estimation – isssm">
+<meta name="twitter:description" content="See also the corresponding section in my thesis">
+<meta name="twitter:card" content="summary">
+</head>
+
+<body class="nav-sidebar floating nav-fixed quarto-light">
+
+<div id="quarto-search-results"></div>
+  <header id="quarto-header" class="headroom fixed-top">
+    <nav class="navbar navbar-expand-lg " data-bs-theme="dark">
+      <div class="navbar-container container-fluid">
+      <div class="navbar-brand-container mx-auto">
+    <a class="navbar-brand" href="./index.html">
+    <span class="navbar-title">isssm</span>
+    </a>
+  </div>
+        <div class="quarto-navbar-tools tools-end">
+</div>
+          <div id="quarto-search" class="" title="Search"></div>
+      </div> <!-- /container-fluid -->
+    </nav>
+  <nav class="quarto-secondary-nav">
+    <div class="container-fluid d-flex">
+      <button type="button" class="quarto-btn-toggle btn" data-bs-toggle="collapse" role="button" data-bs-target=".quarto-sidebar-collapse-item" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">
+        <i class="bi bi-layout-text-sidebar-reverse"></i>
+      </button>
+        <nav class="quarto-page-breadcrumbs" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="./maximum_likelihood_estimation.html">Maximum Likelihood Estimation</a></li></ol></nav>
+        <a class="flex-grow-1" role="navigation" data-bs-toggle="collapse" data-bs-target=".quarto-sidebar-collapse-item" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">      
+        </a>
+    </div>
+  </nav>
+</header>
+<!-- content -->
+<div id="quarto-content" class="quarto-container page-columns page-rows-contents page-layout-article page-navbar">
+<!-- sidebar -->
+  <nav id="quarto-sidebar" class="sidebar collapse collapse-horizontal quarto-sidebar-collapse-item sidebar-navigation floating overflow-auto">
+    <div class="sidebar-menu-container"> 
+    <ul class="list-unstyled mt-1">
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./index.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Importance Sampling for State Space Models (isssm)</span></a>
+  </div>
+</li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./glssm.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Gaussian Linear State Space Models</span></a>
+  </div>
+</li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./kalman_filter_smoother.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Kalman filter and smoother variants in JAX</span></a>
+  </div>
+</li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./pgssm.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Partially Gaussian State Space Models with linear Signal</span></a>
+  </div>
+</li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./laplace_approximation.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Laplace approximation for log-concave state space models</span></a>
+  </div>
+</li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./importance_sampling.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Importance Sampling for Partially Gaussian State Space Models</span></a>
+  </div>
+</li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./cross_entropy_method.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Cross-Entropy method</span></a>
+  </div>
+</li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./modified_efficient_importance_sampling.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Modified Efficient Importance Sampling</span></a>
+  </div>
+</li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./maximum_likelihood_estimation.html" class="sidebar-item-text sidebar-link active">
+ <span class="menu-text">Maximum Likelihood Estimation</span></a>
+  </div>
+</li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./typings.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Typings</span></a>
+  </div>
+</li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./util.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Utilities</span></a>
+  </div>
+</li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-1" role="navigation" aria-expanded="true">
+ <span class="menu-text">Models</span></a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-1" role="navigation" aria-expanded="true" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-1" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./Models/gaussian_models.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Example gaussian models</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./Models/stsm.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Basic Structural Time Series Model</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./Models/pgssm.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Partially Gaussian State Space Models with linear Signal</span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-2" role="navigation" aria-expanded="true">
+ <span class="menu-text">models</span></a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-2" role="navigation" aria-expanded="true" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-2" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./models/gaussian_models.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Example gaussian models</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./models/stsm.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Basic Structural Time Series Model</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./models/pgssm.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Partially Gaussian State Space Models with linear Signal</span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+    </ul>
+    </div>
+</nav>
+<div id="quarto-sidebar-glass" class="quarto-sidebar-collapse-item" data-bs-toggle="collapse" data-bs-target=".quarto-sidebar-collapse-item"></div>
+<!-- margin-sidebar -->
+    <div id="quarto-margin-sidebar" class="sidebar margin-sidebar">
+        <nav id="TOC" role="doc-toc" class="toc-active">
+    <h2 id="toc-title">On this page</h2>
+   
+  <ul>
+  <li><a href="#gaussian-linear-models" id="toc-gaussian-linear-models" class="nav-link active" data-scroll-target="#gaussian-linear-models">Gaussian linear models</a>
+  <ul class="collapse">
+  <li><a href="#gnll_full" id="toc-gnll_full" class="nav-link" data-scroll-target="#gnll_full">gnll_full</a></li>
+  <li><a href="#gnll" id="toc-gnll" class="nav-link" data-scroll-target="#gnll">gnll</a></li>
+  </ul></li>
+  <li><a href="#mle-in-glssms" id="toc-mle-in-glssms" class="nav-link" data-scroll-target="#mle-in-glssms">MLE in GLSSMs</a>
+  <ul class="collapse">
+  <li><a href="#mle_glssm_ad" id="toc-mle_glssm_ad" class="nav-link" data-scroll-target="#mle_glssm_ad">mle_glssm_ad</a></li>
+  <li><a href="#mle_glssm" id="toc-mle_glssm" class="nav-link" data-scroll-target="#mle_glssm">mle_glssm</a></li>
+  </ul></li>
+  <li><a href="#inference-for-log-concave-state-space-models" id="toc-inference-for-log-concave-state-space-models" class="nav-link" data-scroll-target="#inference-for-log-concave-state-space-models">Inference for Log-Concave State Space Models</a>
+  <ul class="collapse">
+  <li><a href="#pgnll" id="toc-pgnll" class="nav-link" data-scroll-target="#pgnll">pgnll</a></li>
+  <li><a href="#initial_theta" id="toc-initial_theta" class="nav-link" data-scroll-target="#initial_theta">initial_theta</a></li>
+  <li><a href="#mle_pgssm" id="toc-mle_pgssm" class="nav-link" data-scroll-target="#mle_pgssm">mle_pgssm</a></li>
+  </ul></li>
+  </ul>
+<div class="toc-actions"><ul><li><a href="https://github.com/stefanheyder/isssm/issues/new" class="toc-action"><i class="bi bi-github"></i>Report an issue</a></li></ul></div></nav>
+    </div>
+<!-- main -->
+<main class="content" id="quarto-document-content">
+
+<header id="title-block-header" class="quarto-title-block default">
+<div class="quarto-title">
+<h1 class="title">Maximum Likelihood Estimation</h1>
+</div>
+
+<div>
+  <div class="description">
+    See also the corresponding <a href="https://stefanheyder.github.io/dissertation/thesis.pdf#nameddest=section.3.7">section in my thesis</a>
+  </div>
+</div>
+
+
+<div class="quarto-title-meta">
+
+    
+  
+    
+  </div>
+  
+
+
+</header>
+
+
+<!-- WARNING: THIS FILE WAS AUTOGENERATED! DO NOT EDIT! -->
+<section id="gaussian-linear-models" class="level2">
+<h2 class="anchored" data-anchor-id="gaussian-linear-models">Gaussian linear models</h2>
+<p>For <a href="./glssm.html">GLSSMs</a> we can evaluate the likelihood analytically with a single pass of the Kalman filter. Based on the predictions <span class="math inline">\(\hat Y_{t| t - 1}\)</span> and associated covariance matrices <span class="math inline">\(\Psi_{t + 1 | t}\)</span> for <span class="math inline">\(t = 0, \dots n\)</span> produced by the Kalman filter we can derive the gaussian negative log- likelihood which is given by the gaussian distribution with that mean and covariance matrix and observation <span class="math inline">\(Y_t\)</span>.</p>
+<hr>
+<p><a href="https://github.com/stefanheyder/isssm/blob/main/isssm/estimation.py#L45" target="_blank" style="float:right; font-size:smaller">source</a></p>
+<section id="gnll_full" class="level3">
+<h3 class="anchored" data-anchor-id="gnll_full">gnll_full</h3>
+<blockquote class="blockquote">
+<pre><code> gnll_full (y:jaxtyping.Float[Array,'n+1p'], model:isssm.typing.GLSSM)</code></pre>
+</blockquote>
+<table class="caption-top table">
+<thead>
+<tr class="header">
+<th></th>
+<th><strong>Type</strong></th>
+<th><strong>Details</strong></th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>y</td>
+<td>Float[Array, ‘n+1 p’]</td>
+<td></td>
+</tr>
+<tr class="even">
+<td>model</td>
+<td>GLSSM</td>
+<td>observations <span class="math inline">\(y_t\)</span></td>
+</tr>
+</tbody>
+</table>
+<hr>
+<p><a href="https://github.com/stefanheyder/isssm/blob/main/isssm/estimation.py#L30" target="_blank" style="float:right; font-size:smaller">source</a></p>
+</section>
+<section id="gnll" class="level3">
+<h3 class="anchored" data-anchor-id="gnll">gnll</h3>
+<blockquote class="blockquote">
+<pre><code> gnll (y:jaxtyping.Float[Array,'n+1p'],
+       x_pred:jaxtyping.Float[Array,'n+1m'],
+       Xi_pred:jaxtyping.Float[Array,'n+1mm'],
+       B:jaxtyping.Float[Array,'n+1pm'],
+       Omega:jaxtyping.Float[Array,'n+1pp'])</code></pre>
+</blockquote>
+<p><em>Gaussian negative log-likelihood</em></p>
+<table class="caption-top table">
+<colgroup>
+<col style="width: 9%">
+<col style="width: 38%">
+<col style="width: 52%">
+</colgroup>
+<thead>
+<tr class="header">
+<th></th>
+<th><strong>Type</strong></th>
+<th><strong>Details</strong></th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>y</td>
+<td>Float[Array, ‘n+1 p’]</td>
+<td>observations <span class="math inline">\(y_t\)</span></td>
+</tr>
+<tr class="even">
+<td>x_pred</td>
+<td>Float[Array, ‘n+1 m’]</td>
+<td>predicted states <span class="math inline">\(\hat X_{t+1\bar t}\)</span></td>
+</tr>
+<tr class="odd">
+<td>Xi_pred</td>
+<td>Float[Array, ‘n+1 m m’]</td>
+<td>predicted state covariances <span class="math inline">\(\Xi_{t+1\bar t}\)</span></td>
+</tr>
+<tr class="even">
+<td>B</td>
+<td>Float[Array, ‘n+1 p m’]</td>
+<td>state observation matrices <span class="math inline">\(B_{t}\)</span></td>
+</tr>
+<tr class="odd">
+<td>Omega</td>
+<td>Float[Array, ‘n+1 p p’]</td>
+<td>observation covariances <span class="math inline">\(\Omega_{t}\)</span></td>
+</tr>
+<tr class="even">
+<td><strong>Returns</strong></td>
+<td><strong>Float</strong></td>
+<td><strong>gaussian negative log-likelihood</strong></td>
+</tr>
+</tbody>
+</table>
+</section>
+</section>
+<section id="mle-in-glssms" class="level2">
+<h2 class="anchored" data-anchor-id="mle-in-glssms">MLE in GLSSMs</h2>
+<p>For a parametrized GLSSM, that is a model that depends on parameters <span class="math inline">\(\theta\)</span>, we can use numerical optimization to find the maximum likelihood estimatior.</p>
+<div class="callout callout-style-default callout-caution callout-titled">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+Caution
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<p>With these methods, the user has to take care that they provide a parametrization that is unconstrained, i.e.&nbsp;using <span class="math inline">\(\log\)</span> transformations for positive parameters.</p>
+</div>
+</div>
+<div class="callout callout-style-default callout-note callout-titled">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+<span class="screen-reader-only">Note</span>Implementation Details
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<ol type="1">
+<li>For low dimensional state space models obtaining the gradient of the negative log likelihood may be feasible by automatic differentiation, in this case use the <a href="https://stefanheyder.github.io/isssm/maximum_likelihood_estimation.html#mle_glssm_ad"><code>mle_glssm_ad</code></a> method. Otherwise the derivative free Nelder-Mead method in <a href="https://stefanheyder.github.io/isssm/maximum_likelihood_estimation.html#mle_glssm"><code>mle_glssm</code></a> may be favorable.</li>
+<li>To stabilize numerical results we minimize <span class="math inline">\(\frac{1}{(n + 1)p} \log_{\theta} p(y)\)</span> instead of <span class="math inline">\(\log p_\theta (y)\)</span>.</li>
+</ol>
+</div>
+</div>
+<hr>
+<p><a href="https://github.com/stefanheyder/isssm/blob/main/isssm/estimation.py#L75" target="_blank" style="float:right; font-size:smaller">source</a></p>
+<section id="mle_glssm_ad" class="level3">
+<h3 class="anchored" data-anchor-id="mle_glssm_ad">mle_glssm_ad</h3>
+<blockquote class="blockquote">
+<pre><code> mle_glssm_ad (y:jaxtyping.Float[Array,'n+1p'], model_fn,
+               theta0:jaxtyping.Float[Array,'k'], aux, options=None)</code></pre>
+</blockquote>
+<p><em>Maximum likelihood estimation for GLSSM using automatic differentiation</em></p>
+<table class="caption-top table">
+<colgroup>
+<col style="width: 6%">
+<col style="width: 25%">
+<col style="width: 34%">
+<col style="width: 34%">
+</colgroup>
+<thead>
+<tr class="header">
+<th></th>
+<th><strong>Type</strong></th>
+<th><strong>Default</strong></th>
+<th><strong>Details</strong></th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>y</td>
+<td>Float[Array, ‘n+1 p’]</td>
+<td></td>
+<td>observations <span class="math inline">\(y_t\)</span></td>
+</tr>
+<tr class="even">
+<td>model_fn</td>
+<td></td>
+<td></td>
+<td>parameterize GLSSM</td>
+</tr>
+<tr class="odd">
+<td>theta0</td>
+<td>Float[Array, ‘k’]</td>
+<td></td>
+<td>initial parameter guess</td>
+</tr>
+<tr class="even">
+<td>aux</td>
+<td></td>
+<td></td>
+<td>auxiliary data for the model</td>
+</tr>
+<tr class="odd">
+<td>options</td>
+<td>NoneType</td>
+<td>None</td>
+<td>options for the optimizer</td>
+</tr>
+<tr class="even">
+<td><strong>Returns</strong></td>
+<td><strong>OptimizeResults</strong></td>
+<td></td>
+<td><strong>result of MLE optimization</strong></td>
+</tr>
+</tbody>
+</table>
+<hr>
+<p><a href="https://github.com/stefanheyder/isssm/blob/main/isssm/estimation.py#L56" target="_blank" style="float:right; font-size:smaller">source</a></p>
+</section>
+<section id="mle_glssm" class="level3">
+<h3 class="anchored" data-anchor-id="mle_glssm">mle_glssm</h3>
+<blockquote class="blockquote">
+<pre><code> mle_glssm (y:jaxtyping.Float[Array,'n+1p'], model_fn,
+            theta0:jaxtyping.Float[Array,'k'], aux, options=None)</code></pre>
+</blockquote>
+<p><em>Maximum likelihood estimation for GLSSM</em></p>
+<table class="caption-top table">
+<thead>
+<tr class="header">
+<th></th>
+<th><strong>Type</strong></th>
+<th><strong>Default</strong></th>
+<th><strong>Details</strong></th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>y</td>
+<td>Float[Array, ‘n+1 p’]</td>
+<td></td>
+<td>observations <span class="math inline">\(y_t\)</span></td>
+</tr>
+<tr class="even">
+<td>model_fn</td>
+<td></td>
+<td></td>
+<td>parameterize GLSSM</td>
+</tr>
+<tr class="odd">
+<td>theta0</td>
+<td>Float[Array, ‘k’]</td>
+<td></td>
+<td>initial parameter guess</td>
+</tr>
+<tr class="even">
+<td>aux</td>
+<td></td>
+<td></td>
+<td>auxiliary data for the model</td>
+</tr>
+<tr class="odd">
+<td>options</td>
+<td>NoneType</td>
+<td>None</td>
+<td>options for the optimizer</td>
+</tr>
+<tr class="even">
+<td><strong>Returns</strong></td>
+<td><strong>OptimizeResult</strong></td>
+<td></td>
+<td><strong>result of MLE optimization</strong></td>
+</tr>
+</tbody>
+</table>
+<div id="cell-8" class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb5"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> parameterized_lcm(theta, aux):</span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a>    log_s2_eps, log_s2_eta <span class="op">=</span> theta</span>
+<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a>    n, x0, s2_x0 <span class="op">=</span> aux</span>
+<span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-5"><a href="#cb5-5" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> lcm(n, x0, s2_x0, jnp.exp(log_s2_eps), jnp.exp(log_s2_eta))</span>
+<span id="cb5-6"><a href="#cb5-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-7"><a href="#cb5-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-8"><a href="#cb5-8" aria-hidden="true" tabindex="-1"></a>theta <span class="op">=</span> jnp.log(jnp.array([<span class="fl">2.0</span>, <span class="fl">3.0</span>]))</span>
+<span id="cb5-9"><a href="#cb5-9" aria-hidden="true" tabindex="-1"></a>aux <span class="op">=</span> (<span class="dv">100</span>, <span class="fl">0.0</span>, <span class="fl">1.0</span>)</span>
+<span id="cb5-10"><a href="#cb5-10" aria-hidden="true" tabindex="-1"></a>true_model <span class="op">=</span> parameterized_lcm(theta, aux)</span>
+<span id="cb5-11"><a href="#cb5-11" aria-hidden="true" tabindex="-1"></a>_, (y,) <span class="op">=</span> simulate_glssm(true_model, <span class="dv">1</span>, jrn.PRNGKey(<span class="dv">15435324</span>))</span>
+<span id="cb5-12"><a href="#cb5-12" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-13"><a href="#cb5-13" aria-hidden="true" tabindex="-1"></a><span class="co"># start far away from true parameter</span></span>
+<span id="cb5-14"><a href="#cb5-14" aria-hidden="true" tabindex="-1"></a>result_bfgs <span class="op">=</span> mle_glssm(</span>
+<span id="cb5-15"><a href="#cb5-15" aria-hidden="true" tabindex="-1"></a>    y, parameterized_lcm, <span class="dv">2</span> <span class="op">*</span> jnp.ones(<span class="dv">2</span>), aux, options<span class="op">=</span>{<span class="st">"return_all"</span>: <span class="va">True</span>}</span>
+<span id="cb5-16"><a href="#cb5-16" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb5-17"><a href="#cb5-17" aria-hidden="true" tabindex="-1"></a>result_ad <span class="op">=</span> mle_glssm_ad(y, parameterized_lcm, <span class="dv">2</span> <span class="op">*</span> jnp.ones(<span class="dv">2</span>), aux)</span>
+<span id="cb5-18"><a href="#cb5-18" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-19"><a href="#cb5-19" aria-hidden="true" tabindex="-1"></a>result_bfgs.x <span class="op">-</span> result_ad.x</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</div>
+<p>Numerical differentiation is much faster here, and as accurate as automatic differentiation.</p>
+<div id="cell-10" class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb6"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> matplotlib.pyplot <span class="im">as</span> plt</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</div>
+<div id="cell-11" class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb7"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="co"># 2d grid on the log scale</span></span>
+<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a>k <span class="op">=</span> <span class="dv">21</span>  <span class="co"># number of evaluations in each dimension</span></span>
+<span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a>log_s2_eps, log_s2_eta <span class="op">=</span> jnp.meshgrid(</span>
+<span id="cb7-4"><a href="#cb7-4" aria-hidden="true" tabindex="-1"></a>    jnp.linspace(<span class="op">-</span><span class="dv">3</span>, <span class="dv">3</span>, k) <span class="op">+</span> theta[<span class="dv">0</span>], jnp.linspace(<span class="op">-</span><span class="dv">3</span>, <span class="dv">3</span>, k) <span class="op">+</span> theta[<span class="dv">1</span>]</span>
+<span id="cb7-5"><a href="#cb7-5" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb7-6"><a href="#cb7-6" aria-hidden="true" tabindex="-1"></a><span class="co"># flatten</span></span>
+<span id="cb7-7"><a href="#cb7-7" aria-hidden="true" tabindex="-1"></a>thetas <span class="op">=</span> jnp.vstack([log_s2_eps.ravel(), log_s2_eta.ravel()]).T</span>
+<span id="cb7-8"><a href="#cb7-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb7-9"><a href="#cb7-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb7-10"><a href="#cb7-10" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> gnll_theta(theta):</span>
+<span id="cb7-11"><a href="#cb7-11" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> gnll_full(y, parameterized_lcm(theta, aux))</span>
+<span id="cb7-12"><a href="#cb7-12" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb7-13"><a href="#cb7-13" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb7-14"><a href="#cb7-14" aria-hidden="true" tabindex="-1"></a>nlls <span class="op">=</span> vmap(gnll_theta)(thetas)</span>
+<span id="cb7-15"><a href="#cb7-15" aria-hidden="true" tabindex="-1"></a><span class="co"># location of minium in nlls</span></span>
+<span id="cb7-16"><a href="#cb7-16" aria-hidden="true" tabindex="-1"></a>i <span class="op">=</span> jnp.argmin(nlls)</span>
+<span id="cb7-17"><a href="#cb7-17" aria-hidden="true" tabindex="-1"></a><span class="co"># location of minimum in the grid</span></span>
+<span id="cb7-18"><a href="#cb7-18" aria-hidden="true" tabindex="-1"></a>i_eps, i_eta <span class="op">=</span> i <span class="op">//</span> <span class="dv">21</span>, i <span class="op">%</span> <span class="dv">21</span></span>
+<span id="cb7-19"><a href="#cb7-19" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb7-20"><a href="#cb7-20" aria-hidden="true" tabindex="-1"></a>plt.contourf(log_s2_eps, log_s2_eta, nlls.reshape(k, k), alpha<span class="op">=</span><span class="fl">0.5</span>)</span>
+<span id="cb7-21"><a href="#cb7-21" aria-hidden="true" tabindex="-1"></a>plt.scatter(</span>
+<span id="cb7-22"><a href="#cb7-22" aria-hidden="true" tabindex="-1"></a>    log_s2_eps[i_eps, i_eta],</span>
+<span id="cb7-23"><a href="#cb7-23" aria-hidden="true" tabindex="-1"></a>    log_s2_eta[i_eps, i_eta],</span>
+<span id="cb7-24"><a href="#cb7-24" aria-hidden="true" tabindex="-1"></a>    c<span class="op">=</span><span class="st">"white"</span>,</span>
+<span id="cb7-25"><a href="#cb7-25" aria-hidden="true" tabindex="-1"></a>    marker<span class="op">=</span><span class="st">"x"</span>,</span>
+<span id="cb7-26"><a href="#cb7-26" aria-hidden="true" tabindex="-1"></a>    label<span class="op">=</span><span class="st">"min_grid"</span>,</span>
+<span id="cb7-27"><a href="#cb7-27" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb7-28"><a href="#cb7-28" aria-hidden="true" tabindex="-1"></a>plt.scatter(theta[<span class="dv">0</span>], theta[<span class="dv">1</span>], c<span class="op">=</span><span class="st">"r"</span>, marker<span class="op">=</span><span class="st">"x"</span>, label<span class="op">=</span><span class="st">"true"</span>)</span>
+<span id="cb7-29"><a href="#cb7-29" aria-hidden="true" tabindex="-1"></a>plt.scatter(<span class="op">*</span>result_bfgs.x, c<span class="op">=</span><span class="st">"g"</span>, marker<span class="op">=</span><span class="st">"x"</span>, label<span class="op">=</span><span class="st">"$</span><span class="ch">\\</span><span class="st">hat</span><span class="ch">\\</span><span class="st">theta$"</span>)</span>
+<span id="cb7-30"><a href="#cb7-30" aria-hidden="true" tabindex="-1"></a>plt.legend()</span>
+<span id="cb7-31"><a href="#cb7-31" aria-hidden="true" tabindex="-1"></a>plt.xlabel(<span class="st">"$</span><span class="ch">\\</span><span class="st">log(</span><span class="ch">\\</span><span class="st">sigma^2_</span><span class="ch">\\</span><span class="st">varepsilon)$"</span>)</span>
+<span id="cb7-32"><a href="#cb7-32" aria-hidden="true" tabindex="-1"></a>plt.ylabel(<span class="st">"$</span><span class="ch">\\</span><span class="st">log(</span><span class="ch">\\</span><span class="st">sigma^2_</span><span class="ch">\\</span><span class="st">eta)$"</span>)</span>
+<span id="cb7-33"><a href="#cb7-33" aria-hidden="true" tabindex="-1"></a>plt.colorbar()</span>
+<span id="cb7-34"><a href="#cb7-34" aria-hidden="true" tabindex="-1"></a>plt.show()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</div>
+</section>
+</section>
+<section id="inference-for-log-concave-state-space-models" class="level2">
+<h2 class="anchored" data-anchor-id="inference-for-log-concave-state-space-models">Inference for Log-Concave State Space Models</h2>
+<p>For non-gaussian state space models we cannot evaluate the likelihood analytically but resort to simulation methods, more specifically <a href="./importance_sampling.html">importance sampling</a>.</p>
+<p>Importance Sampling is performed using a surrogate gaussian model that shares the state density <span class="math inline">\(g(x) = p(x)\)</span> and is parameterized by synthetic observations <span class="math inline">\(z\)</span> and their covariance matrices <span class="math inline">\(\Omega\)</span>. In this surrogate model the likeilhood <span class="math inline">\(\ell_g = g(z)\)</span> and posterior distribution <span class="math inline">\(g(x|z)\)</span> are tractable and we can <a href="10_kalman_filter_smoother#Sampling_from_the_smoothing_distribution">simulate from the posterior</a>.</p>
+<p>Having obtained <span class="math inline">\(N\)</span> independent samples <span class="math inline">\(X^i, i= 1, \dots, N\)</span> from this surrogate posterior we can evaluate the likelihood <span class="math inline">\(\ell\)</span> by Monte-Carlo integration:</p>
+<p><span class="math display">\[
+\begin{align*}
+p(y) &amp;= \int p(x, y) \,\mathrm dx \\
+    &amp;=\int \frac{p(x,y)}{g(x|z)} g(x|z) \,\mathrm dx \\
+    &amp;= g(z) \int \frac{p(y|x)}{g(z|x)} g(x|z)\,\mathrm dx \\
+    &amp;\approx g(z) \frac 1 N \sum_{i =1}^N w(X^i)
+\end{align*}
+\]</span></p>
+<p>where <span class="math inline">\(w(X^i) = \frac{p\left(y|X^i\right)}{g\left(z|X^i\right)}\)</span> are the unnormalized importance sampling weights. Additionally, we use the bias correction term $ $ from <span class="citation" data-cites="Durbin1997Monte">(<a href="#ref-Durbin1997Monte" role="doc-biblioref">Durbin and Koopman 1997</a>)</span>, where <span class="math inline">\(s^2_w\)</span> is the empirical variance of the weights and <span class="math inline">\(\bar w\)</span> is their mean.</p>
+<p>In total we estimate the negative log-likelihood by</p>
+<p><span class="math display">\[
+- \log p(y) \approx \ell_g - \log \left(\sum_{i=1}^N w(X^i) \right) + \log N - \frac{s^{2}_{w}}{2 N \bar w^{2}}
+\]</span></p>
+<div class="callout callout-style-default callout-note callout-titled">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+<span class="screen-reader-only">Note</span>Implementation Details
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<ol type="1">
+<li>Similar to MLE in GLSSMs, we minimize <span class="math inline">\(-\frac{1}{(n + 1)p} \log p(y)\)</span> instead of <span class="math inline">\(-\log p(y)\)</span>.</li>
+</ol>
+</div>
+</div>
+<hr>
+<p><a href="https://github.com/stefanheyder/isssm/blob/main/isssm/estimation.py#L113" target="_blank" style="float:right; font-size:smaller">source</a></p>
+<section id="pgnll" class="level3">
+<h3 class="anchored" data-anchor-id="pgnll">pgnll</h3>
+<blockquote class="blockquote">
+<pre><code> pgnll (y:jaxtyping.Float[Array,'n+1p'], model:isssm.typing.PGSSM,
+        z:jaxtyping.Float[Array,'n+1p'],
+        Omega:jaxtyping.Float[Array,'n+1pp'], N:int,
+        key:Union[jaxtyping.Key[Array,''],jaxtyping.UInt32[Array,'2']])</code></pre>
+</blockquote>
+<p><em>Log-Concave Negative Log-Likelihood</em></p>
+<table class="caption-top table">
+<colgroup>
+<col style="width: 9%">
+<col style="width: 38%">
+<col style="width: 52%">
+</colgroup>
+<thead>
+<tr class="header">
+<th></th>
+<th><strong>Type</strong></th>
+<th><strong>Details</strong></th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>y</td>
+<td>Float[Array, ‘n+1 p’]</td>
+<td>observations</td>
+</tr>
+<tr class="even">
+<td>model</td>
+<td>PGSSM</td>
+<td>the model</td>
+</tr>
+<tr class="odd">
+<td>z</td>
+<td>Float[Array, ‘n+1 p’]</td>
+<td>synthetic observations</td>
+</tr>
+<tr class="even">
+<td>Omega</td>
+<td>Float[Array, ‘n+1 p p’]</td>
+<td>covariance of synthetic observations</td>
+</tr>
+<tr class="odd">
+<td>N</td>
+<td>int</td>
+<td>number of samples</td>
+</tr>
+<tr class="even">
+<td>key</td>
+<td>Union</td>
+<td>random key</td>
+</tr>
+<tr class="odd">
+<td><strong>Returns</strong></td>
+<td><strong>Float</strong></td>
+<td><strong>the approximate negative log-likelihood</strong></td>
+</tr>
+</tbody>
+</table>
+<p>To perform maximum likelihood estimation in a parameterized log-concave state space model we have to evaluate the likelihood several times. For evaluating the likelihood at <span class="math inline">\(\theta\)</span> we have to perform the following:</p>
+<ol type="1">
+<li>Find a surrogate Gaussian model <span class="math inline">\(g(x,z)\)</span> for <span class="math inline">\(p_\theta(x,y)\)</span> (e.g.&nbsp;<a href="./laplace_approximation.html">Laplace approximation</a> or <a href="./modified_efficient_importance_sampling.html">efficient importance sampling</a>).</li>
+<li>Generate <a href="./importance_sampling.html">importance samples</a> from these models using the <a href="./kalman_filter_smoother.html">Kalman smoother</a>.</li>
+<li>Approximate the negative log likelihood using the methods of this module.</li>
+</ol>
+<p>This makes maximum likelihood an intensive task for these kinds of models.</p>
+<p>For an initial guess we optimize the approximatie loglikelihood with the weights component fixed at the mode, see Eq. (21) in<span class="citation" data-cites="Durbin1997Monte">(<a href="#ref-Durbin1997Monte" role="doc-biblioref">Durbin and Koopman 1997</a>)</span> for further details.</p>
+<hr>
+<p><a href="https://github.com/stefanheyder/isssm/blob/main/isssm/estimation.py#L149" target="_blank" style="float:right; font-size:smaller">source</a></p>
+</section>
+<section id="initial_theta" class="level3">
+<h3 class="anchored" data-anchor-id="initial_theta">initial_theta</h3>
+<blockquote class="blockquote">
+<pre><code> initial_theta (y:jaxtyping.Float[Array,'n+1p'], model_fn,
+                theta0:jaxtyping.Float[Array,'k'], aux, n_iter_la:int,
+                options=None, jit_target=True)</code></pre>
+</blockquote>
+<p><em>Initial value for Maximum Likelihood Estimation for PGSSMs</em></p>
+<table class="caption-top table">
+<thead>
+<tr class="header">
+<th></th>
+<th><strong>Type</strong></th>
+<th><strong>Default</strong></th>
+<th><strong>Details</strong></th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>y</td>
+<td>Float[Array, ‘n+1 p’]</td>
+<td></td>
+<td>observations <span class="math inline">\(y_t\)</span></td>
+</tr>
+<tr class="even">
+<td>model_fn</td>
+<td></td>
+<td></td>
+<td>parameterized PGSSM</td>
+</tr>
+<tr class="odd">
+<td>theta0</td>
+<td>Float[Array, ‘k’]</td>
+<td></td>
+<td>initial parameter guess</td>
+</tr>
+<tr class="even">
+<td>aux</td>
+<td></td>
+<td></td>
+<td>auxiliary data for the model</td>
+</tr>
+<tr class="odd">
+<td>n_iter_la</td>
+<td>int</td>
+<td></td>
+<td>number of LA iterations</td>
+</tr>
+<tr class="even">
+<td>options</td>
+<td>NoneType</td>
+<td>None</td>
+<td>options for the optimizer</td>
+</tr>
+<tr class="odd">
+<td>jit_target</td>
+<td>bool</td>
+<td>True</td>
+<td>whether to jit the function</td>
+</tr>
+</tbody>
+</table>
+<p>As an example consider a parameterized version of the <a href="20_lcssm.ipynb#running">running example</a> with unknown parameters <span class="math inline">\(\sigma^2_\varepsilon\)</span> and <span class="math inline">\(r\)</span>.</p>
+<div id="cell-17" class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb10"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> model_fn(theta, aux) <span class="op">-&gt;</span> PGSSM:</span>
+<span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a>    log_s2_eps, log_r <span class="op">=</span> theta</span>
+<span id="cb10-3"><a href="#cb10-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-4"><a href="#cb10-4" aria-hidden="true" tabindex="-1"></a>    n, x0 <span class="op">=</span> aux</span>
+<span id="cb10-5"><a href="#cb10-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-6"><a href="#cb10-6" aria-hidden="true" tabindex="-1"></a>    r <span class="op">=</span> jnp.exp(log_r)</span>
+<span id="cb10-7"><a href="#cb10-7" aria-hidden="true" tabindex="-1"></a>    s2_eps <span class="op">=</span> jnp.exp(log_s2_eps)</span>
+<span id="cb10-8"><a href="#cb10-8" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> nb_pgssm_running_example(</span>
+<span id="cb10-9"><a href="#cb10-9" aria-hidden="true" tabindex="-1"></a>        s_order<span class="op">=</span><span class="dv">0</span>,</span>
+<span id="cb10-10"><a href="#cb10-10" aria-hidden="true" tabindex="-1"></a>        Sigma0_seasonal<span class="op">=</span>jnp.eye(<span class="dv">0</span>),</span>
+<span id="cb10-11"><a href="#cb10-11" aria-hidden="true" tabindex="-1"></a>        x0_seasonal<span class="op">=</span>jnp.zeros(<span class="dv">0</span>),</span>
+<span id="cb10-12"><a href="#cb10-12" aria-hidden="true" tabindex="-1"></a>        s2_speed<span class="op">=</span>s2_eps,</span>
+<span id="cb10-13"><a href="#cb10-13" aria-hidden="true" tabindex="-1"></a>        r<span class="op">=</span>r,</span>
+<span id="cb10-14"><a href="#cb10-14" aria-hidden="true" tabindex="-1"></a>        n<span class="op">=</span>n,</span>
+<span id="cb10-15"><a href="#cb10-15" aria-hidden="true" tabindex="-1"></a>    )</span>
+<span id="cb10-16"><a href="#cb10-16" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-17"><a href="#cb10-17" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-18"><a href="#cb10-18" aria-hidden="true" tabindex="-1"></a>n <span class="op">=</span> <span class="dv">100</span></span>
+<span id="cb10-19"><a href="#cb10-19" aria-hidden="true" tabindex="-1"></a>theta_lc <span class="op">=</span> jnp.array([jnp.log(<span class="dv">1</span>), jnp.log(<span class="fl">20.0</span>)])</span>
+<span id="cb10-20"><a href="#cb10-20" aria-hidden="true" tabindex="-1"></a>aux <span class="op">=</span> (n, jnp.ones(<span class="dv">2</span>))</span>
+<span id="cb10-21"><a href="#cb10-21" aria-hidden="true" tabindex="-1"></a>model <span class="op">=</span> model_fn(theta_lc, aux)</span>
+<span id="cb10-22"><a href="#cb10-22" aria-hidden="true" tabindex="-1"></a>key <span class="op">=</span> jrn.PRNGKey(<span class="dv">512</span>)</span>
+<span id="cb10-23"><a href="#cb10-23" aria-hidden="true" tabindex="-1"></a>key, subkey <span class="op">=</span> jrn.split(key)</span>
+<span id="cb10-24"><a href="#cb10-24" aria-hidden="true" tabindex="-1"></a>_, (y,) <span class="op">=</span> simulate_pgssm(model, <span class="dv">1</span>, subkey)</span>
+<span id="cb10-25"><a href="#cb10-25" aria-hidden="true" tabindex="-1"></a>theta_lc</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</div>
+<div id="cell-18" class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb11"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a>initial_result <span class="op">=</span> initial_theta(y, model_fn, theta_lc, aux, <span class="dv">10</span>)</span>
+<span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a>theta0 <span class="op">=</span> initial_result.x</span>
+<span id="cb11-3"><a href="#cb11-3" aria-hidden="true" tabindex="-1"></a>initial_result</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</div>
+<hr>
+<p><a href="https://github.com/stefanheyder/isssm/blob/main/isssm/estimation.py#L185" target="_blank" style="float:right; font-size:smaller">source</a></p>
+</section>
+<section id="mle_pgssm" class="level3">
+<h3 class="anchored" data-anchor-id="mle_pgssm">mle_pgssm</h3>
+<blockquote class="blockquote">
+<pre><code> mle_pgssm (y:jaxtyping.Float[Array,'n+1p'], model_fn,
+            theta0:jaxtyping.Float[Array,'k'], aux, n_iter_la:int, N:int,
+            key:jax.Array, options=None)</code></pre>
+</blockquote>
+<p><em>Maximum Likelihood Estimation for PGSSMs</em></p>
+<table class="caption-top table">
+<thead>
+<tr class="header">
+<th></th>
+<th><strong>Type</strong></th>
+<th><strong>Default</strong></th>
+<th><strong>Details</strong></th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>y</td>
+<td>Float[Array, ‘n+1 p’]</td>
+<td></td>
+<td>observations <span class="math inline">\(y_t\)</span></td>
+</tr>
+<tr class="even">
+<td>model_fn</td>
+<td></td>
+<td></td>
+<td>parameterized LCSSM</td>
+</tr>
+<tr class="odd">
+<td>theta0</td>
+<td>Float[Array, ‘k’]</td>
+<td></td>
+<td>initial parameter guess</td>
+</tr>
+<tr class="even">
+<td>aux</td>
+<td></td>
+<td></td>
+<td>auxiliary data for the model</td>
+</tr>
+<tr class="odd">
+<td>n_iter_la</td>
+<td>int</td>
+<td></td>
+<td>number of LA iterations</td>
+</tr>
+<tr class="even">
+<td>N</td>
+<td>int</td>
+<td></td>
+<td>number of importance samples</td>
+</tr>
+<tr class="odd">
+<td>key</td>
+<td>Array</td>
+<td></td>
+<td>random key</td>
+</tr>
+<tr class="even">
+<td>options</td>
+<td>NoneType</td>
+<td>None</td>
+<td>options for the optimizer</td>
+</tr>
+<tr class="odd">
+<td><strong>Returns</strong></td>
+<td><strong>Float[Array, ‘k’]</strong></td>
+<td></td>
+<td><strong>MLE</strong></td>
+</tr>
+</tbody>
+</table>
+<div id="cell-20" class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb13"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a>key, subkey <span class="op">=</span> jrn.split(key)</span>
+<span id="cb13-2"><a href="#cb13-2" aria-hidden="true" tabindex="-1"></a>result <span class="op">=</span> mle_pgssm(y, model_fn, theta0, aux, <span class="dv">10</span>, <span class="dv">1000</span>, subkey)</span>
+<span id="cb13-3"><a href="#cb13-3" aria-hidden="true" tabindex="-1"></a>theta_hat <span class="op">=</span> result.x</span>
+<span id="cb13-4"><a href="#cb13-4" aria-hidden="true" tabindex="-1"></a>result</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</div>
+<div id="cell-21" class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb14"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a><span class="at">@jit</span></span>
+<span id="cb14-2"><a href="#cb14-2" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> pgnll_full(theta, key):</span>
+<span id="cb14-3"><a href="#cb14-3" aria-hidden="true" tabindex="-1"></a>    model <span class="op">=</span> model_fn(theta, aux)</span>
+<span id="cb14-4"><a href="#cb14-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb14-5"><a href="#cb14-5" aria-hidden="true" tabindex="-1"></a>    proposal, info <span class="op">=</span> laplace_approximation(y, model, <span class="dv">10</span>)</span>
+<span id="cb14-6"><a href="#cb14-6" aria-hidden="true" tabindex="-1"></a>    key, subkey <span class="op">=</span> jrn.split(key)</span>
+<span id="cb14-7"><a href="#cb14-7" aria-hidden="true" tabindex="-1"></a>    proposal_meis, _ <span class="op">=</span> modified_efficient_importance_sampling(</span>
+<span id="cb14-8"><a href="#cb14-8" aria-hidden="true" tabindex="-1"></a>        y, model, proposal.z, proposal.Omega, <span class="dv">10</span>, <span class="dv">100</span>, subkey</span>
+<span id="cb14-9"><a href="#cb14-9" aria-hidden="true" tabindex="-1"></a>    )</span>
+<span id="cb14-10"><a href="#cb14-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb14-11"><a href="#cb14-11" aria-hidden="true" tabindex="-1"></a>    key, subkey <span class="op">=</span> jrn.split(key)</span>
+<span id="cb14-12"><a href="#cb14-12" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> pgnll(y, model, proposal_meis.z, proposal_meis.Omega, <span class="dv">100</span>, subkey) <span class="op">/</span> y.size</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</div>
+<div id="cell-22" class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb15"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a><span class="co"># 2d grid on the log scale</span></span>
+<span id="cb15-2"><a href="#cb15-2" aria-hidden="true" tabindex="-1"></a>(log_sigma_min, log_r_min), (log_sigma_max, log_r_max) <span class="op">=</span> jnp.<span class="bu">min</span>(</span>
+<span id="cb15-3"><a href="#cb15-3" aria-hidden="true" tabindex="-1"></a>    jnp.vstack((theta_lc, theta0, theta_hat)), axis<span class="op">=</span><span class="dv">0</span></span>
+<span id="cb15-4"><a href="#cb15-4" aria-hidden="true" tabindex="-1"></a>), jnp.<span class="bu">max</span>(jnp.vstack((theta_lc, theta0, theta_hat)), axis<span class="op">=</span><span class="dv">0</span>)</span>
+<span id="cb15-5"><a href="#cb15-5" aria-hidden="true" tabindex="-1"></a>k <span class="op">=</span> <span class="dv">20</span>  <span class="co"># number of evaluations in each dimension</span></span>
+<span id="cb15-6"><a href="#cb15-6" aria-hidden="true" tabindex="-1"></a>delta <span class="op">=</span> <span class="fl">0.5</span></span>
+<span id="cb15-7"><a href="#cb15-7" aria-hidden="true" tabindex="-1"></a>log_sigma, log_r <span class="op">=</span> jnp.meshgrid(</span>
+<span id="cb15-8"><a href="#cb15-8" aria-hidden="true" tabindex="-1"></a>    jnp.linspace(log_sigma_min <span class="op">-</span> delta, log_sigma_max <span class="op">+</span> delta, k),</span>
+<span id="cb15-9"><a href="#cb15-9" aria-hidden="true" tabindex="-1"></a>    jnp.linspace(log_r_min <span class="op">-</span> delta, log_r_max <span class="op">+</span> delta, k),</span>
+<span id="cb15-10"><a href="#cb15-10" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb15-11"><a href="#cb15-11" aria-hidden="true" tabindex="-1"></a><span class="co"># flatten</span></span>
+<span id="cb15-12"><a href="#cb15-12" aria-hidden="true" tabindex="-1"></a>thetas <span class="op">=</span> jnp.vstack([log_sigma.ravel(), log_r.ravel()]).T</span>
+<span id="cb15-13"><a href="#cb15-13" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb15-14"><a href="#cb15-14" aria-hidden="true" tabindex="-1"></a>key, subkey <span class="op">=</span> jrn.split(key)</span>
+<span id="cb15-15"><a href="#cb15-15" aria-hidden="true" tabindex="-1"></a>nlls <span class="op">=</span> vmap(pgnll_full, (<span class="dv">0</span>, <span class="va">None</span>))(thetas, subkey)</span>
+<span id="cb15-16"><a href="#cb15-16" aria-hidden="true" tabindex="-1"></a><span class="co"># location of minimum in nlls</span></span>
+<span id="cb15-17"><a href="#cb15-17" aria-hidden="true" tabindex="-1"></a>i <span class="op">=</span> jnp.argmin(nlls)</span>
+<span id="cb15-18"><a href="#cb15-18" aria-hidden="true" tabindex="-1"></a><span class="co"># location of minimum in the grid</span></span>
+<span id="cb15-19"><a href="#cb15-19" aria-hidden="true" tabindex="-1"></a>i_sigma, i_r <span class="op">=</span> i <span class="op">//</span> k, i <span class="op">%</span> k</span>
+<span id="cb15-20"><a href="#cb15-20" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb15-21"><a href="#cb15-21" aria-hidden="true" tabindex="-1"></a>plt.contourf(log_sigma, log_r, nlls.reshape(k, k))</span>
+<span id="cb15-22"><a href="#cb15-22" aria-hidden="true" tabindex="-1"></a>plt.scatter(</span>
+<span id="cb15-23"><a href="#cb15-23" aria-hidden="true" tabindex="-1"></a>    log_sigma[i_sigma, i_r],</span>
+<span id="cb15-24"><a href="#cb15-24" aria-hidden="true" tabindex="-1"></a>    log_r[i_sigma, i_r],</span>
+<span id="cb15-25"><a href="#cb15-25" aria-hidden="true" tabindex="-1"></a>    c<span class="op">=</span><span class="st">"white"</span>,</span>
+<span id="cb15-26"><a href="#cb15-26" aria-hidden="true" tabindex="-1"></a>    marker<span class="op">=</span><span class="st">"x"</span>,</span>
+<span id="cb15-27"><a href="#cb15-27" aria-hidden="true" tabindex="-1"></a>    label<span class="op">=</span><span class="st">"min_grid"</span>,</span>
+<span id="cb15-28"><a href="#cb15-28" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb15-29"><a href="#cb15-29" aria-hidden="true" tabindex="-1"></a>plt.scatter(theta_lc[<span class="dv">0</span>], theta_lc[<span class="dv">1</span>], c<span class="op">=</span><span class="st">"r"</span>, marker<span class="op">=</span><span class="st">"x"</span>, label<span class="op">=</span><span class="st">"true"</span>)</span>
+<span id="cb15-30"><a href="#cb15-30" aria-hidden="true" tabindex="-1"></a>plt.scatter(theta0[<span class="dv">0</span>], theta0[<span class="dv">1</span>], c<span class="op">=</span><span class="st">"black"</span>, marker<span class="op">=</span><span class="st">"x"</span>, label<span class="op">=</span><span class="st">"$</span><span class="ch">\\</span><span class="st">theta_0$"</span>)</span>
+<span id="cb15-31"><a href="#cb15-31" aria-hidden="true" tabindex="-1"></a>plt.scatter(<span class="op">*</span>theta_hat, c<span class="op">=</span><span class="st">"g"</span>, marker<span class="op">=</span><span class="st">"o"</span>, label<span class="op">=</span><span class="st">"min_mle"</span>)</span>
+<span id="cb15-32"><a href="#cb15-32" aria-hidden="true" tabindex="-1"></a>plt.legend()</span>
+<span id="cb15-33"><a href="#cb15-33" aria-hidden="true" tabindex="-1"></a>plt.xlabel(<span class="st">"$</span><span class="ch">\\</span><span class="st">log(</span><span class="ch">\\</span><span class="st">sigma^2_</span><span class="ch">\\</span><span class="st">varepsilon)$"</span>)</span>
+<span id="cb15-34"><a href="#cb15-34" aria-hidden="true" tabindex="-1"></a>plt.ylabel(<span class="st">"$</span><span class="ch">\\</span><span class="st">log(r)$"</span>)</span>
+<span id="cb15-35"><a href="#cb15-35" aria-hidden="true" tabindex="-1"></a>plt.colorbar()</span>
+<span id="cb15-36"><a href="#cb15-36" aria-hidden="true" tabindex="-1"></a>plt.show()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</div>
+<p>From the above picture, we see that <span class="math inline">\(\log r\)</span> is hard to determine: the likelihood is very flat in the <span class="math inline">\(r\)</span> direction, which explains the precision loss warning in the optimizer. Nevertheless, our estimate <span class="math inline">\(\hat\theta\)</span> seems to have converged to a reasonable value.</p>
+
+
+
+</section>
+</section>
+
+<div id="quarto-appendix" class="default"><section class="quarto-appendix-contents" role="doc-bibliography" id="quarto-bibliography"><h2 class="anchored quarto-appendix-heading">References</h2><div id="refs" class="references csl-bib-body hanging-indent" data-entry-spacing="0" role="list">
+<div id="ref-Durbin1997Monte" class="csl-entry" role="listitem">
+Durbin, James, and Siem Jan Koopman. 1997. <span>“Monte <span>Carlo</span> Maximum Likelihood Estimation for Non-<span>Gaussian</span> State Space Models.”</span> <em>Biometrika</em> 84 (3): 669–84. <a href="https://doi.org/10.1093/biomet/84.3.669">https://doi.org/10.1093/biomet/84.3.669</a>.
+</div>
+</div></section></div></main> <!-- /main -->
+<script id="quarto-html-after-body" type="application/javascript">
+  window.document.addEventListener("DOMContentLoaded", function (event) {
+    const icon = "";
+    const anchorJS = new window.AnchorJS();
+    anchorJS.options = {
+      placement: 'right',
+      icon: icon
+    };
+    anchorJS.add('.anchored');
+    const isCodeAnnotation = (el) => {
+      for (const clz of el.classList) {
+        if (clz.startsWith('code-annotation-')) {                     
+          return true;
+        }
+      }
+      return false;
+    }
+    const onCopySuccess = function(e) {
+      // button target
+      const button = e.trigger;
+      // don't keep focus
+      button.blur();
+      // flash "checked"
+      button.classList.add('code-copy-button-checked');
+      var currentTitle = button.getAttribute("title");
+      button.setAttribute("title", "Copied!");
+      let tooltip;
+      if (window.bootstrap) {
+        button.setAttribute("data-bs-toggle", "tooltip");
+        button.setAttribute("data-bs-placement", "left");
+        button.setAttribute("data-bs-title", "Copied!");
+        tooltip = new bootstrap.Tooltip(button, 
+          { trigger: "manual", 
+            customClass: "code-copy-button-tooltip",
+            offset: [0, -8]});
+        tooltip.show();    
+      }
+      setTimeout(function() {
+        if (tooltip) {
+          tooltip.hide();
+          button.removeAttribute("data-bs-title");
+          button.removeAttribute("data-bs-toggle");
+          button.removeAttribute("data-bs-placement");
+        }
+        button.setAttribute("title", currentTitle);
+        button.classList.remove('code-copy-button-checked');
+      }, 1000);
+      // clear code selection
+      e.clearSelection();
+    }
+    const getTextToCopy = function(trigger) {
+      const outerScaffold = trigger.parentElement.cloneNode(true);
+      const codeEl = outerScaffold.querySelector('code');
+      for (const childEl of codeEl.children) {
+        if (isCodeAnnotation(childEl)) {
+          childEl.remove();
+        }
+      }
+      return codeEl.innerText;
+    }
+    const clipboard = new window.ClipboardJS('.code-copy-button:not([data-in-quarto-modal])', {
+      text: getTextToCopy
+    });
+    clipboard.on('success', onCopySuccess);
+    if (window.document.getElementById('quarto-embedded-source-code-modal')) {
+      const clipboardModal = new window.ClipboardJS('.code-copy-button[data-in-quarto-modal]', {
+        text: getTextToCopy,
+        container: window.document.getElementById('quarto-embedded-source-code-modal')
+      });
+      clipboardModal.on('success', onCopySuccess);
+    }
+      var localhostRegex = new RegExp(/^(?:http|https):\/\/localhost\:?[0-9]*\//);
+      var mailtoRegex = new RegExp(/^mailto:/);
+        var filterRegex = new RegExp("https:\/\/stefanheyder\.github\.io\/isssm");
+      var isInternal = (href) => {
+          return filterRegex.test(href) || localhostRegex.test(href) || mailtoRegex.test(href);
+      }
+      // Inspect non-navigation links and adorn them if external
+     var links = window.document.querySelectorAll('a[href]:not(.nav-link):not(.navbar-brand):not(.toc-action):not(.sidebar-link):not(.sidebar-item-toggle):not(.pagination-link):not(.no-external):not([aria-hidden]):not(.dropdown-item):not(.quarto-navigation-tool):not(.about-link)');
+      for (var i=0; i<links.length; i++) {
+        const link = links[i];
+        if (!isInternal(link.href)) {
+          // undo the damage that might have been done by quarto-nav.js in the case of
+          // links that we want to consider external
+          if (link.dataset.originalHref !== undefined) {
+            link.href = link.dataset.originalHref;
+          }
+        }
+      }
+    function tippyHover(el, contentFn, onTriggerFn, onUntriggerFn) {
+      const config = {
+        allowHTML: true,
+        maxWidth: 500,
+        delay: 100,
+        arrow: false,
+        appendTo: function(el) {
+            return el.parentElement;
+        },
+        interactive: true,
+        interactiveBorder: 10,
+        theme: 'quarto',
+        placement: 'bottom-start',
+      };
+      if (contentFn) {
+        config.content = contentFn;
+      }
+      if (onTriggerFn) {
+        config.onTrigger = onTriggerFn;
+      }
+      if (onUntriggerFn) {
+        config.onUntrigger = onUntriggerFn;
+      }
+      window.tippy(el, config); 
+    }
+    const noterefs = window.document.querySelectorAll('a[role="doc-noteref"]');
+    for (var i=0; i<noterefs.length; i++) {
+      const ref = noterefs[i];
+      tippyHover(ref, function() {
+        // use id or data attribute instead here
+        let href = ref.getAttribute('data-footnote-href') || ref.getAttribute('href');
+        try { href = new URL(href).hash; } catch {}
+        const id = href.replace(/^#\/?/, "");
+        const note = window.document.getElementById(id);
+        if (note) {
+          return note.innerHTML;
+        } else {
+          return "";
+        }
+      });
+    }
+    const xrefs = window.document.querySelectorAll('a.quarto-xref');
+    const processXRef = (id, note) => {
+      // Strip column container classes
+      const stripColumnClz = (el) => {
+        el.classList.remove("page-full", "page-columns");
+        if (el.children) {
+          for (const child of el.children) {
+            stripColumnClz(child);
+          }
+        }
+      }
+      stripColumnClz(note)
+      if (id === null || id.startsWith('sec-')) {
+        // Special case sections, only their first couple elements
+        const container = document.createElement("div");
+        if (note.children && note.children.length > 2) {
+          container.appendChild(note.children[0].cloneNode(true));
+          for (let i = 1; i < note.children.length; i++) {
+            const child = note.children[i];
+            if (child.tagName === "P" && child.innerText === "") {
+              continue;
+            } else {
+              container.appendChild(child.cloneNode(true));
+              break;
+            }
+          }
+          if (window.Quarto?.typesetMath) {
+            window.Quarto.typesetMath(container);
+          }
+          return container.innerHTML
+        } else {
+          if (window.Quarto?.typesetMath) {
+            window.Quarto.typesetMath(note);
+          }
+          return note.innerHTML;
+        }
+      } else {
+        // Remove any anchor links if they are present
+        const anchorLink = note.querySelector('a.anchorjs-link');
+        if (anchorLink) {
+          anchorLink.remove();
+        }
+        if (window.Quarto?.typesetMath) {
+          window.Quarto.typesetMath(note);
+        }
+        if (note.classList.contains("callout")) {
+          return note.outerHTML;
+        } else {
+          return note.innerHTML;
+        }
+      }
+    }
+    for (var i=0; i<xrefs.length; i++) {
+      const xref = xrefs[i];
+      tippyHover(xref, undefined, function(instance) {
+        instance.disable();
+        let url = xref.getAttribute('href');
+        let hash = undefined; 
+        if (url.startsWith('#')) {
+          hash = url;
+        } else {
+          try { hash = new URL(url).hash; } catch {}
+        }
+        if (hash) {
+          const id = hash.replace(/^#\/?/, "");
+          const note = window.document.getElementById(id);
+          if (note !== null) {
+            try {
+              const html = processXRef(id, note.cloneNode(true));
+              instance.setContent(html);
+            } finally {
+              instance.enable();
+              instance.show();
+            }
+          } else {
+            // See if we can fetch this
+            fetch(url.split('#')[0])
+            .then(res => res.text())
+            .then(html => {
+              const parser = new DOMParser();
+              const htmlDoc = parser.parseFromString(html, "text/html");
+              const note = htmlDoc.getElementById(id);
+              if (note !== null) {
+                const html = processXRef(id, note);
+                instance.setContent(html);
+              } 
+            }).finally(() => {
+              instance.enable();
+              instance.show();
+            });
+          }
+        } else {
+          // See if we can fetch a full url (with no hash to target)
+          // This is a special case and we should probably do some content thinning / targeting
+          fetch(url)
+          .then(res => res.text())
+          .then(html => {
+            const parser = new DOMParser();
+            const htmlDoc = parser.parseFromString(html, "text/html");
+            const note = htmlDoc.querySelector('main.content');
+            if (note !== null) {
+              // This should only happen for chapter cross references
+              // (since there is no id in the URL)
+              // remove the first header
+              if (note.children.length > 0 && note.children[0].tagName === "HEADER") {
+                note.children[0].remove();
+              }
+              const html = processXRef(null, note);
+              instance.setContent(html);
+            } 
+          }).finally(() => {
+            instance.enable();
+            instance.show();
+          });
+        }
+      }, function(instance) {
+      });
+    }
+        let selectedAnnoteEl;
+        const selectorForAnnotation = ( cell, annotation) => {
+          let cellAttr = 'data-code-cell="' + cell + '"';
+          let lineAttr = 'data-code-annotation="' +  annotation + '"';
+          const selector = 'span[' + cellAttr + '][' + lineAttr + ']';
+          return selector;
+        }
+        const selectCodeLines = (annoteEl) => {
+          const doc = window.document;
+          const targetCell = annoteEl.getAttribute("data-target-cell");
+          const targetAnnotation = annoteEl.getAttribute("data-target-annotation");
+          const annoteSpan = window.document.querySelector(selectorForAnnotation(targetCell, targetAnnotation));
+          const lines = annoteSpan.getAttribute("data-code-lines").split(",");
+          const lineIds = lines.map((line) => {
+            return targetCell + "-" + line;
+          })
+          let top = null;
+          let height = null;
+          let parent = null;
+          if (lineIds.length > 0) {
+              //compute the position of the single el (top and bottom and make a div)
+              const el = window.document.getElementById(lineIds[0]);
+              top = el.offsetTop;
+              height = el.offsetHeight;
+              parent = el.parentElement.parentElement;
+            if (lineIds.length > 1) {
+              const lastEl = window.document.getElementById(lineIds[lineIds.length - 1]);
+              const bottom = lastEl.offsetTop + lastEl.offsetHeight;
+              height = bottom - top;
+            }
+            if (top !== null && height !== null && parent !== null) {
+              // cook up a div (if necessary) and position it 
+              let div = window.document.getElementById("code-annotation-line-highlight");
+              if (div === null) {
+                div = window.document.createElement("div");
+                div.setAttribute("id", "code-annotation-line-highlight");
+                div.style.position = 'absolute';
+                parent.appendChild(div);
+              }
+              div.style.top = top - 2 + "px";
+              div.style.height = height + 4 + "px";
+              div.style.left = 0;
+              let gutterDiv = window.document.getElementById("code-annotation-line-highlight-gutter");
+              if (gutterDiv === null) {
+                gutterDiv = window.document.createElement("div");
+                gutterDiv.setAttribute("id", "code-annotation-line-highlight-gutter");
+                gutterDiv.style.position = 'absolute';
+                const codeCell = window.document.getElementById(targetCell);
+                const gutter = codeCell.querySelector('.code-annotation-gutter');
+                gutter.appendChild(gutterDiv);
+              }
+              gutterDiv.style.top = top - 2 + "px";
+              gutterDiv.style.height = height + 4 + "px";
+            }
+            selectedAnnoteEl = annoteEl;
+          }
+        };
+        const unselectCodeLines = () => {
+          const elementsIds = ["code-annotation-line-highlight", "code-annotation-line-highlight-gutter"];
+          elementsIds.forEach((elId) => {
+            const div = window.document.getElementById(elId);
+            if (div) {
+              div.remove();
+            }
+          });
+          selectedAnnoteEl = undefined;
+        };
+          // Handle positioning of the toggle
+      window.addEventListener(
+        "resize",
+        throttle(() => {
+          elRect = undefined;
+          if (selectedAnnoteEl) {
+            selectCodeLines(selectedAnnoteEl);
+          }
+        }, 10)
+      );
+      function throttle(fn, ms) {
+      let throttle = false;
+      let timer;
+        return (...args) => {
+          if(!throttle) { // first call gets through
+              fn.apply(this, args);
+              throttle = true;
+          } else { // all the others get throttled
+              if(timer) clearTimeout(timer); // cancel #2
+              timer = setTimeout(() => {
+                fn.apply(this, args);
+                timer = throttle = false;
+              }, ms);
+          }
+        };
+      }
+        // Attach click handler to the DT
+        const annoteDls = window.document.querySelectorAll('dt[data-target-cell]');
+        for (const annoteDlNode of annoteDls) {
+          annoteDlNode.addEventListener('click', (event) => {
+            const clickedEl = event.target;
+            if (clickedEl !== selectedAnnoteEl) {
+              unselectCodeLines();
+              const activeEl = window.document.querySelector('dt[data-target-cell].code-annotation-active');
+              if (activeEl) {
+                activeEl.classList.remove('code-annotation-active');
+              }
+              selectCodeLines(clickedEl);
+              clickedEl.classList.add('code-annotation-active');
+            } else {
+              // Unselect the line
+              unselectCodeLines();
+              clickedEl.classList.remove('code-annotation-active');
+            }
+          });
+        }
+    const findCites = (el) => {
+      const parentEl = el.parentElement;
+      if (parentEl) {
+        const cites = parentEl.dataset.cites;
+        if (cites) {
+          return {
+            el,
+            cites: cites.split(' ')
+          };
+        } else {
+          return findCites(el.parentElement)
+        }
+      } else {
+        return undefined;
+      }
+    };
+    var bibliorefs = window.document.querySelectorAll('a[role="doc-biblioref"]');
+    for (var i=0; i<bibliorefs.length; i++) {
+      const ref = bibliorefs[i];
+      const citeInfo = findCites(ref);
+      if (citeInfo) {
+        tippyHover(citeInfo.el, function() {
+          var popup = window.document.createElement('div');
+          citeInfo.cites.forEach(function(cite) {
+            var citeDiv = window.document.createElement('div');
+            citeDiv.classList.add('hanging-indent');
+            citeDiv.classList.add('csl-entry');
+            var biblioDiv = window.document.getElementById('ref-' + cite);
+            if (biblioDiv) {
+              citeDiv.innerHTML = biblioDiv.innerHTML;
+            }
+            popup.appendChild(citeDiv);
+          });
+          return popup.innerHTML;
+        });
+      }
+    }
+  });
+  </script>
+</div> <!-- /content -->
+
+
+
+
+<footer class="footer"><div class="nav-footer"><div class="nav-footer-center"><div class="toc-actions d-sm-block d-md-none"><ul><li><a href="https://github.com/stefanheyder/isssm/issues/new" class="toc-action"><i class="bi bi-github"></i>Report an issue</a></li></ul></div></div></div></footer></body></html>
